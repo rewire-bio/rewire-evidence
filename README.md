@@ -26,7 +26,7 @@ The old store is the test oracle, and it is big enough to be decisive. Nothing h
 | P11 | Span resolution | committed figures and TSV reports | 52,278 | Not started |
 | P12 | Extractor equivalence | position-joined candidate comparison | 418,440 | Not started |
 
-Every stage has to meet three things before it is accepted: a gate under `scripts/` that reproduces committed data and asserts the row count, 100% line and branch coverage of the library, and clean runs of `mypy --strict` and Ruff. All three run in CI.
+Every stage has to meet three things before it is accepted: a gate under `scripts/` that reproduces committed data and asserts the row count, 100% line and branch coverage of the library, and clean runs of `mypy --strict` and Ruff. All three run in CI. The gate scripts hold no logic of their own, so the coverage figure includes what they do.
 
 The gate runs in CI against one pinned commit of the store, not against main as it stands, so a red run has one explanation rather than two. Bumping the pin is a commit of its own.
 
@@ -38,7 +38,7 @@ uv run python scripts/verify_store_digests.py ../rewire-benchmark-data
 uv run python scripts/verify_store_layout.py ../rewire-benchmark-data
 ```
 
-The second one holds every count against `scripts/expected/store-layout.json`, which names the store commit it was measured at. A checkout of any other commit is expected to fail it.
+The second one holds every count, and the SHA-256 of each family's files, against `scripts/expected/store-layout.json`, which names the store commit they were measured at. A checkout of any other commit, or an edited one, fails it. Both exit 0 when everything reproduces, 1 on a disagreement and 2 when the run could not be made.
 
 ## Why byte identity matters here
 
@@ -65,8 +65,9 @@ src/rewire_evidence/canonical.py   serialisation, digests, shards
 src/rewire_evidence/jsonl.py       line files, split on the newline only
 src/rewire_evidence/store.py       where records and provenance live, logical digests, reshard
 src/rewire_evidence/families.py    every family of store file: serialisation, order, placement
-src/rewire_evidence/parity.py      the store-layout gate
-scripts/                           the gates as commands, the pinned expectation, the fixture recorder
+src/rewire_evidence/parity.py      what the two gates measure
+src/rewire_evidence/gates.py       the gates as commands: arguments, report, exit status
+scripts/                           one thin file per gate, the pinned expectation, the fixture recorder
 tests/                             pytest and Hypothesis, with the Node fixtures
 docs/stages/                       one note per ported stage: oracle, measured result, known gaps
 ```

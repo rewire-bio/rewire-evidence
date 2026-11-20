@@ -5,7 +5,8 @@
 # input moves is a gate whose result cannot be compared with yesterday's: a run that goes red
 # would leave two explanations, this library changed or the store did. Bumping the pin is a
 # commit, and the numbers it is expected to produce go in that commit: STORE_REF and
-# STORE_RECORDS here, and every other count in scripts/expected/store-layout.json.
+# STORE_RECORDS here, and every other count and the digest of each family's files in
+# scripts/expected/store-layout.json.
 name: Checks
 
 on:
@@ -90,8 +91,10 @@ jobs:
           fi
 
       # Every file of every family re-emitted byte for byte, every row in the file the layout
-      # assigns it, and the logical digests equal to the newest release receipt. The script
-      # fails on any count that is not the pinned one, so no count is checked again here.
+      # assigns it, every record against its provenance row, the logical digests equal to the
+      # newest release receipt, and the writers held against the committed files. The script
+      # fails on any count that is not the pinned one and on any family whose files are not
+      # the pinned bytes, and writes layout.json whenever it could run at all.
       - name: Reproduce the store layout
         run: |
           set -o pipefail
