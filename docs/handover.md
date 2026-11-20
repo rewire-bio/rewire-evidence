@@ -179,7 +179,7 @@ Note: `node_modules` in `wt/drift-ids-20261120` was a symlink to a sibling workt
 
 All finished. No monitors armed, no background shells running.
 
-**Cleanup worth doing: about 2.2 GB of throwaway clones** are in the session scratchpad at `/private/tmp/claude-501/-Users-timrichardson-Documents-projects-personal-blog/2b3e629e-c97e-4855-9278-c3793c720747/scratchpad/`, as `l6-dry` (724M), `l6-dry2` (724M) and `l6-real` (778M). Nothing depends on them; `l6-real` is the exact object set pushed to `-next`.
+The three throwaway clones from the Lane 6 work (`l6-dry`, `l6-dry2`, `l6-real`, 2.2 GB between them) have been deleted. Nothing depended on them: `l6-real` was the exact object set already pushed to `-next`, and the cutover re-filters from a fresh clone regardless. Other directories remain in that session scratchpad from earlier in the day; it is session-scoped temporary space and nothing in this repository or the data repository references it.
 
 ---
 
