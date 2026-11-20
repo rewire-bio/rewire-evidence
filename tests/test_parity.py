@@ -3,14 +3,20 @@
 from __future__ import annotations
 
 import json
-import subprocess
-import sys
+import re
 from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
-from rewire_evidence.canonical import JsonObject, canonical_json, js_stringify, record_sha256
+from rewire_evidence.canonical import (
+    JsonObject,
+    canonical_json,
+    js_stringify,
+    record_sha256,
+    sha256_hex,
+    shard_of,
+)
 from rewire_evidence.families import (
     CANDIDATES,
     FAMILIES,
@@ -18,17 +24,20 @@ from rewire_evidence.families import (
     LICENCE_RECEIPTS,
     MANIFEST,
     MOVED,
+    PROVENANCE,
     REGISTRY,
     UNSUPPORTED,
     append_rows,
     fetch_receipt_path,
     licence_receipt_path,
     manifest_shard_path,
+    stray_files,
     write_family,
 )
 from rewire_evidence.jsonl import StoreError, join_lines, write_text
 from rewire_evidence.parity import (
     Expectation,
+    compare_content,
     compare_counts,
     first_difference,
     newest_release,
@@ -38,6 +47,8 @@ from rewire_evidence.parity import (
     to_json,
     verify_digests,
     verify_family,
+    verify_record_digests,
+    verify_records,
     verify_store,
     verify_writers,
 )
@@ -127,6 +138,7 @@ EXPECTED_COUNTS = {
     "logical_digests_matched": 4,
     "written.family_lines": 20,
     "written.resharded_records": 5,
+    "written.split_records": 5,
 }
 
 
@@ -141,6 +153,7 @@ def test_a_store_written_by_the_library_passes_with_every_count(tmp_path: Path) 
     assert counts.pop("written.family_files") == 12 + provenance_files
     assert counts.pop("written.store_files") == 4 + provenance_files
     assert counts.pop("written.resharded_files") == 4 + provenance_files
+    assert counts.pop("written.split_files") == 4 + provenance_files
     assert counts == EXPECTED_COUNTS
     assert compare_counts(counts, EXPECTED_COUNTS) == []
 
@@ -152,13 +165,29 @@ def test_a_store_written_by_the_library_passes_with_every_count(tmp_path: Path) 
     assert f"files the family writers reproduce on disk: {12 + provenance_files} (20 lines)" in text
     assert f"record and provenance files write_store reproduces: {4 + provenance_files}" in text
     assert f"reshard of that copy: 5 records placed, {4 + provenance_files} files unchanged" in text
-    expectation = Expectation("abc123", RELEASE, EXPECTED_COUNTS)
+    assert (
+        "reshard of an unsharded copy, lines out of order: 5 records placed, "
+        f"{4 + provenance_files} files as committed"
+    ) in text
+    content = report.content()
+    assert list(content) == [family.name for family in FAMILIES]
+    assert all(len(digest) == 64 for digest in content.values())
+    expectation = Expectation("abc123", RELEASE, report.counts(), content)
     assert json.loads(to_json(report, expectation)) == {
         "store_ref": "abc123",
         "release_receipt": RELEASE,
         "counts": report.counts(),
+        "content": content,
         "problems": [],
     }
+    # The report file carries what the gate printed: a count or a digest that is off is in it.
+    off = Expectation(
+        "abc123", RELEASE, {**report.counts(), "manifest.lines": 3}, {**content, "manifest": "0"}
+    )
+    assert [problem.split(" ")[0] for problem in json.loads(to_json(report, off))["problems"]] == [
+        "manifest.lines",
+        "manifest",
+    ]
 
 
 def test_an_empty_checkout_reports_no_files_and_cannot_name_a_receipt(tmp_path: Path) -> None:
@@ -278,7 +307,9 @@ def test_a_file_that_cannot_be_read_as_rows_is_a_problem_and_not_a_crash(tmp_pat
     assert report.problems[0].startswith("data/archive/licence-candidates.jsonl is not UTF-8")
     assert (report.files, report.lines) == (1, 0)
     write_text(file, '{"id":"no-source"}\n')
-    assert verify_family(CANDIDATES, tmp_path).problems == ["a row has no string 'source_id'"]
+    assert verify_family(CANDIDATES, tmp_path).problems == [
+        "data/archive/licence-candidates.jsonl:1 has no string 'source_id'"
+    ]
 
 
 def test_digests_are_held_against_the_named_receipt(tmp_path: Path) -> None:
@@ -353,25 +384,36 @@ def test_release_times_are_compared_as_times_and_not_as_text(tmp_path: Path) -> 
 def test_the_expectation_is_read_and_checked(tmp_path: Path) -> None:
     path = tmp_path / "expected.json"
     path.write_text(
-        '{"store_ref": "abc", "release_receipt": "r", "counts": {"a.lines": 3}}', encoding="utf-8"
+        '{"store_ref": "abc", "release_receipt": "r", "counts": {"a.lines": 3}, "content": {}}',
+        encoding="utf-8",
     )
-    assert read_expectation(path) == Expectation("abc", "r", {"a.lines": 3})
+    assert read_expectation(path) == Expectation("abc", "r", {"a.lines": 3}, {})
+    path.write_text(
+        '{"store_ref": "abc", "release_receipt": "r", "counts": {}, "content": {"manifest": "00ff"}}',
+        encoding="utf-8",
+    )
+    assert read_expectation(path) == Expectation("abc", "r", {}, {"manifest": "00ff"})
     for body, problem in [
-        ('{"store_ref": "abc", "release_receipt": "r"}', "counts is not a JSON object"),
+        ('{"store_ref": "abc", "release_receipt": "r", "content": {}}', "counts is not a JSON object"),
         (
-            '{"store_ref": "abc", "release_receipt": "r", "counts": {"a": "3"}}',
+            '{"store_ref": "abc", "release_receipt": "r", "counts": {"a": "3"}, "content": {}}',
             "counts.a is not a whole number",
         ),
         (
-            '{"store_ref": "abc", "release_receipt": "r", "counts": {"a": true}}',
+            '{"store_ref": "abc", "release_receipt": "r", "counts": {"a": true}, "content": {}}',
             "counts.a is not a whole number",
         ),
         (
-            '{"store_ref": "abc", "release_receipt": "r", "counts": {"a": 1.5}}',
+            '{"store_ref": "abc", "release_receipt": "r", "counts": {"a": 1.5}, "content": {}}',
             "counts.a is not a whole number",
         ),
-        ('{"release_receipt": "r", "counts": {}}', "store_ref is not a string"),
-        ('{"store_ref": "abc", "counts": {}}', "release_receipt is not a string"),
+        ('{"store_ref": "abc", "release_receipt": "r", "counts": {}}', "content is not a JSON object"),
+        (
+            '{"store_ref": "abc", "release_receipt": "r", "counts": {}, "content": {"manifest": 1}}',
+            r"content\.manifest is not a string",
+        ),
+        ('{"release_receipt": "r", "counts": {}, "content": {}}', "store_ref is not a string"),
+        ('{"store_ref": "abc", "counts": {}, "content": {}}', "release_receipt is not a string"),
     ]:
         path.write_text(body, encoding="utf-8")
         with pytest.raises(StoreError, match=problem):
@@ -389,6 +431,11 @@ def test_the_committed_expectation_is_well_formed() -> None:
     )
     assert expectation.counts["records_matching_provenance"] == expectation.counts["provenance.lines"]
     assert expectation.counts["written.resharded_records"] == expectation.counts["provenance.lines"]
+    assert expectation.counts["written.split_records"] == expectation.counts["provenance.lines"]
+    assert expectation.counts["written.split_files"] == expectation.counts["written.store_files"]
+    assert list(expectation.content) == [family.name for family in FAMILIES]
+    assert all(re.fullmatch("[0-9a-f]{64}", digest) for digest in expectation.content.values())
+    assert len(set(expectation.content.values())) == len(FAMILIES)
     assert expectation.counts["written.family_files"] == sum(
         count for name, count in expectation.counts.items() if name.endswith(".files")
     )
@@ -413,6 +460,9 @@ def test_the_writers_are_held_against_the_committed_files(tmp_path: Path) -> Non
     assert report.resharded_records == 5
     assert report.family_files - report.store_files == 8
     assert report.resharded_files == report.store_files
+    # models.jsonl holds two records, so the unsharded copy holds them in descending order
+    # and only a reshard that sorts gives the committed file back.
+    assert (report.split_records, report.split_files) == (5, report.store_files)
     # The checkout is read and never written to.
     assert {path: path.read_bytes() for path in root.rglob("*") if path.is_file()} == before
 
@@ -434,8 +484,12 @@ def test_a_file_no_writer_would_write_is_named_by_the_writers(tmp_path: Path) ->
             f"{name} is not the same file after a reshard"
             for name in (misplaced, right.relative_to(root).as_posix())
         ),
+        *sorted(
+            f"{name} is not the same file after a reshard of an unsharded copy"
+            for name in (misplaced, right.relative_to(root).as_posix())
+        ),
     ]
-    assert report.resharded_records == 5
+    assert (report.resharded_records, report.split_records) == (5, 5)
 
 
 def test_a_file_whose_rows_cannot_be_placed_is_named_by_the_writers(tmp_path: Path) -> None:
@@ -444,7 +498,7 @@ def test_a_file_whose_rows_cannot_be_placed_is_named_by_the_writers(tmp_path: Pa
     write_text(root / "data/entities/models.jsonl", '{"kind":"model"}\n')
     report = verify_writers(root, tmp_path / "scratch")
     assert report.problems[0] == (
-        "data/entities/models.jsonl could not be written again: a record has no string 'id'"
+        "data/entities/models.jsonl could not be written again: row 1 has no string 'id'"
     )
     assert "data/entities/models.jsonl is not the same file after a reshard" in report.problems
 
@@ -467,40 +521,247 @@ def test_a_second_writer_that_drifts_from_the_first_is_caught(
     assert not any("family writer" in problem for problem in report.problems)
 
 
-def run_gate(*arguments: str) -> subprocess.CompletedProcess[str]:
-    script = Path(__file__).parent.parent / "scripts/verify_store_layout.py"
-    # The interpreter running the tests and a script in this repository: nothing untrusted.
-    return subprocess.run(  # noqa: S603
-        [sys.executable, str(script), *arguments], capture_output=True, text=True, check=False
+def test_an_edit_that_stays_canonical_passes_every_self_check_and_fails_the_pinned_bytes(
+    tmp_path: Path,
+) -> None:
+    # Outside the records, nothing ties a row to a digest. Each of these edits leaves a file
+    # that re-emits byte for byte, in order, with the same counts. Only the pinned digest of
+    # the family's files can tell it is not the store the expectation was measured on.
+    build(tmp_path)
+    before = verify_store(tmp_path, RELEASE, tmp_path / "scratch-before")
+    pinned = Expectation("abc123", RELEASE, before.counts(), before.content())
+    assert compare_content(before.content(), pinned) == []
+
+    for file, old, new in (
+        (manifest_shard_path("a", tmp_path), '"store":"r2"', '"store":"r3"'),
+        (fetch_receipt_path("2026-11-17", tmp_path), '"source_id":"s"', '"source_id":"t"'),
+        (licence_receipt_path("2026-11-17", tmp_path), '"source_id":"s"', '"source_id":"t"'),
+        (tmp_path / "data/archive/licence-candidates.jsonl", '"s1"', '"s0"'),
+        (tmp_path / "data/omics/layers/registry.jsonl", '{"b":1,"a":2}', '{"a":2,"b":2}'),
+        (tmp_path / "data/omics/layers/unsupported.jsonl", '"binary"', '"other"'),
+        (tmp_path / "data/provenance/moved-attributes.jsonl", '"old":1', '"old":2'),
+    ):
+        text = file.read_text("utf-8")
+        assert old in text
+        write_text(file, text.replace(old, new))
+    after = verify_store(tmp_path, RELEASE, tmp_path / "scratch-after")
+    assert after.problems() == []
+    assert compare_counts(after.counts(), pinned.counts) == []
+    problems = compare_content(after.content(), pinned)
+    assert [problem.split(" ")[0] for problem in problems] == [
+        "fetch_receipts",
+        "layer_registry",
+        "layers_unsupported",
+        "licence_candidates",
+        "licence_receipts",
+        "manifest",
+        "moved_attributes",
+    ]
+    assert problems[0] == (
+        f"fetch_receipts holds files with digest {after.content()['fetch_receipts']}, not the "
+        f"{before.content()['fetch_receipts']} measured at abc123: "
+        "the checkout is another commit, or was edited"
     )
 
 
-def test_the_command_exits_0_1_or_2(tmp_path: Path) -> None:
-    root = tmp_path / "store"
-    build(root)
-    counts = verify_store(root, RELEASE, tmp_path / "scratch").counts()
-    expected = tmp_path / "expected.json"
-    expected.write_text(
-        json.dumps({"store_ref": "abc123", "release_receipt": RELEASE, "counts": counts}), encoding="utf-8"
+def test_a_family_digest_covers_the_paths_as_well_as_the_bytes(tmp_path: Path) -> None:
+    build(tmp_path)
+    before = verify_family(MANIFEST, tmp_path).sha256
+    assert verify_family(MANIFEST, tmp_path).sha256 == before
+    # The same bytes under another name, and an empty file, are both a different family.
+    empty = manifest_shard_path("0", tmp_path)
+    write_text(empty, "")
+    with_empty = verify_family(MANIFEST, tmp_path).sha256
+    assert with_empty != before
+    empty.rename(manifest_shard_path("1", tmp_path))
+    assert verify_family(MANIFEST, tmp_path).sha256 not in {before, with_empty}
+    assert verify_family(MANIFEST, tmp_path / "nowhere").sha256 == sha256_hex("")
+
+
+def test_a_digest_that_is_missing_or_not_pinned_fails() -> None:
+    pinned = Expectation("abc123", RELEASE, {}, {"a": "1", "b": "2"})
+    assert compare_content({"a": "1", "b": "2"}, pinned) == []
+    assert compare_content({"a": "1", "c": "3"}, pinned) == [
+        "b has a pinned digest and was not measured",
+        "c holds files with digest 3, and no digest is pinned for it",
+    ]
+
+
+def test_files_no_family_reads_are_reported(tmp_path: Path) -> None:
+    build(tmp_path)
+    assert stray_files(tmp_path) == []
+    assert stray_files(tmp_path / "nowhere") == []
+    strays = [
+        "data/archive/objects/g.jsonl",
+        "data/archive/objects/notes.md",
+        "data/omics/audits/2026-1-01-archive-fetch.receipts.jsonl",
+        "data/omics/audits/2026-11-17-licence-resolve.receipts.jsonl.bak",
+        "data/omics/audits/x2026-11-17-archive-fetch.receipts.jsonl",
+    ]
+    for name in strays:
+        write_text(tmp_path / name, "garbage\n")
+    # Other audit files are not receipts of a family here and are nobody's stray.
+    write_text(tmp_path / "data/omics/audits/2026-09-19-source-access.receipts.jsonl", "by hand\n")
+    write_text(tmp_path / "data/omics/audits/audit-2026-09-19.run.json", "{}\n")
+    assert [file.relative_to(tmp_path).as_posix() for file in stray_files(tmp_path)] == strays
+    report = verify_store(tmp_path, RELEASE, tmp_path / "scratch")
+    assert report.strays == strays
+    assert report.problems() == [
+        f"stray: {name} sits among a family's files and belongs to none" for name in strays
+    ]
+
+
+def test_every_record_that_fails_is_named_and_the_gate_still_reports(tmp_path: Path) -> None:
+    build(tmp_path)
+    assert verify_records(tmp_path).problems == []
+    assert verify_records(tmp_path).matched == 5
+    assert verify_records(tmp_path / "nowhere").problems == []
+
+    models = tmp_path / "data/entities/models.jsonl"
+    changed = '{"id":"model-a","kind":"model","attributes":{"z":0.00001,"a":2}}'
+    unlisted = '{"id":"model-c","kind":"model"}'
+    banana = '{"id":"model-d","kind":"banana"}'
+    endless = '{"id":"model-e","kind":"model","n":1e400}'
+    write_text(models, join_lines([changed, js_stringify(RECORDS[1]), js_stringify(RECORDS[1]), unlisted]))
+    write_text(
+        tmp_path / "data/entities/datasets.jsonl", join_lines([js_stringify(RECORDS[1]), banana, endless])
     )
-    measured = tmp_path / "measured.json"
+    write_text(tmp_path / "data/entities/tasks.jsonl", "{\n")
+    report = verify_records(tmp_path)
+    assert report.matched == 4
+    assert [problem.replace(str(tmp_path), "") for problem in report.problems] == [
+        "model-b (model) is in the wrong file: /data/entities/datasets.jsonl",
+        "/data/entities/datasets.jsonl:2 (model-d) has the kind 'banana', which is not a record kind",
+        "model-e (model) is in the wrong file: /data/entities/datasets.jsonl",
+        "model-a changed without a provenance entry. Record the change in data/provenance/records.",
+        "/data/entities/models.jsonl is not sorted by unique ID at model-b",
+        "model-c has no provenance entry in data/provenance/records",
+        (
+            "/data/entities/tasks.jsonl:1 is not JSON: Expecting property name enclosed in double quotes: "
+            "line 1 column 2 (char 1)"
+        ),
+        "data/provenance/records lists 5 records; the store holds 10",
+    ]
 
-    passed = run_gate(str(root), "--expected", str(expected), "--json", str(measured))
-    assert passed.returncode == 0, passed.stderr
-    assert "store pinned at abc123" in passed.stdout
-    assert (
-        f"All 20 lines in {sum(n for name, n in counts.items() if name.endswith('.files'))} files reproduce."
-        in (passed.stdout)
+    # The whole gate finishes with every table filled in. One changed record is a
+    # disagreement to report, not a run that could not be made.
+    full = verify_store(tmp_path, RELEASE, tmp_path / "scratch")
+    assert full.records.matched == 4
+    assert "records: model-a changed without a provenance entry." in " ".join(full.problems())
+    assert "records matching their provenance digest:  4" in summary(full)
+    assert full.digests.digests == 0
+    assert full.digests.problems[0].startswith("the store's digests could not be taken: ")
+    assert full.digests.problems[0].endswith(
+        "tasks.jsonl:1 is not JSON: " + report.problems[-2].split(": ", 1)[1]
     )
-    assert json.loads(measured.read_text("utf-8"))["counts"] == counts
+    assert len(full.families) == len(FAMILIES)
 
-    # A thinner store: every file still reproduces, and the pinned counts refuse it.
-    manifest_shard_path("b", root).unlink()
-    thinner = run_gate(str(root), "--expected", str(expected))
-    assert thinner.returncode == 1
-    assert "manifest.lines was measured as 1 against a pin of 2" in thinner.stderr
-    assert "The store layout does not reproduce." in thinner.stderr
 
-    unreadable = run_gate(str(tmp_path / "nowhere"), "--expected", str(expected))
-    assert unreadable.returncode == 2
-    assert "Cannot verify:" in unreadable.stderr
+def test_a_record_that_cannot_be_hashed_is_named(tmp_path: Path) -> None:
+    build(tmp_path)
+    models = tmp_path / "data/entities/models.jsonl"
+    write_text(models, models.read_text("utf-8").replace("0.00001", "1e400"))
+    report = verify_records(tmp_path)
+    assert report.matched == 4
+    assert report.problems == [
+        (
+            f"{models}:1 (model-a) cannot be written: JSON.stringify writes null for inf; "
+            "it is not a number a record may hold"
+        )
+    ]
+    family = verify_family(FAMILIES[0], tmp_path)
+    assert family.problems == [
+        (
+            "data/entities/models.jsonl:1 cannot be written: JSON.stringify writes null for inf; "
+            "it is not a number a record may hold"
+        )
+    ]
+    written = verify_writers(tmp_path, tmp_path / "scratch")
+    assert written.problems[0].startswith(
+        "data/entities/models.jsonl could not be written again: row 1 cannot be written: JSON.stringify"
+    )
+
+
+def test_a_provenance_log_that_cannot_be_read_is_one_named_problem(tmp_path: Path) -> None:
+    build(tmp_path)
+    right = next(iter(sorted((tmp_path / "data/provenance/records").iterdir())))
+    wrong = right.with_name(f"{'0' if right.stem != '0' else '1'}.jsonl")
+    right.rename(wrong)
+    report = verify_records(tmp_path)
+    assert report.matched == 0
+    assert len(report.problems) == 1
+    assert report.problems[0].startswith("Provenance for ")
+    assert report.problems[0].endswith(f"is in the wrong file: {wrong}")
+
+
+def test_rows_no_writer_could_place_are_problems_and_not_crashes(tmp_path: Path) -> None:
+    # A row that parses and cannot be placed, hashed or walked ends as a named problem.
+    lone = "\ud800-lone"
+    row: JsonObject = {"id": lone, "sha256": "0" * 64}
+    line = js_stringify(row)
+    assert "\\ud800" in line
+    shard = tmp_path / "data/provenance/records" / f"{shard_of(lone)}.jsonl"
+    write_text(shard, line + "\n")
+    report = verify_family(PROVENANCE, tmp_path)
+    assert (report.files, report.lines, report.placed, report.problems) == (1, 1, 1, [])
+
+    write_text(
+        tmp_path / "data/entities/models.jsonl", '{"id":"x","kind":"banana"}\n{"id":"y","kind":"model"}\n'
+    )
+    report = verify_family(FAMILIES[0], tmp_path)
+    assert report.problems == ["data/entities/models.jsonl:1 (x): 'banana' is not a record kind"]
+    assert (report.lines, report.placed) == (2, 1)
+
+    write_text(tmp_path / "data/archive/licence-candidates.jsonl", "[" * 100_000 + "\n")
+    assert verify_family(CANDIDATES, tmp_path).problems == [
+        "data/archive/licence-candidates.jsonl:1 is nested too deeply to read"
+    ]
+    write_text(
+        tmp_path / "data/archive/licence-candidates.jsonl", '{"source_id":"s","n":' + "9" * 5000 + "}\n"
+    )
+    assert verify_family(CANDIDATES, tmp_path).problems == [
+        (
+            "data/archive/licence-candidates.jsonl:1 cannot be written: JSON.stringify writes null for inf; "
+            "it is not a number a record may hold"
+        )
+    ]
+
+
+def test_every_record_digest_is_recomputed(tmp_path: Path) -> None:
+    build(tmp_path)
+    report = verify_record_digests(tmp_path)
+    assert (report.provenance_rows, report.matched, report.mismatched, report.unlisted) == (5, 5, 0, 0)
+    assert report.shown == []
+
+    models = tmp_path / "data/entities/models.jsonl"
+    rows = [
+        '{"id":"model-a","kind":"model","attributes":{"a":1,"z":0.00001}}',
+        '{"id":"model-b","kind":"model","n":1e400}',
+        '{"id":"model-c","kind":"model"}',
+        '{"kind":"model"}',
+    ]
+    write_text(models, join_lines(rows))
+    report = verify_record_digests(tmp_path, shown=1)
+    assert (report.matched, report.mismatched, report.unlisted) == (3, 2, 2)
+    assert report.shown == [
+        (
+            "  models.jsonl model-a\n"
+            f"    committed {record_sha256(RECORDS[0])}\n"
+            f"    computed  {sha256_hex(rows[0])}"
+        )
+    ]
+    assert "cannot be written" in verify_record_digests(tmp_path).shown[1]
+
+
+def test_the_digest_gate_refuses_what_is_not_a_store(tmp_path: Path) -> None:
+    with pytest.raises(StoreError, match=r"is missing, so .* is not a benchmark-data checkout"):
+        verify_record_digests(tmp_path)
+    (tmp_path / "data/provenance/records").mkdir(parents=True)
+    with pytest.raises(StoreError, match="holds no provenance rows"):
+        verify_record_digests(tmp_path)
+    write_text(tmp_path / "data/provenance/records/0.jsonl", '{"sha256":"x"}\n')
+    with pytest.raises(StoreError, match=r"0\.jsonl:1 has no string 'id'"):
+        verify_record_digests(tmp_path)
+    write_text(tmp_path / "data/provenance/records/0.jsonl", '{"id":"a","sha256":"x"}\n')
+    with pytest.raises(StoreError, match="holds no record files"):
+        verify_record_digests(tmp_path)

@@ -40,6 +40,20 @@
     "written.family_lines": 199585,
     "written.store_files": 78,
     "written.resharded_records": 93216,
-    "written.resharded_files": 78
+    "written.resharded_files": 78,
+    "written.split_records": 93216,
+    "written.split_files": 78
+  },
+  "content": {
+    "entities": "15762864b5a7a77b705b6fc79635972897988ef00462f35e9d36e244167e138c",
+    "evidence": "6f7a9bbed3513c3aaf614802424ee3eba18e76c6a2115866556a8fa52b9b20ad",
+    "provenance": "183676ac44b51f4ea82982e882b6f92d771d50c75643b4dc41deee48ef5fb825",
+    "moved_attributes": "2534e68539b8f0556a340fb8c8e4b4d45a20a8fdfb649b96449f42ccf36134be",
+    "manifest": "ed9beb1be1fc54dcefee6ab5cfa2c3c4b2fd512bca04191b6e257157febf0abf",
+    "fetch_receipts": "0b924e244ee8a30382d0194c7954c83e44ab22a6522cfbf374c726afdf3d891d",
+    "licence_receipts": "0d21de3176a2240929be39b6a8de0a6f472a970ef817c5a9102a5b0cdfee6cf0",
+    "licence_candidates": "1c9a2bb846411116565d8e1478ff62b23df45b4af2a3386c96c683c4ad4ce230",
+    "layer_registry": "9121b787bd2fd70f01a5414497e7105ff78b6d595ee5757cead7c0ca2a80b42a",
+    "layers_unsupported": "568d4a4c23a435e025b93ddc21554eb0928ae3ff1c846014c11886b41c873b66"
   }
 }
