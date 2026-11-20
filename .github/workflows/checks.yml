@@ -1,0 +1,63 @@
+# Lint, tests, and the gate that matters: reproducing data that already exists.
+#
+# The store is pinned to one commit rather than taken from main as it stands. A gate whose
+# input moves is a gate whose result cannot be compared with yesterday's: a run that goes red
+# would leave two explanations, this library changed or the store did. Bumping the pin is a
+# commit, and the number it is expected to produce goes in that commit's message.
+name: Checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  # rewire-bio/rewire-benchmark-data, and the record count this gate expects of it.
+  STORE_REF: f11acbf6c333cac932dd8ccf032eb1b1aa3ddc83
+  STORE_RECORDS: "93216"
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+
+      - name: Lint
+        run: |
+          uv run --with ruff ruff check .
+          uv run --with ruff ruff format --check .
+
+      - name: Tests
+        run: uv run --with pytest --with-editable . python -m pytest
+
+      # Public repository, so no token. Shallow by default: the gate reads the tree, not history.
+      - uses: actions/checkout@v4
+        with:
+          repository: rewire-bio/rewire-benchmark-data
+          ref: ${{ env.STORE_REF }}
+          path: store
+
+      - name: Reproduce every committed record digest
+        run: |
+          uv run --with-editable . python scripts/verify_store_digests.py store 2>&1 | tee gate.log
+          # The gate passes on the records it finds, so a checkout that silently held fewer of
+          # them would pass while proving less. The expected count is pinned with the ref.
+          grep -q "All ${STORE_RECORDS} records reproduce." gate.log || {
+            echo "::error::The gate did not report ${STORE_RECORDS} records. Either the pinned store moved or fewer records were read."
+            exit 1
+          }
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## Checks"
+            echo
+            echo "Store pinned at \`${STORE_REF}\`, expecting ${STORE_RECORDS} records."
+            if [ -f gate.log ]; then echo; echo '```'; cat gate.log; echo '```'; fi
+          } >> "$GITHUB_STEP_SUMMARY"

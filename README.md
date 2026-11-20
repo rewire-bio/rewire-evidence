@@ -16,14 +16,16 @@ The old store is the test oracle, and it is big enough to be decisive. Nothing h
 
 | What is being ported | Oracle | Rows | Status |
 | --- | --- | --- | --- |
-| Record serialisation and digests | `data/provenance/records/*.jsonl` | 93,206 | Passing |
+| Record serialisation and digests | `data/provenance/records/*.jsonl` | 93,216 | Passing |
 | Object manifest and receipts | `data/archive/objects/*.jsonl` | 1,167 | Not started |
 | Layer derivation | `data/omics/layers/registry.jsonl` | 2,595 | Not started |
 | Locator grammar | committed coverage report | 52,278 | Not started |
 | Span resolution | committed figures and TSV reports | 52,278 | Not started |
 | Extractor equivalence | position-joined candidate comparison | 418,440 | Not started |
 
-Run the gate that passes today:
+The gate runs in CI against one pinned commit of the store, not against main as it stands, so a red run has one explanation rather than two. Bumping the pin is a commit of its own.
+
+Run it here:
 
 ```sh
 uv run --python 3.12 --with-editable . python scripts/verify_store_digests.py ../rewire-benchmark-data
