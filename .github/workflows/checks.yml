@@ -116,3 +116,48 @@ jobs:
             if [ -f gate.log ]; then echo; echo "### Record digests"; echo; echo '```'; cat gate.log; echo '```'; fi
             if [ -f layout.log ]; then echo; echo "### Store layout"; echo; echo '```'; cat layout.log; echo '```'; fi
           } >> "$GITHUB_STEP_SUMMARY"
+
+  # The fixtures that need the data repository's own code: its zod schema and its n3
+  # vocabulary loader. They are recorded again here, inside the pinned checkout with its
+  # locked dependencies installed, and the job fails if a committed file is not what the
+  # TypeScript produces. Nothing is installed anywhere but this runner.
+  fixtures:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: rewire-bio/rewire-benchmark-data
+          ref: ${{ env.STORE_REF }}
+          path: store
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: store/package-lock.json
+      - name: Install the data repository's locked dependencies
+        working-directory: store
+        run: npm ci --no-audit --no-fund
+      - name: Record from the TypeScript
+        working-directory: store
+        run: node_modules/.bin/tsx ../scripts/fixtures/record_schema_fixture.mjs
+      - name: Keep what was recorded
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: schema-fixtures
+          path: |
+            tests/fixtures/record-schema.json
+            tests/fixtures/vocabularies.json
+            scripts/expected/store-schema.json
+          if-no-files-found: ignore
+      - name: Fixtures are what the TypeScript produces
+        run: |
+          changed=$(git status --porcelain -- tests/fixtures scripts/expected)
+          if [ -n "$changed" ]; then
+            echo "::error::The recorded fixtures differ from the committed ones. Download the schema-fixtures artifact and commit it."
+            echo "$changed"
+            git diff --stat -- tests/fixtures scripts/expected
+            exit 1
+          fi
