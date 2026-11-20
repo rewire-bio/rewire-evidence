@@ -329,3 +329,26 @@ def test_key_order_is_a_stable_permutation_with_indices_first(names: list[str]) 
     indices = [name for name in indices if int(name) <= MAX_ARRAY_INDEX]
     assert order[: len(indices)] == sorted(indices, key=int)
     assert order[len(indices) :] == [name for name in names if name not in indices]
+
+
+@given(st.text(alphabet=st.characters(exclude_categories=["Cs"])))
+def test_text_without_surrogates_is_hashed_as_plain_utf8(text: str) -> None:
+    assert js_utf8(text) == text.encode("utf-8")
+    assert sha256_hex(text) == sha256_hex(text.encode("utf-8"))
+
+
+#: Text that may hold surrogates with no partner, which st.text() leaves out.
+loose_text = st.text(alphabet=st.characters())
+
+
+@given(loose_text, st.characters(min_codepoint=0x10000), loose_text)
+def test_a_pair_held_as_two_code_points_is_hashed_as_the_character(
+    before: str, astral: str, after: str
+) -> None:
+    # Whatever surrounds it, and whatever lone surrogates the surroundings hold, the bytes
+    # are valid UTF-8 and the two spellings of one JavaScript string are one digest.
+    high, low = divmod(ord(astral) - 0x10000, 0x400)
+    halves = chr(0xD800 + high) + chr(0xDC00 + low)
+    assert js_utf8(before + halves + after) == js_utf8(before + astral + after)
+    assert shard_of(before + halves + after) == shard_of(before + astral + after)
+    assert astral in js_utf8(before + astral + after).decode("utf-8")
