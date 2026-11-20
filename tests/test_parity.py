@@ -39,6 +39,7 @@ from rewire_evidence.parity import (
     verify_digests,
     verify_family,
     verify_store,
+    verify_writers,
 )
 from rewire_evidence.store import record_file, store_digests, write_store
 
@@ -124,16 +125,22 @@ EXPECTED_COUNTS = {
     "records_matching_provenance": 5,
     "logical_digests": 4,
     "logical_digests_matched": 4,
+    "written.family_lines": 20,
+    "written.resharded_records": 5,
 }
 
 
 def test_a_store_written_by_the_library_passes_with_every_count(tmp_path: Path) -> None:
     build(tmp_path)
-    report = verify_store(tmp_path, RELEASE)
+    report = verify_store(tmp_path, RELEASE, tmp_path / "scratch")
     assert report.problems() == []
     counts = report.counts()
+    # Five provenance rows land in one to five shards, depending on the digests of the IDs.
     provenance_files = counts.pop("provenance.files")
     assert 1 <= provenance_files <= 5
+    assert counts.pop("written.family_files") == 12 + provenance_files
+    assert counts.pop("written.store_files") == 4 + provenance_files
+    assert counts.pop("written.resharded_files") == 4 + provenance_files
     assert counts == EXPECTED_COUNTS
     assert compare_counts(counts, EXPECTED_COUNTS) == []
 
@@ -142,11 +149,14 @@ def test_a_store_written_by_the_library_passes_with_every_count(tmp_path: Path) 
     assert "sharded lines in the shard their ID names: 8" in text
     assert "records matching their provenance digest:  5" in text
     assert f"logical digests equal to release {RELEASE}: 4 of 4" in text
+    assert f"files the family writers reproduce on disk: {12 + provenance_files} (20 lines)" in text
+    assert f"record and provenance files write_store reproduces: {4 + provenance_files}" in text
+    assert f"reshard of that copy: 5 records placed, {4 + provenance_files} files unchanged" in text
     expectation = Expectation("abc123", RELEASE, EXPECTED_COUNTS)
     assert json.loads(to_json(report, expectation)) == {
         "store_ref": "abc123",
         "release_receipt": RELEASE,
-        "counts": {**counts, "provenance.files": provenance_files},
+        "counts": report.counts(),
         "problems": [],
     }
 
@@ -156,7 +166,14 @@ def test_an_empty_checkout_reports_no_files_and_cannot_name_a_receipt(tmp_path: 
         report = verify_family(family, tmp_path)
         assert (report.files, report.lines, report.placed, report.problems) == (0, 0, 0, [])
     with pytest.raises(StoreError, match="does not exist"):
-        verify_store(tmp_path, RELEASE)
+        verify_store(tmp_path, RELEASE, tmp_path / "scratch")
+    written = verify_writers(tmp_path, tmp_path / "scratch")
+    assert (written.family_files, written.store_files, written.resharded_records, written.problems) == (
+        0,
+        0,
+        0,
+        [],
+    )
     with pytest.raises(StoreError, match="holds no release receipts"):
         newest_release(tmp_path)
 
@@ -183,11 +200,15 @@ def test_a_family_with_a_problem_says_so_in_the_summary(tmp_path: Path) -> None:
     build(tmp_path)
     file = tmp_path / "data/omics/layers/registry.jsonl"
     write_text(file, file.read_text("utf-8").replace('":', '": '))
-    report = verify_store(tmp_path, RELEASE)
+    report = verify_store(tmp_path, RELEASE, tmp_path / "scratch")
     assert "layer_registry           1        2        2  1 problems" in summary(report)
-    assert len(report.problems()) == 1
+    assert len(report.problems()) == 2
     assert report.problems()[0].startswith(
         "layer_registry: data/omics/layers/registry.jsonl does not re-emit"
+    )
+    assert (
+        report.problems()[1]
+        == "writers: data/omics/layers/registry.jsonl is not what its family writer writes"
     )
 
 
@@ -286,7 +307,7 @@ def test_an_older_receipt_is_refused_even_when_its_name_sorts_last(tmp_path: Pat
     assert report.matched == 0
     assert "data/entities/models.jsonl is not among the inputs of " + OLDER in report.problems
     assert len(report.problems) == 5
-    full = verify_store(tmp_path, OLDER)
+    full = verify_store(tmp_path, OLDER, tmp_path / "scratch")
     assert f"digests: {OLDER} is not the newest release receipt; {RELEASE} is" in full.problems()
 
 
@@ -367,6 +388,10 @@ def test_the_committed_expectation_is_well_formed() -> None:
         expectation.counts["evidence.lines"] + expectation.counts["provenance.lines"]
     )
     assert expectation.counts["records_matching_provenance"] == expectation.counts["provenance.lines"]
+    assert expectation.counts["written.resharded_records"] == expectation.counts["provenance.lines"]
+    assert expectation.counts["written.family_files"] == sum(
+        count for name, count in expectation.counts.items() if name.endswith(".files")
+    )
 
 
 def test_a_count_that_differs_is_missing_or_is_not_pinned_fails() -> None:
@@ -376,6 +401,70 @@ def test_a_count_that_differs_is_missing_or_is_not_pinned_fails() -> None:
         "c was measured as 3 and is not pinned",
         "d is pinned at 4 and was not measured",
     ]
+
+
+def test_the_writers_are_held_against_the_committed_files(tmp_path: Path) -> None:
+    root = tmp_path / "store"
+    build(root)
+    before = {path: path.read_bytes() for path in root.rglob("*") if path.is_file()}
+    report = verify_writers(root, tmp_path / "scratch")
+    assert report.problems == []
+    assert report.family_lines == 20
+    assert report.resharded_records == 5
+    assert report.family_files - report.store_files == 8
+    assert report.resharded_files == report.store_files
+    # The checkout is read and never written to.
+    assert {path: path.read_bytes() for path in root.rglob("*") if path.is_file()} == before
+
+
+def test_a_file_no_writer_would_write_is_named_by_the_writers(tmp_path: Path) -> None:
+    root = tmp_path / "store"
+    build(root)
+    # A record in the wrong shard: the writers put it where it belongs, so the committed
+    # file is neither written nor left by a reshard, and the file it belongs in appears.
+    right = record_file("claim", "claim-1", root)
+    wrong = right.with_name(f"{'0' if right.stem != '0' else '1'}.jsonl")
+    right.rename(wrong)
+    misplaced = wrong.relative_to(root).as_posix()
+    report = verify_writers(root, tmp_path / "scratch")
+    assert report.problems == [
+        f"{misplaced} is not what its family writer writes",
+        f"{misplaced} is not what write_store writes",
+        *sorted(
+            f"{name} is not the same file after a reshard"
+            for name in (misplaced, right.relative_to(root).as_posix())
+        ),
+    ]
+    assert report.resharded_records == 5
+
+
+def test_a_file_whose_rows_cannot_be_placed_is_named_by_the_writers(tmp_path: Path) -> None:
+    root = tmp_path / "store"
+    build(root)
+    write_text(root / "data/entities/models.jsonl", '{"kind":"model"}\n')
+    report = verify_writers(root, tmp_path / "scratch")
+    assert report.problems[0] == (
+        "data/entities/models.jsonl could not be written again: a record has no string 'id'"
+    )
+    assert "data/entities/models.jsonl is not the same file after a reshard" in report.problems
+
+
+def test_a_second_writer_that_drifts_from_the_first_is_caught(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # write_store and the family writers are two implementations of one layout. If they
+    # ever disagree, the files the gate reads still re-emit, and only this check fails.
+    root = tmp_path / "store"
+    build(root)
+
+    def drifted(records: list[JsonObject], provenance: list[JsonObject], scratch: Path) -> None:
+        write_store([{**record, "extra": 1} for record in records], provenance, scratch)
+
+    monkeypatch.setattr("rewire_evidence.parity.write_store", drifted)
+    report = verify_writers(root, tmp_path / "scratch")
+    assert "data/entities/models.jsonl is not what write_store writes" in report.problems
+    assert "data/entities/models.jsonl is not the same file after a reshard" in report.problems
+    assert not any("family writer" in problem for problem in report.problems)
 
 
 def run_gate(*arguments: str) -> subprocess.CompletedProcess[str]:
@@ -389,7 +478,7 @@ def run_gate(*arguments: str) -> subprocess.CompletedProcess[str]:
 def test_the_command_exits_0_1_or_2(tmp_path: Path) -> None:
     root = tmp_path / "store"
     build(root)
-    counts = verify_store(root, RELEASE).counts()
+    counts = verify_store(root, RELEASE, tmp_path / "scratch").counts()
     expected = tmp_path / "expected.json"
     expected.write_text(
         json.dumps({"store_ref": "abc123", "release_receipt": RELEASE, "counts": counts}), encoding="utf-8"

@@ -1,6 +1,6 @@
 """The store-layout gate: does this library write the files the store already holds?
 
-Three questions, each answered over a whole checkout of `rewire-benchmark-data`:
+Four questions, each answered over a whole checkout of `rewire-benchmark-data`:
 
 1. Does every file of every family come back byte for byte when it is read and written
    again? The comparison is of whole files, so it covers the serialisation, the order of
@@ -9,6 +9,9 @@ Three questions, each answered over a whole checkout of `rewire-benchmark-data`:
    strictly sorted?
 3. Do the logical store digests equal the ones a named release receipt recorded, and is
    that receipt the newest one?
+4. Do the functions that write to disk produce those files? Every committed file is read
+   and written into an empty folder by the writer a caller would use, the bytes are
+   compared, and the copy is then resharded, which has to move nothing.
 
 A count is reported for everything read, and `compare_counts` holds those counts against a
 committed expectation, so a checkout that held fewer rows cannot pass while proving less.
@@ -22,9 +25,25 @@ from datetime import datetime
 from pathlib import Path
 
 from rewire_evidence.canonical import JsonObject, JsonValue, js_parse
-from rewire_evidence.families import EVIDENCE, FAMILIES, PROVENANCE, Family, serialise_rows
-from rewire_evidence.jsonl import StoreError, parse_row
-from rewire_evidence.store import checked_records, store_digests
+from rewire_evidence.families import (
+    ENTITIES,
+    EVIDENCE,
+    FAMILIES,
+    PROVENANCE,
+    Family,
+    append_rows,
+    serialise_rows,
+    write_family,
+)
+from rewire_evidence.jsonl import StoreError, parse_row, read_rows
+from rewire_evidence.store import (
+    checked_records,
+    provenance_files,
+    record_files,
+    reshard_store,
+    store_digests,
+    write_store,
+)
 
 RELEASES_DIR = "data/omics/releases"
 #: How much of a differing line is shown. Enough to see the cause, not a whole record.
@@ -54,18 +73,35 @@ class DigestReport:
 
 
 @dataclass
+class WriteReport:
+    """What the writers put on disk, against the committed files."""
+
+    #: Committed files a family writer reproduced in an empty folder.
+    family_files: int = 0
+    family_lines: int = 0
+    #: Record and provenance files `write_store` reproduced, which is a second writer.
+    store_files: int = 0
+    #: Records `reshard_store` placed in that copy, and the files it left byte for byte.
+    resharded_records: int = 0
+    resharded_files: int = 0
+    problems: list[str] = field(default_factory=list[str])
+
+
+@dataclass
 class StoreReport:
     """Everything the gate measured."""
 
     families: list[FamilyReport]
     digests: DigestReport
+    written: WriteReport
     #: Records whose placement, order and provenance digest all hold.
     records: int
 
     def problems(self) -> list[str]:
-        """Every disagreement found, family by family, then the digests."""
+        """Every disagreement found: family by family, then the digests, then the writers."""
         found = [f"{report.name}: {problem}" for report in self.families for problem in report.problems]
-        return [*found, *(f"digests: {problem}" for problem in self.digests.problems)]
+        found.extend(f"digests: {problem}" for problem in self.digests.problems)
+        return [*found, *(f"writers: {problem}" for problem in self.written.problems)]
 
     def counts(self) -> dict[str, int]:
         """The figures a pinned expectation is compared with."""
@@ -79,6 +115,11 @@ class StoreReport:
         counts["records_matching_provenance"] = self.records
         counts["logical_digests"] = self.digests.digests
         counts["logical_digests_matched"] = self.digests.matched
+        counts["written.family_files"] = self.written.family_files
+        counts["written.family_lines"] = self.written.family_lines
+        counts["written.store_files"] = self.written.store_files
+        counts["written.resharded_records"] = self.written.resharded_records
+        counts["written.resharded_files"] = self.written.resharded_files
         return counts
 
 
@@ -229,11 +270,73 @@ def verify_digests(root: Path, release_id: str) -> DigestReport:
     return report
 
 
-def verify_store(root: Path, release_id: str) -> StoreReport:
-    """Run the whole gate over a checkout."""
+def _same_bytes(committed: Path, written: Path) -> bool:
+    """Whether a writer left the committed bytes. A writer given no rows writes no file."""
+    return (written.read_bytes() if written.exists() else b"") == committed.read_bytes()
+
+
+def _write_again(family: Family, rows: list[JsonObject], by_family: Path, by_store: Path, name: Path) -> None:
+    """Hand one committed file's rows to every writer that writes its family."""
+    if family.order is None:
+        append_rows(family, rows, by_family, by_family / name)
+    else:
+        write_family(family, rows, by_family)
+    if family in (ENTITIES, EVIDENCE):
+        write_store(rows, [], by_store)
+    elif family is PROVENANCE:
+        write_store([], rows, by_store)
+
+
+def verify_writers(root: Path, scratch: Path) -> WriteReport:
+    """Write every committed file again with the library's writers and compare the bytes.
+
+    `scratch` is an empty folder. Each file is read, and its rows are handed to the writer
+    a caller would use: `write_family` for a sorted family, `append_rows` for an append-only
+    one, and `write_store` for records and provenance, which is a separate implementation
+    of the same layout. The copy `write_store` made is then resharded, which must place
+    every record and change no byte. Nothing is written to `root`.
+    """
+    report = WriteReport()
+    by_family = scratch / "families"
+    by_store = scratch / "store"
+    for family in FAMILIES:
+        for file in family.files(root):
+            name = file.relative_to(root)
+            try:
+                rows = read_rows(file)
+                _write_again(family, rows, by_family, by_store, name)
+            except StoreError as error:
+                report.problems.append(f"{name.as_posix()} could not be written again: {error}")
+                continue
+            if _same_bytes(file, by_family / name):
+                report.family_files += 1
+                report.family_lines += len(rows)
+            else:
+                report.problems.append(f"{name.as_posix()} is not what its family writer writes")
+            if family not in (ENTITIES, EVIDENCE, PROVENANCE):
+                continue
+            if _same_bytes(file, by_store / name):
+                report.store_files += 1
+            else:
+                report.problems.append(f"{name.as_posix()} is not what write_store writes")
+
+    report.resharded_records = reshard_store(by_store)
+    committed = {file.relative_to(root) for file in [*record_files(root), *provenance_files(root)]}
+    held = {file.relative_to(by_store) for file in [*record_files(by_store), *provenance_files(by_store)]}
+    for name in sorted(committed | held):
+        if name in committed and name in held and _same_bytes(root / name, by_store / name):
+            report.resharded_files += 1
+        else:
+            report.problems.append(f"{name.as_posix()} is not the same file after a reshard")
+    return report
+
+
+def verify_store(root: Path, release_id: str, scratch: Path) -> StoreReport:
+    """Run the whole gate over a checkout. `scratch` is an empty folder the writers fill."""
     families = [verify_family(family, root) for family in FAMILIES]
     digests = verify_digests(root, release_id)
-    return StoreReport(families, digests, records=sum(1 for _ in checked_records(root)))
+    written = verify_writers(root, scratch)
+    return StoreReport(families, digests, written, records=sum(1 for _ in checked_records(root)))
 
 
 def read_expectation(path: Path) -> Expectation:
@@ -277,6 +380,15 @@ def summary(report: StoreReport) -> str:
     lines.append(
         f"logical digests equal to release {report.digests.release_id}: "
         f"{report.digests.matched} of {report.digests.digests}"
+    )
+    written = report.written
+    lines.append(
+        f"files the family writers reproduce on disk: {written.family_files} ({written.family_lines:,} lines)"
+    )
+    lines.append(f"record and provenance files write_store reproduces: {written.store_files}")
+    lines.append(
+        f"reshard of that copy: {written.resharded_records:,} records placed, "
+        f"{written.resharded_files} files unchanged"
     )
     return "\n".join(lines)
 

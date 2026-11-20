@@ -5,9 +5,11 @@ Reads a `rewire-benchmark-data` checkout and nothing else. Writes nothing to it.
 For every family of line file (entity and evidence records, provenance, moved attributes,
 the object manifest, fetch and licence receipts, licence candidates, the layer registry and
 its unsupported rows) it reads each file, writes it again in memory and requires the same
-bytes. It checks every row is in the file the layout assigns it, that the store's logical
-digests equal the ones a release receipt recorded, and that every count equals the pinned
-expectation, so a thinner checkout cannot pass.
+bytes. It checks every row is in the file the layout assigns it and that the store's logical
+digests equal the ones a release receipt recorded. It then writes every file again, on disk
+in a temporary folder, with the writer a caller would use, compares the bytes, and reshards
+that copy, which has to change nothing. Every count has to equal the pinned expectation, so
+a thinner checkout cannot pass. The temporary copy is about the size of the store's data.
 
 The work is in `rewire_evidence.parity`, where the tests cover it. This file is the command.
 
@@ -22,6 +24,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+import tempfile
 from pathlib import Path
 
 from rewire_evidence.jsonl import StoreError
@@ -36,7 +39,9 @@ def run(root: Path, expected: Path, report_file: Path | None) -> int:
     """Run the gate and print what it found. Returns the exit status."""
     expectation = read_expectation(expected)
     print(f"store pinned at {expectation.store_ref}, release {expectation.release_receipt}")
-    report = verify_store(root, expectation.release_receipt)
+    # The writers are checked by writing the store again, into a folder that is then removed.
+    with tempfile.TemporaryDirectory(prefix="rewire-evidence-layout-") as scratch:
+        report = verify_store(root, expectation.release_receipt, Path(scratch))
     print(summary(report))
     if report_file is not None:
         report_file.write_text(to_json(report, expectation) + "\n", encoding="utf-8")

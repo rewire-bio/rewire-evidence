@@ -35,6 +35,11 @@
     "sharded_lines_placed": 174386,
     "records_matching_provenance": 93216,
     "logical_digests": 18,
-    "logical_digests_matched": 18
+    "logical_digests_matched": 18,
+    "written.family_files": 100,
+    "written.family_lines": 199585,
+    "written.store_files": 78,
+    "written.resharded_records": 93216,
+    "written.resharded_files": 78
   }
 }
