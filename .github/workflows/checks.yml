@@ -1,9 +1,12 @@
-# Lint, tests, and the gate that matters: reproducing data that already exists.
+# Lint, types, tests at full coverage, and the gates that matter: reproducing data that
+# already exists.
 #
 # The store is pinned to one commit rather than taken from main as it stands. A gate whose
 # input moves is a gate whose result cannot be compared with yesterday's: a run that goes red
 # would leave two explanations, this library changed or the store did. Bumping the pin is a
-# commit, and the number it is expected to produce goes in that commit's message.
+# commit, and the numbers it is expected to produce go in that commit: STORE_REF and
+# STORE_RECORDS here, and every other count and the digest of each family's files in
+# scripts/expected/store-layout.json.
 name: Checks
 
 on:
@@ -12,9 +15,12 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 env:
-  # rewire-bio/rewire-benchmark-data, and the record count this gate expects of it.
-  STORE_REF: f11acbf6c333cac932dd8ccf032eb1b1aa3ddc83
+  # rewire-bio/rewire-benchmark-data, and the record count the gates expect of it.
+  STORE_REF: 91f76cf8e61cba9d6037a01a19c9aa3051184900
   STORE_RECORDS: "93216"
 
 jobs:
@@ -27,24 +33,53 @@ jobs:
         with:
           python-version: "3.12"
 
+      # Every tool comes from uv.lock, so a new release of a linter cannot turn a run red.
+      - name: Install
+        run: uv sync --locked --group dev
+
       - name: Lint
         run: |
-          uv run --with ruff ruff check .
-          uv run --with ruff ruff format --check .
+          uv run --no-sync ruff check .
+          uv run --no-sync ruff format --check .
 
-      - name: Tests
-        run: uv run --with pytest --with-editable . python -m pytest
+      - name: Types
+        run: uv run --no-sync mypy
 
-      # Public repository, so no token. Shallow by default: the gate reads the tree, not history.
+      # The JavaScript fixtures are recorded again from the script that claims to have
+      # produced them. Built-ins only, so there is nothing to install.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Fixtures are what Node produces
+        run: |
+          node scripts/fixtures/record_js_fixture.mjs
+          git diff --exit-code -- tests/js-fixture.json tests/fixtures
+
+      - name: Tests, at 100% line and branch coverage
+        run: |
+          set -o pipefail
+          uv run --no-sync python -m pytest --cov --cov-branch --cov-fail-under=100 --cov-report=term-missing 2>&1 | tee coverage.log
+
+      # Public repository, so no token. Shallow by default: the gates read the tree, not history.
       - uses: actions/checkout@v4
         with:
           repository: rewire-bio/rewire-benchmark-data
           ref: ${{ env.STORE_REF }}
           path: store
 
+      - name: The checkout is the pinned commit
+        run: |
+          held=$(git -C store rev-parse HEAD)
+          expected=$(jq -r .store_ref scripts/expected/store-layout.json)
+          if [ "$held" != "$STORE_REF" ] || [ "$expected" != "$STORE_REF" ]; then
+            echo "::error::STORE_REF is ${STORE_REF}, the checkout is ${held} and the pinned expectation was measured at ${expected}. All three must be one commit."
+            exit 1
+          fi
+
       - name: Reproduce every committed record digest
         run: |
-          uv run --with-editable . python scripts/verify_store_digests.py store 2>&1 | tee gate.log
+          set -o pipefail
+          uv run --no-sync python scripts/verify_store_digests.py store 2>&1 | tee gate.log
           # The gate passes on the records it finds, so a checkout that silently held fewer of
           # them would pass while proving less. The expected count is pinned with the ref. The
           # reported figure is read rather than matched as a string, because the script prints
@@ -55,6 +90,21 @@ jobs:
             exit 1
           fi
 
+      # Every file of every family re-emitted byte for byte, every row in the file the layout
+      # assigns it, every record against its provenance row, the logical digests equal to the
+      # newest release receipt, and the writers held against the committed files. The script
+      # fails on any count that is not the pinned one and on any family whose files are not
+      # the pinned bytes, and writes layout.json whenever it could run at all.
+      - name: Reproduce the store layout
+        run: |
+          set -o pipefail
+          uv run --no-sync python scripts/verify_store_layout.py store --json layout.json 2>&1 | tee layout.log
+          measured=$(jq -r '.counts.records_matching_provenance' layout.json)
+          if [ "$measured" != "$STORE_RECORDS" ]; then
+            echo "::error::The layout gate matched ${measured} records against a pin of ${STORE_RECORDS}."
+            exit 1
+          fi
+
       - name: Summary
         if: always()
         run: |
@@ -62,5 +112,7 @@ jobs:
             echo "## Checks"
             echo
             echo "Store pinned at \`${STORE_REF}\`, expecting ${STORE_RECORDS} records."
-            if [ -f gate.log ]; then echo; echo '```'; cat gate.log; echo '```'; fi
+            if [ -f coverage.log ]; then echo; echo "### Coverage"; echo; echo '```'; sed -n '/^Name /,$p' coverage.log; echo '```'; fi
+            if [ -f gate.log ]; then echo; echo "### Record digests"; echo; echo '```'; cat gate.log; echo '```'; fi
+            if [ -f layout.log ]; then echo; echo "### Store layout"; echo; echo '```'; cat layout.log; echo '```'; fi
           } >> "$GITHUB_STEP_SUMMARY"

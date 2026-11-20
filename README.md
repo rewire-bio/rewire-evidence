@@ -14,22 +14,31 @@ The split works because the interface between the two is the on-disk JSONL, not 
 
 The old store is the test oracle, and it is big enough to be decisive. Nothing here is accepted because its unit tests pass. It is accepted when it reproduces data that already exists.
 
-| What is being ported | Oracle | Rows | Status |
-| --- | --- | --- | --- |
-| Record serialisation and digests | `data/provenance/records/*.jsonl` | 93,216 | Passing |
-| Object manifest and receipts | `data/archive/objects/*.jsonl` | 1,167 | Not started |
-| Layer derivation | `data/omics/layers/registry.jsonl` | 2,595 | Not started |
-| Locator grammar | committed coverage report | 52,278 | Not started |
-| Span resolution | committed figures and TSV reports | 52,278 | Not started |
-| Extractor equivalence | position-joined candidate comparison | 418,440 | Not started |
+| Stage | What is being ported | Oracle | Rows | Status |
+| --- | --- | --- | --- | --- |
+| P0 | Record serialisation and digests | `data/provenance/records/*.jsonl` | 93,216 | Passing |
+| P1 | Store layout, and reading and writing every family of store file | every committed line file, and the 18 logical digests of release `2026-11-20-72316db0764b` | 199,585 lines in 100 files | Passing ([notes](docs/stages/p1.md)) |
+| P2 to P6 | Record schema, vocabularies, validators, write path | `records check` over the store, replayed batches | 93,216 | Not started |
+| P7 | Locator grammar | committed coverage report | 52,278 | Not started |
+| P8 | Report-only checks | `checks-baseline.json` and the row-level report | 10,754 | Not started |
+| P9 | Object manifest and receipts, with their schemas | `data/archive/objects/*.jsonl` | 1,167 | Bytes reproduce (P1). Schemas not started |
+| P10 | Layer derivation | `data/omics/layers/registry.jsonl` | 2,595 | Bytes reproduce (P1). Derivation not started |
+| P11 | Span resolution | committed figures and TSV reports | 52,278 | Not started |
+| P12 | Extractor equivalence | position-joined candidate comparison | 418,440 | Not started |
+
+Every stage has to meet three things before it is accepted: a gate under `scripts/` that reproduces committed data and asserts the row count, 100% line and branch coverage of the library, and clean runs of `mypy --strict` and Ruff. All three run in CI. The gate scripts hold no logic of their own, so the coverage figure includes what they do.
 
 The gate runs in CI against one pinned commit of the store, not against main as it stands, so a red run has one explanation rather than two. Bumping the pin is a commit of its own.
 
-Run it here:
+Run the gates here:
 
 ```sh
-uv run --python 3.12 --with-editable . python scripts/verify_store_digests.py ../rewire-benchmark-data
+uv sync --group dev
+uv run python scripts/verify_store_digests.py ../rewire-benchmark-data
+uv run python scripts/verify_store_layout.py ../rewire-benchmark-data
 ```
+
+The second one holds every count, and the SHA-256 of each family's files, against `scripts/expected/store-layout.json`, which names the store commit they were measured at. A checkout of any other commit, or an edited one, fails it. Both exit 0 when everything reproduces, 1 on a disagreement and 2 when the run could not be made.
 
 ## Why byte identity matters here
 
@@ -37,18 +46,28 @@ A record's identity is `sha256(JSON.stringify(record))`, so the Python has to ag
 
 `src/rewire_evidence/canonical.py` reproduces ECMAScript `Number::toString` and the three different serialisations the store uses. They are not interchangeable, and one of them is a trap: `canonicalLine` sorts top-level keys only, while `canonical_json` sorts at every depth. Python's `json.dumps(sort_keys=True)` is the recursive one, so using it where the manifest form belongs writes valid, sorted, wrong bytes on any row holding a nested object.
 
+The same care applies to things the store has no example of. A JavaScript object lists integer-like keys first, whatever order they were set in. An integer above 2^53 is only ever the double nearest to it. An unpaired surrogate is written as an escape. None of these appears in the store today, so the oracle cannot catch a mistake in any of them, and each is recorded from Node instead.
+
 ## Tests
 
 ```sh
-uv run --python 3.12 --with pytest --with-editable . python -m pytest
+uv run python -m pytest --cov --cov-branch --cov-fail-under=100
+uv run mypy
+uv run ruff check . && uv run ruff format --check .
 ```
 
-`tests/js-fixture.json` is output Node actually produced, committed rather than described, so the number tests are a recording of the other implementation instead of an opinion about the specification. It is what caught the 2^53 bug, which the 93,206-record oracle could not, because the store holds no value that large.
+`tests/js-fixture.json` and `tests/fixtures/js-semantics.json` are output Node actually produced, committed rather than described, so the tests are a recording of the other implementation instead of an opinion about the specification. `node scripts/fixtures/record_js_fixture.mjs` writes both, using built-ins only, and CI runs it to prove the files are what the script produces. The first fixture is what caught the 2^53 bug, which the record oracle could not, because the store holds no value that large.
 
 ## Layout
 
 ```
 src/rewire_evidence/canonical.py   serialisation, digests, shards
-scripts/                           verification gates against a benchmark-data checkout
-tests/                             pytest, with the Node fixture
+src/rewire_evidence/jsonl.py       line files, split on the newline only
+src/rewire_evidence/store.py       where records and provenance live, logical digests, reshard
+src/rewire_evidence/families.py    every family of store file: serialisation, order, placement
+src/rewire_evidence/parity.py      what the two gates measure
+src/rewire_evidence/gates.py       the gates as commands: arguments, report, exit status
+scripts/                           one thin file per gate, the pinned expectation, the fixture recorder
+tests/                             pytest and Hypothesis, with the Node fixtures
+docs/stages/                       one note per ported stage: oracle, measured result, known gaps
 ```
