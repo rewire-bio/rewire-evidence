@@ -47,6 +47,8 @@ SHARD_DIGITS = 1
 #: `Number.MAX_SAFE_INTEGER + 1`. Every integer up to here is a double, and prints as itself.
 EXACT_INTEGER_LIMIT = 2**53
 
+_EXACT_INTEGER_DIGITS = len(str(EXACT_INTEGER_LIMIT))
+
 #: The largest array index, 2**32 - 2. Keys that are canonical integers up to here are the
 #: ones a JavaScript object lists first, in numeric order, whatever order they were set in.
 MAX_ARRAY_INDEX = 2**32 - 2
@@ -124,6 +126,16 @@ def js_quote(text: str) -> str:
     return _SURROGATE.sub(lambda lone: f"\\u{ord(lone.group()):04x}", quoted)
 
 
+def js_utf8(text: str) -> bytes:
+    """The bytes Node writes or hashes for a string: UTF-8, with U+FFFD for a lone surrogate.
+
+    Python refuses to encode a surrogate that has no partner. Node does not: `fs.writeFileSync`
+    and `crypto.createHash().update()` both put U+FFFD in its place, so `shardOf` gives an ID
+    holding one a shard, and so must this.
+    """
+    return _SURROGATE.sub("\ufffd", _well_formed(text)).encode("utf-8")
+
+
 def utf16_key(text: str) -> bytes:
     """A sort key matching JavaScript's string comparison, which orders by UTF-16 unit.
 
@@ -165,11 +177,17 @@ def js_parse(text: str) -> JsonValue:
 
     Three places where Python's reader and JavaScript's disagree are closed here. An integer
     too large for a double to hold exactly becomes the nearest double, as every JavaScript
-    number is one. `NaN` and `Infinity` are syntax errors, as they are in JSON. And an object
-    lists its array-index keys first, which `js_stringify` applies on the way out.
+    number is one, and infinity if it is beyond them all. `NaN` and `Infinity` are syntax
+    errors, as they are in JSON. And an object lists its array-index keys first, which
+    `js_stringify` applies on the way out.
     """
 
     def integer(literal: str) -> int | float:
+        # A literal with more digits than 2**53 has is past the limit whatever they are, and
+        # is read as a double without being read as an integer first. Python refuses to
+        # convert an integer of more than 4,300 digits, and JSON.parse has no such limit.
+        if len(literal.lstrip("-")) > _EXACT_INTEGER_DIGITS:
+            return float(literal)
         value = int(literal)
         return value if abs(value) <= EXACT_INTEGER_LIMIT else float(literal)
 
@@ -254,8 +272,8 @@ def _canonical(value: object) -> str:
 
 
 def sha256_hex(data: bytes | str) -> str:
-    """The digest every identifier in the store is built from."""
-    return hashlib.sha256(data.encode("utf-8") if isinstance(data, str) else data).hexdigest()
+    """The digest every identifier in the store is built from. Text is hashed as Node hashes it."""
+    return hashlib.sha256(js_utf8(data) if isinstance(data, str) else data).hexdigest()
 
 
 def record_sha256(record: Mapping[str, JsonInput]) -> str:

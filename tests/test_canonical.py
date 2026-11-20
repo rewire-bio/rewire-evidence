@@ -31,6 +31,7 @@ from rewire_evidence.canonical import (
     js_parse,
     js_quote,
     js_stringify,
+    js_utf8,
     object_shard,
     record_sha256,
     sha256_hex,
@@ -81,6 +82,31 @@ def test_integers_beyond_a_double_match_node(literal: str, expected: str) -> Non
     # Read as JSON.parse reads them, and handed over as the Python integer they look like.
     assert js_stringify(js_parse(literal)) == expected
     assert js_stringify(int(literal)) == expected
+
+
+@pytest.mark.parametrize(
+    ("literal", "expected"), SEMANTICS["overflow"], ids=[text[:8] for text, _ in SEMANTICS["overflow"]]
+)
+def test_a_number_beyond_any_double_reads_as_infinity_and_is_not_written(literal: str, expected: str) -> None:
+    # JSON.parse reads these as Infinity and JSON.stringify writes that as null. The reader
+    # agrees, however many digits the literal has; the writer refuses, so that a record
+    # holding one stops the run instead of being stored as null.
+    assert "null" in expected
+    value = js_parse(literal)
+    number = value[0] if isinstance(value, list) else value
+    assert isinstance(number, float)
+    assert math.isinf(number)
+    with pytest.raises(ValueError, match=r"JSON\.stringify writes null for"):
+        js_stringify(value)
+
+
+@pytest.mark.parametrize(("text", "expected"), SEMANTICS["sha256_of_text"])
+def test_text_is_hashed_as_the_bytes_node_hashes(text: str, expected: str) -> None:
+    # Node encodes a string as UTF-8 with U+FFFD for a surrogate that has no partner.
+    # shardOf hashes an ID that way, so an ID holding one still names a shard.
+    assert sha256_hex(text) == expected
+    assert shard_of(text) == expected[0]
+    assert js_utf8(text) == js_utf8(text).decode("utf-8").encode("utf-8")
 
 
 @pytest.mark.parametrize(("text", "expected"), SEMANTICS["strings"])

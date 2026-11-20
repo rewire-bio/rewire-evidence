@@ -9,11 +9,13 @@
 //                                     The inputs are read from the file and the outputs are
 //                                     recorded again, so the file is its own input list.
 //   tests/fixtures/js-semantics.json  Behaviour the store holds no example of: key order,
-//                                     integers a double cannot hold, lone surrogates, string
-//                                     comparison, and what JSON.parse refuses.
+//                                     integers a double cannot hold, numbers beyond any double,
+//                                     lone surrogates, the UTF-8 bytes a string is hashed
+//                                     as, string comparison, and what JSON.parse refuses.
 //
 // CI runs this and fails if either file changes, so a fixture cannot drift from the script
 // that claims to have produced it.
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -69,9 +71,18 @@ const integers = [
   "18014398509481985", "123456789012345678901", "-123456789012345678901", "1000000000000000000000",
   "999999999999999999999", "1" + "0".repeat(22), "1" + "0".repeat(308), "340282366920938463463374607431768211456",
 ];
+// Literals JSON.parse reads as Infinity, which JSON.stringify then writes as null.
+const overflowing = ["1e400", "-1e400", "1e309", "1" + "0".repeat(5000), "-1" + "0".repeat(5000), "[1e400]"];
 const strings = [
   "\ud800", "\udc00", "a\ud83db", "\udd2c\ud83e", "\ud83e\uddec", "\ud83e\ud83e\uddec", "pair \ud83e\uddec then lone \udfff",
   "\u007f", "\u0080", "\u009f", "\u00a0", "\u2028", "\ufeff", "\uffff", "\b\f\n\r\t", "\u000b", "/", "<script>",
+];
+// What shardOf hashes (scripts/omics/records.ts): the string as UTF-8, where a surrogate
+// with no partner becomes U+FFFD.
+const sha256 = (text) => crypto.createHash("sha256").update(text).digest("hex");
+const hashed = [
+  "", "any-record-id", "\u00e9", "\ud83e\uddec", "\ud800", "\udc00", "\ufffd", "\ud800-then-text", "a\ud83db",
+  "\udd2c\ud83e", "\ud83e\ud83e\uddec", "pair \ud83e\uddec then lone \udfff",
 ];
 const sortInputs = [
   ["b", "a", "B", "A", "", "aa", "a-", "a0", "a_"],
@@ -98,7 +109,9 @@ const semantics = {
   canonical_line: objects.map((text) => [text, canonicalLine(JSON.parse(text))]),
   canonical_json: objects.map((text) => [text, canonicalJson(JSON.parse(text))]),
   large_integers: integers.map((text) => [text, JSON.stringify(JSON.parse(text))]),
+  overflow: overflowing.map((text) => [text, JSON.stringify(JSON.parse(text))]),
   strings: strings.map((text) => [text, JSON.stringify(text)]),
+  sha256_of_text: hashed.map((text) => [text, sha256(text)]),
   sort: sortInputs.map((list) => [list, [...list].sort(byText)]),
   refused: refused.map((text) => [text, refuses(text)]),
 };
