@@ -11,10 +11,10 @@ from __future__ import annotations
 
 import os
 import secrets
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable, Mapping
 from pathlib import Path
 
-from rewire_evidence.canonical import JsonObject, js_parse
+from rewire_evidence.canonical import JsonInput, JsonObject, js_parse
 
 
 class StoreError(Exception):
@@ -41,6 +41,8 @@ def parse_row(line: str, where: str) -> JsonObject:
         value = js_parse(line)
     except ValueError as error:
         raise StoreError(f"{where} is not JSON: {error}") from error
+    except RecursionError as error:
+        raise StoreError(f"{where} is nested too deeply to read") from error
     if not isinstance(value, dict):
         raise StoreError(f"{where} is not a JSON object")
     return value
@@ -51,12 +53,35 @@ def read_rows(path: Path) -> list[JsonObject]:
     return [parse_row(line, f"{path}:{number}") for number, line in enumerate(read_lines(path), 1)]
 
 
-def text_field(row: JsonObject, field: str, where: str) -> str:
-    """A field the layout depends on, which has to be a string for the row to be placed."""
+def text_field(row: object, field: str, where: str) -> str:
+    """A field the layout depends on, which has to be a string for the row to be placed.
+
+    The row is taken as whatever the caller holds and checked here, because a writer is
+    handed parsed JSON, and a list or a null where a row belongs is refused by name too.
+    """
+    if not isinstance(row, Mapping):
+        raise StoreError(f"{where} is not a JSON object")
     value = row.get(field)
     if not isinstance(value, str):
         raise StoreError(f"{where} has no string {field!r}")
     return value
+
+
+def serialise_row(serialise: Callable[[Mapping[str, JsonInput]], str], row: object, where: str) -> str:
+    """One row as its line, with anything that stops it being written named by `where`.
+
+    The serialisers raise what Python raises: `ValueError` for a number JavaScript would
+    write as null, `TypeError` for a value with no JSON form, `RecursionError` for nesting
+    too deep to walk. A writer and a gate both need those as a named row and not a traceback.
+    """
+    if not isinstance(row, Mapping):
+        raise StoreError(f"{where} is not a JSON object")
+    try:
+        return serialise(row)
+    except RecursionError as error:
+        raise StoreError(f"{where} cannot be written: it is nested too deeply") from error
+    except (TypeError, ValueError) as error:
+        raise StoreError(f"{where} cannot be written: {error}") from error
 
 
 def join_lines(lines: Iterable[str]) -> str:

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import tempfile
 from pathlib import Path
+from typing import cast
 
 import pytest
 from hypothesis import given
@@ -11,6 +12,8 @@ from hypothesis import given
 from rewire_evidence.canonical import JsonObject, js_stringify, record_sha256, sha256_hex, shard_of
 from rewire_evidence.jsonl import StoreError, join_lines, write_text
 from rewire_evidence.store import (
+    EVIDENCE_KINDS,
+    KINDS,
     PROVENANCE_FILE,
     FileDigest,
     checked_records,
@@ -122,7 +125,7 @@ def test_a_written_store_loads_sorted_by_id(tmp_path: Path) -> None:
 def test_write_kind_refuses_a_record_of_another_kind(tmp_path: Path) -> None:
     write_kind("model", RECORDS[:2], tmp_path)
     assert [record["id"] for record in read_kind("model", tmp_path)] == ["model-a", "model-b"]
-    with pytest.raises(StoreError, match="subset-1 is a dataset_subset, not a model"):
+    with pytest.raises(StoreError, match=r"record 3 \(subset-1\) is a dataset_subset, not a model"):
         write_kind("model", RECORDS[:3], tmp_path)
 
 
@@ -318,3 +321,119 @@ def test_the_digests_do_not_depend_on_the_shard_layout(records: list[JsonObject]
             join_lines(js_stringify(row) for row in provenance_of(records)),
         )
         assert store_digests(Path(whole)) == store_digests(Path(sharded))
+
+
+def files_under(root: Path) -> dict[str, bytes]:
+    return {
+        path.relative_to(root).as_posix(): path.read_bytes() for path in root.rglob("*") if path.is_file()
+    }
+
+
+def test_the_kinds_are_the_seventeen_the_typescript_declares() -> None:
+    # entityKinds in shared/omics/entity-kinds.ts at the pinned commit, in its order.
+    assert len(KINDS) == len(set(KINDS)) == 17
+    assert set(EVIDENCE_KINDS) < set(KINDS)
+    assert KINDS[0] == "model"
+    assert KINDS[-1] == "use_case"
+
+
+@pytest.mark.parametrize("kind", ["../../../escaped", "banana", "", "Model", "models", "use-case", "a/b"])
+def test_a_kind_that_is_not_a_record_kind_names_no_file(kind: str, tmp_path: Path) -> None:
+    # The kind becomes a file name. One the store does not have must never reach the disk:
+    # "../../../escaped" would be written three folders above the store.
+    root = tmp_path / "a" / "b" / "c" / "root"
+    record: JsonObject = {"id": "x", "kind": kind}
+    with pytest.raises(StoreError, match="is not a record kind"):
+        record_file(kind, "x", root)
+    with pytest.raises(StoreError, match="is not a record kind"):
+        kind_files(kind, root)
+    with pytest.raises(StoreError, match=r"record 1 \(x\) has the kind .*, which is not a record kind"):
+        write_store([record], [], root)
+    with pytest.raises(StoreError, match=r"record 1 \(x\) has the kind .*, which is not a record kind"):
+        write_kind(kind, [record], root)
+    assert files_under(tmp_path) == {}
+
+    write_text(root / "data/entities/models.jsonl", join_lines([js_stringify(record)]))
+    with pytest.raises(
+        StoreError, match=r"models\.jsonl:1 \(x\) has the kind .*, which is not a record kind"
+    ):
+        load_store(root)
+    with pytest.raises(
+        StoreError, match=r"models\.jsonl:1 \(x\) has the kind .*, which is not a record kind"
+    ):
+        reshard_store(root)
+    assert list(files_under(tmp_path)) == ["a/b/c/root/data/entities/models.jsonl"]
+
+
+def test_the_writers_refuse_two_rows_with_one_id(tmp_path: Path) -> None:
+    # A file with a repeated ID fails load_store, so a writer must not be able to make one.
+    twice: list[JsonObject] = [
+        {"id": "b", "kind": "model"},
+        {"id": "a", "kind": "model", "name": "first"},
+        {"id": "a", "kind": "model", "name": "second"},
+    ]
+    with pytest.raises(StoreError, match="record 2 and record 3 share the ID a"):
+        write_kind("model", twice, tmp_path)
+    with pytest.raises(StoreError, match="record 2 and record 3 share the ID a"):
+        write_store(twice, [], tmp_path)
+    with pytest.raises(StoreError, match="provenance row 1 and provenance row 2 share the ID a"):
+        write_store([], provenance_of(twice[1:]), tmp_path)
+    assert files_under(tmp_path) == {}
+
+
+def test_write_store_checks_every_row_before_it_writes_any_file(tmp_path: Path) -> None:
+    with pytest.raises(StoreError, match="provenance row 2 has no string 'id'"):
+        write_store(RECORDS, [*provenance_of(RECORDS[:1]), {"sha256": "x"}], tmp_path)
+    assert files_under(tmp_path) == {}
+    unwritable: JsonObject = {"id": "model-z", "kind": "model", "value": float("inf")}
+    with pytest.raises(
+        StoreError, match=r"record 11 \(model-z\) cannot be written: JSON\.stringify writes null"
+    ):
+        write_store([*RECORDS, unwritable], provenance_of(RECORDS), tmp_path)
+    with pytest.raises(
+        StoreError, match=r"record 1 \(model-z\) cannot be written: JSON\.stringify writes null"
+    ):
+        write_kind("model", [unwritable], tmp_path)
+    assert files_under(tmp_path) == {}
+
+
+def test_a_row_that_is_not_an_object_is_refused_by_position(tmp_path: Path) -> None:
+    # What a caller gets wrong when it hands over parsed JSON without looking at it.
+    rows = cast("list[JsonObject]", [RECORDS[0], ["x"], None])
+    with pytest.raises(StoreError, match="record 2 is not a JSON object"):
+        write_store(rows, [], tmp_path)
+    with pytest.raises(StoreError, match="provenance row 2 is not a JSON object"):
+        write_store([], rows, tmp_path)
+    with pytest.raises(StoreError, match="record 2 is not a JSON object"):
+        write_kind("model", rows, tmp_path)
+    with pytest.raises(StoreError, match="record 2 has no string 'kind'"):
+        write_kind("model", [RECORDS[0], {"id": "x"}], tmp_path)
+    assert files_under(tmp_path) == {}
+
+
+def test_reshard_sorts_every_file_it_writes(tmp_path: Path) -> None:
+    # Enough records that every shard holds several, handed over in descending ID order as
+    # one file per kind and one provenance file. The result has to be the bytes write_store
+    # writes, which the logical digests cannot show because they sort the lines themselves.
+    records: list[JsonObject] = [
+        {"id": f"{kind}-{number:03}", "kind": kind}
+        for kind in ("model", "result", "claim")
+        for number in range(80)
+    ]
+    laid_out, whole = tmp_path / "laid-out", tmp_path / "whole"
+    build(laid_out, records)
+    backwards = sorted(records, key=lambda record: str(record["id"]), reverse=True)
+    for kind, name in (
+        ("model", "entities/models"),
+        ("result", "evidence/results"),
+        ("claim", "evidence/claims"),
+    ):
+        write_text(
+            whole / f"data/{name}.jsonl",
+            join_lines(js_stringify(record) for record in backwards if record["kind"] == kind),
+        )
+    write_text(whole / PROVENANCE_FILE, join_lines(js_stringify(row) for row in provenance_of(backwards)))
+
+    assert reshard_store(whole) == len(records)
+    assert files_under(whole) == files_under(laid_out)
+    assert max(len(file.read_bytes().split(b"\n")) for file in record_files(whole)) > 3

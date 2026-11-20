@@ -84,6 +84,30 @@ def test_an_atomic_write_replaces_the_file_and_leaves_no_temporary(tmp_path: Pat
     assert [path.name for path in file.parent.iterdir()] == ["rows.jsonl"]
 
 
+def test_an_atomic_write_that_fails_leaves_the_old_file_whole(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # The new bytes go to a temporary file beside the target and reach it by a rename, so
+    # a write that dies before the rename has not touched the file a reader sees.
+    file = tmp_path / "rows.jsonl"
+    write_text_atomically(file, "first\n")
+    renamed: list[tuple[Path, Path]] = []
+
+    def refuse(self: Path, target: Path) -> Path:
+        renamed.append((self, target))
+        raise OSError("the disk went away")
+
+    monkeypatch.setattr(Path, "replace", refuse)
+    with pytest.raises(OSError, match="the disk went away"):
+        write_text_atomically(file, "second\n")
+    assert file.read_bytes() == b"first\n"
+    assert len(renamed) == 1
+    temporary, target = renamed[0]
+    assert target == file
+    assert temporary.parent == file.parent
+    assert temporary.read_bytes() == b"second\n"
+
+
 def test_appending_adds_to_the_end_and_makes_the_file(tmp_path: Path) -> None:
     file = tmp_path / "new" / "rows.jsonl"
     append_text(file, "first\n")

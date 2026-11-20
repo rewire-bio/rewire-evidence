@@ -6,6 +6,7 @@ import json
 import random
 import tempfile
 from pathlib import Path
+from typing import cast
 
 import pytest
 from hypothesis import given
@@ -113,9 +114,9 @@ def test_a_manifest_shard_is_one_hex_digit(shard: str, tmp_path: Path) -> None:
 
 
 def test_a_manifest_row_without_a_sha256_key_is_refused(tmp_path: Path) -> None:
-    with pytest.raises(StoreError, match="Not a sha256 key: abc"):
+    with pytest.raises(StoreError, match="row 1: Not a sha256 key: abc"):
         write_family(MANIFEST, [{"sha256": "abc"}], tmp_path)
-    with pytest.raises(StoreError, match="a manifest row has no string 'sha256'"):
+    with pytest.raises(StoreError, match="row 1 has no string 'sha256'"):
         write_family(MANIFEST, [{"key": KEY_A}], tmp_path)
 
 
@@ -199,7 +200,9 @@ def test_a_receipt_file_needs_a_date(tmp_path: Path) -> None:
     for bad in ("2026-11-7", "20261117", "2026-11-17T", "2026-11-17\n", ""):
         with pytest.raises(StoreError, match="Not a date"):
             fetch_receipt_path(bad, tmp_path)
-    with pytest.raises(StoreError, match="Not a date: not-a-time"):
+    with pytest.raises(
+        StoreError, match="row 1 has a fetched_at that does not start with a date: not-a-timestamp"
+    ):
         append_rows(FETCH_RECEIPTS, [{"fetched_at": "not-a-timestamp"}], tmp_path)
 
 
@@ -276,3 +279,60 @@ def test_a_written_manifest_reads_back_and_writes_the_same_bytes(drawn: list[tup
         assert [row["sha256"] for row in held] == sorted(str(row["sha256"]) for row in rows)
         write_family(MANIFEST, held, root)
         assert {file: file.read_bytes() for file in files} == before
+
+
+def files_under(root: Path) -> list[str]:
+    return sorted(path.relative_to(root).as_posix() for path in root.rglob("*") if path.is_file())
+
+
+def test_a_uniquely_keyed_family_refuses_two_rows_with_one_key(tmp_path: Path) -> None:
+    # A manifest shard with a repeated key fails the gate, so the writer must not make one.
+    manifest: list[JsonObject] = [{"sha256": KEY_A, "n": 1}, {"sha256": KEY_B}, {"sha256": KEY_A, "n": 2}]
+    with pytest.raises(StoreError, match=f"row 1 and row 3 share the key {KEY_A}; manifest holds one row"):
+        write_family(MANIFEST, manifest, tmp_path)
+    records: list[JsonObject] = [{"id": "a", "kind": "model"}, {"id": "a", "kind": "model", "name": "again"}]
+    with pytest.raises(StoreError, match="row 1 and row 2 share the key a; entities holds one row"):
+        write_family(ENTITIES, records, tmp_path)
+    with pytest.raises(StoreError, match="row 1 and row 2 share the key a; provenance holds one row"):
+        write_family(PROVENANCE, records, tmp_path)
+    assert files_under(tmp_path) == []
+    # The licence candidates are not uniquely keyed: two for one source keep the order given.
+    twice: list[JsonObject] = [{"source_id": "s", "n": 2}, {"source_id": "s", "n": 1}]
+    write_family(CANDIDATES, twice, tmp_path)
+    assert read_family(CANDIDATES, tmp_path) == twice
+
+
+def test_a_family_writer_checks_every_row_before_it_writes_any_file(tmp_path: Path) -> None:
+    good: JsonObject = {"sha256": KEY_B, "store": "r2"}
+    for bad, problem in (
+        ({"sha256": "abc"}, "row 2: Not a sha256 key: abc"),
+        ({"key": KEY_A}, "row 2 has no string 'sha256'"),
+        ({"sha256": KEY_A, "bytes": float("inf")}, r"row 2 cannot be written: JSON\.stringify writes null"),
+        ({"sha256": KEY_A, "bytes": {1, 2}}, "row 2 cannot be written: set has no JSON.stringify form"),
+        (["x"], "row 2 is not a JSON object"),
+        (None, "row 2 is not a JSON object"),
+    ):
+        rows = cast("list[JsonObject]", [good, bad])
+        with pytest.raises(StoreError, match=problem):
+            write_family(MANIFEST, rows, tmp_path)
+    receipts = cast("list[JsonObject]", [{"fetched_at": "2026-11-17T10:00:00Z"}, {"fetched_at": "soon"}])
+    with pytest.raises(StoreError, match="row 2 has a fetched_at that does not start with a date: soon"):
+        append_rows(FETCH_RECEIPTS, receipts, tmp_path)
+    for bad_row in (["x"], {"id": "a", "attributes": float("nan")}):
+        moved = cast("list[JsonObject]", [{"id": "a"}, bad_row])
+        with pytest.raises(StoreError, match=r"row 2 (is not a JSON object|cannot be written)"):
+            append_rows(MOVED, moved, tmp_path)
+    assert files_under(tmp_path) == []
+
+
+def test_a_row_that_cannot_be_ordered_is_named_by_its_source() -> None:
+    rows: list[JsonObject] = [{"id": "a"}, {"id": 7}]
+    with pytest.raises(StoreError, match="row 2 has no string 'id'"):
+        serialise_rows(PROVENANCE, rows)
+    with pytest.raises(StoreError, match=r"records/0\.jsonl:2 has no string 'id'"):
+        ordered(PROVENANCE, rows, "records/0.jsonl:")
+    nested: JsonObject = {"id": "deep"}
+    for _ in range(100_000):
+        nested = {"id": "deep", "inner": nested}
+    with pytest.raises(StoreError, match="row 1 cannot be written: it is nested too deeply"):
+        serialise_rows(PROVENANCE, [nested])
