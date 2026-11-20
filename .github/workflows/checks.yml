@@ -19,7 +19,7 @@ permissions:
 
 env:
   # rewire-bio/rewire-benchmark-data, and the record count the gates expect of it.
-  STORE_REF: f11acbf6c333cac932dd8ccf032eb1b1aa3ddc83
+  STORE_REF: 91f76cf8e61cba9d6037a01a19c9aa3051184900
   STORE_RECORDS: "93216"
 
 jobs:
