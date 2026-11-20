@@ -46,11 +46,14 @@ jobs:
         run: |
           uv run --with-editable . python scripts/verify_store_digests.py store 2>&1 | tee gate.log
           # The gate passes on the records it finds, so a checkout that silently held fewer of
-          # them would pass while proving less. The expected count is pinned with the ref.
-          grep -q "All ${STORE_RECORDS} records reproduce." gate.log || {
-            echo "::error::The gate did not report ${STORE_RECORDS} records. Either the pinned store moved or fewer records were read."
+          # them would pass while proving less. The expected count is pinned with the ref. The
+          # reported figure is read rather than matched as a string, because the script prints
+          # it with thousands separators and the pin is a plain number.
+          reported=$(sed -n 's/^All \([0-9,]*\) records reproduce\.$/\1/p' gate.log | tr -d ',')
+          if [ "$reported" != "$STORE_RECORDS" ]; then
+            echo "::error::The gate reported ${reported:-no} records against a pin of ${STORE_RECORDS}. Either the pinned store moved or fewer records were read."
             exit 1
-          }
+          fi
 
       - name: Summary
         if: always()
