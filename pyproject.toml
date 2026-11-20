@@ -5,8 +5,14 @@ description = "Turn primary literature into checkable benchmark records, each bo
 requires-python = ">=3.12"
 dependencies = []
 
-[project.optional-dependencies]
-dev = ["pytest>=8.3.0", "ruff>=0.8.0"]
+[dependency-groups]
+dev = [
+  "hypothesis>=6.120.0",
+  "mypy>=1.13.0",
+  "pytest>=8.3.0",
+  "pytest-cov>=6.0.0",
+  "ruff>=0.8.0",
+]
 
 [build-system]
 requires = ["hatchling"]
@@ -17,11 +23,62 @@ packages = ["src/rewire_evidence"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-q"
+addopts = "-q --strict-markers --strict-config"
+xfail_strict = true
+filterwarnings = ["error"]
+
+# Coverage is measured on the installed library with branches, and anything under 100% fails.
+# There is no blanket exclusion: a line left out carries its own pragma and its own reason.
+[tool.coverage.run]
+source = ["rewire_evidence"]
+branch = true
+
+[tool.coverage.report]
+fail_under = 100
+show_missing = true
+skip_covered = false
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
+enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool", "possibly-undefined"]
+files = ["src", "scripts", "tests"]
 
 [tool.ruff]
 line-length = 110
 target-version = "py312"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B"]
+select = ["ALL"]
+ignore = [
+  "COM812",  # the formatter owns trailing commas
+  "CPY001",  # no copyright header: the licence is the repository's
+  "TC001",   # imports stay at the top; every module defers annotations anyway
+  "TC002",   # as TC001
+  "TC003",   # as TC001
+  "D203",    # conflicts with D211: no blank line before a class docstring
+  "D213",    # conflicts with D212: a docstring summary starts on the first line
+  "D205",    # a summary may run past one line; these docstrings explain a cause
+  "D400",    # as D205: the first line is not always a whole sentence
+  "D415",    # as D400
+  "EM101",   # an exception message is written where it is raised
+  "EM102",   # as EM101, for f-strings
+  "TRY003",  # the messages name the row and the cause, which is their purpose
+  "PLR0911", # js_stringify is one return per JSON type
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = [
+  "D1",      # a test's name is its documentation
+  "S101",    # assert is what a test is made of
+  "PLR2004", # expected values are literals
+  "INP001",  # tests are not a package
+]
+"scripts/**" = [
+  "INP001",  # scripts are not a package
+  "T201",    # a command-line gate prints
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"

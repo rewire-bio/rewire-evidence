@@ -8,7 +8,7 @@ Reads a `rewire-benchmark-data` checkout and nothing else. Writes nothing anywhe
 
 For each record it recomputes `sha256(JSON.stringify(record))` with `rewire_evidence.canonical`
 and compares it against the digest the Node implementation wrote. This is the acceptance
-gate for the determinism kernel: the store is the oracle, and at 93,206 records it is large
+gate for the determinism kernel: the store is the oracle, and at 93,216 records it is large
 enough that a passing run means the two implementations agree rather than that the test was
 weak. Anything short of every record is a failure, and the first few mismatches are printed
 with the field that differs so the cause is visible rather than inferred.
@@ -37,6 +37,7 @@ class VerifyError(Exception):
 
 
 def read_jsonl(path: Path) -> Iterator[dict[str, Any]]:
+    """Every row of a file, skipping blank lines."""
     with path.open(encoding="utf-8") as handle:
         for number, line in enumerate(handle, 1):
             if not line.strip():
@@ -48,6 +49,7 @@ def read_jsonl(path: Path) -> Iterator[dict[str, Any]]:
 
 
 def committed_digests(root: Path) -> dict[str, str]:
+    """The digest the store committed for every record, by record ID."""
     folder = root / "data/provenance/records"
     if not folder.is_dir():
         raise VerifyError(f"{folder} is missing, so {root} is not a benchmark-data checkout")
@@ -60,6 +62,7 @@ def committed_digests(root: Path) -> dict[str, str]:
 
 
 def record_files(root: Path) -> list[Path]:
+    """Every entity and evidence file under a checkout."""
     files = sorted((root / "data/entities").glob("*.jsonl"))
     files += sorted((root / "data/evidence").glob("*/*.jsonl"))
     if not files:
@@ -68,6 +71,7 @@ def record_files(root: Path) -> list[Path]:
 
 
 def verify(root: Path) -> int:
+    """Recompute every record digest and report. Returns the exit status."""
     digests = committed_digests(root)
     print(f"provenance rows: {len(digests):,}", file=sys.stderr)
 
@@ -75,7 +79,7 @@ def verify(root: Path) -> int:
     mismatches: list[tuple[Path, str, str, str]] = []
     for path in record_files(root):
         for record in read_jsonl(path):
-            committed = digests.get(record.get("id"))
+            committed = digests.get(str(record.get("id")))
             if committed is None:
                 tally["no provenance row"] += 1
                 continue
@@ -108,6 +112,7 @@ def verify(root: Path) -> int:
 
 
 def main() -> None:
+    """Parse the command line and exit with the gate's status."""
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
