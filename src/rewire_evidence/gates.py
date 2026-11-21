@@ -26,7 +26,7 @@ import tempfile
 from collections.abc import Callable, Sequence
 from pathlib import Path
 
-from rewire_evidence import agreement, checkparity, conformance, locators, replay, tableparity
+from rewire_evidence import agreement, archiveparity, checkparity, conformance, locators, replay, tableparity
 from rewire_evidence.jsonl import StoreError
 from rewire_evidence.parity import (
     compare_content,
@@ -389,5 +389,49 @@ def _tables(root: Path, expected: Path, report_file: Path | None) -> int:
     sys.stdout.write(
         f"\nAll {counts.tables:,} tables of {counts.artifacts:,} committed artifacts are read as the "
         f"TypeScript reads them, {counts.cells:,} cells in all.\n"
+    )
+    return 0
+
+
+def archive_gate(arguments: Sequence[str], expected: Path, description: str | None = None) -> int:
+    """Run the archive gate and print what it found. Returns the status.
+
+    `expected` is what the TypeScript recorded of the pinned store, used when the command
+    line names no other. The lines it recorded are in the file that names, beside it.
+    """
+    parser = _parser(description)
+    parser.add_argument("--expected", type=Path, default=expected, help="what the TypeScript recorded")
+    parser.add_argument("--json", type=Path, default=None, help="write what was measured here")
+    args = parser.parse_args(arguments)
+    return _run(lambda: _archive(args.root, args.expected, args.json))
+
+
+def _archive(root: Path, expected: Path, report_file: Path | None) -> int:
+    recorded = conformance.read_recorded(expected)
+    dump = archiveparity.read_archive_dump(expected, recorded)
+    sys.stdout.write(
+        f"expecting the manifest, the receipts and the licence map as the TypeScript read them at "
+        f"{conformance.recorded_ref(recorded)}\n"
+    )
+    report = archiveparity.verify_archive(root, recorded, dump)
+    sys.stdout.write(f"{archiveparity.summary(report)}\n")
+    _write_report(report_file, archiveparity.to_json(report))
+
+    for problem in report.problems[:PROBLEMS_SHOWN]:
+        sys.stderr.write(f"  {problem}\n")
+    counts, lines = report.counts, report.lines
+    if report.problems:
+        sys.stderr.write(
+            f"\n{len(report.problems):,} problems. {lines.same:,} of {lines.expected:,} recorded lines "
+            "are reproduced.\n"
+        )
+        return 1
+    if not counts["manifest_rows"]:
+        sys.stderr.write("Cannot verify: a checkout with no manifest row holds the read side to nothing\n")
+        return 2
+    sys.stdout.write(
+        f"\nAll {counts['manifest_rows']:,} manifest rows, {counts['receipts']:,} receipts and "
+        f"{counts['candidates']:,} candidates are read as the TypeScript reads them, and "
+        f"{report.commands.same} commands print what its commands print.\n"
     )
     return 0

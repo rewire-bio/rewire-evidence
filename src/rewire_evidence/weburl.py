@@ -22,6 +22,7 @@ tests hold this module to it.
 from __future__ import annotations
 
 import re
+from typing import NamedTuple
 
 #: Schemes the standard calls special: they have a host, and `\` is a path separator in them.
 SPECIAL = frozenset({"ftp", "file", "http", "https", "ws", "wss"})
@@ -146,16 +147,21 @@ def _ipv6_ok(address: str) -> bool:  # noqa: C901, PLR0912 - the standard's pars
     return compressed or pieces == _PIECES
 
 
+def _domain(host: str) -> str:
+    """The host of a special scheme with its percent escapes read, which is the first step."""
+    decoded = _ESCAPE.sub(
+        lambda found: bytes([int(found.group(1), 16)]), host.encode("utf-8", "surrogatepass")
+    )
+    return decoded.decode("utf-8", "replace")
+
+
 def _host_ok(host: str, *, special: bool) -> bool:
     """The standard's host parser, as far as whether it fails."""
     if host.startswith("["):
         return host.endswith("]") and _ipv6_ok(host[1:-1])
     if not special:
         return not any(character in _FORBIDDEN_HOST for character in host)
-    decoded = _ESCAPE.sub(
-        lambda found: bytes([int(found.group(1), 16)]), host.encode("utf-8", "surrogatepass")
-    )
-    domain = decoded.decode("utf-8", "replace")
+    domain = _domain(host)
     if not domain.isascii() or any(label[:4].lower() == "xn--" for label in domain.split(".")):
         raise UndecidedHost(f"the host {host!r} needs IDNA mapping, which is not ported")
     if not domain or any(character in _FORBIDDEN_DOMAIN for character in domain):
@@ -165,12 +171,18 @@ def _host_ok(host: str, *, special: bool) -> bool:
 
 def _authority_ok(rest: str, *, special: bool) -> bool:
     """The authority, host and port states: `rest` is what follows the slashes."""
+    found = _authority(rest, special=special)
+    return found is not None and _host_ok(found[0], special=special)
+
+
+def _authority(rest: str, *, special: bool) -> tuple[str, str] | None:
+    """The host and the port as they are written, or None where one is refused unread."""
     ends = "/?#\\" if special else "/?#"
     end = next((index for index, character in enumerate(rest) if character in ends), len(rest))
     authority = rest[:end]
     credentials, at, host_and_port = authority.rpartition("@")
     if at and not host_and_port:
-        return False
+        return None
     del credentials
     # The first colon outside brackets ends the host and starts the port.
     inside = False
@@ -186,12 +198,12 @@ def _authority_ok(rest: str, *, special: bool) -> bool:
     host, port = host_and_port[:split], host_and_port[split + 1 :]
     if split < len(host_and_port):
         if not host:
-            return False
+            return None
         if port and (not port.isascii() or not port.isdigit() or _decimal(port, _MAX_PORT) > _MAX_PORT):
-            return False
+            return None
     elif special and not host:
-        return False
-    return _host_ok(host, special=special)
+        return None
+    return host, port
 
 
 def _file_ok(rest: str) -> bool:
@@ -231,3 +243,62 @@ def protocol_of(text: str) -> str | None:
 def can_parse(text: str) -> bool:
     """`URL.canParse(text)`."""
     return protocol_of(text) is not None
+
+
+class Host(NamedTuple):
+    """Where a URL points: `host` has the port when it is not the scheme's own."""
+
+    host: str
+    hostname: str
+
+
+#: The port each special scheme has when none is written, which `host` leaves out.
+_DEFAULT_PORT = {"ftp": 21, "http": 80, "https": 443, "ws": 80, "wss": 443}
+
+
+def _ipv4_text(domain: str) -> str:
+    """An address the IPv4 parser accepted, written as four decimal numbers."""
+    parts = domain.split(".")
+    numbers = [_ipv4_number(part) or 0 for part in (parts if parts[-1] else parts[:-1])]
+    address = numbers[-1] + sum(number << 8 * (3 - at) for at, number in enumerate(numbers[:-1]))
+    return ".".join(str(address >> shift & _BYTE) for shift in (24, 16, 8, 0))
+
+
+def _host_text(host: str, *, special: bool) -> str:
+    """A host the host parser accepted, as the standard serialises it, in lowercase."""
+    if host.startswith("["):
+        raise UndecidedHost(f"the host {host!r} is an IPv6 address, which is not written out here")
+    if not special:
+        # An opaque host keeps what was written, with a control or a character beyond ASCII
+        # as a percent escape.
+        if any(not " " < character < "\x7f" for character in host):
+            raise UndecidedHost(f"the host {host!r} needs percent escapes, which are not written here")
+        return host.lower()
+    domain = _domain(host)
+    return _ipv4_text(domain) if _ends_in_a_number(domain) else domain.lower()
+
+
+def host_of(text: str) -> Host | None:
+    """`new URL(text)`'s `host` and `hostname` in lowercase, or None where `new URL` throws.
+
+    Raises `UndecidedHost` for a host that only IDNA mapping can judge, for an IPv6 address,
+    for an opaque host that needs percent escapes and for a `file:` URL: none of those is
+    written out here, and no URL in the store has one.
+    """
+    stripped = _TAB_OR_NEWLINE.sub("", text.strip(_EDGE))
+    found = _SCHEME.match(stripped)
+    if found is None or not stripped.startswith(":", found.end()):
+        return None
+    scheme = found.group().lower()
+    rest = stripped[found.end() + 1 :]
+    if scheme == "file":
+        raise UndecidedHost(f"{text!r} is a file URL, whose host is not read here")
+    special = scheme in SPECIAL
+    if not special and not rest.startswith("//"):
+        return Host("", "")
+    authority = _authority(rest.lstrip("/\\") if special else rest[2:], special=special)
+    if authority is None or not _host_ok(authority[0], special=special):
+        return None
+    name = _host_text(authority[0], special=special)
+    port = _decimal(authority[1], _MAX_PORT) if authority[1] else None
+    return Host(name if port in {None, _DEFAULT_PORT.get(scheme)} else f"{name}:{port}", name)
