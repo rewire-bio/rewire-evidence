@@ -1,10 +1,12 @@
-"""The `rewire-evidence` command: `npm run records --` check, descriptions, add and change, in Python.
+"""The `rewire-evidence` command: `npm run records --` and `npm run locator --`, in Python.
 
     rewire-evidence records check [ROOT]
     rewire-evidence records descriptions [--json] [ROOT]
     rewire-evidence records add [--root ROOT] [--dry-run] BATCH.jsonl BATCH-DIR
     rewire-evidence records change [--root ROOT] [--dry-run] REVIEW BATCH-DIR ID...
     rewire-evidence records change [--root ROOT] [--dry-run] REVIEW BATCH-DIR --changes CHANGES.jsonl
+    rewire-evidence locator coverage [--root ROOT] [--out REPORT.tsv]
+    rewire-evidence locator parse LOCATOR...
 
 `check` loads the store at ROOT, the working directory by default, through every check
 `loadRecords` makes, and prints the line the TypeScript prints: how many records match their
@@ -36,6 +38,14 @@ by name, before anything is read.
 With `--dry-run` they write nothing and run no shapes. They print the lines each store file
 would lose and gain, as a unified diff with no context, and then what the write would do.
 
+`locator coverage` reads the locator of every result under ROOT with the grammar, prints
+how many are fully addressed, partially addressed, carrying residue and unanchored, by
+class, and writes the same table as `maintenance/reports/locator-coverage-<date>.tsv` under
+ROOT, or where `--out` says. It writes nothing else. `locator parse` prints one locator's
+parse as JSON, the arguments joined by spaces. Both print what the TypeScript prints. A
+store that cannot be read is refused in a line with status 1, where the TypeScript leaves
+with a stack trace and the same status, and the table is not printed first.
+
 Status 2 is for a store this library cannot judge, which is neither accepted nor refused:
 a URL whose host needs IDNA mapping (`weburl.UndecidedHost`). The TypeScript judges it. It
 is also what a command line that cannot be read exits with.
@@ -62,7 +72,16 @@ from rewire_evidence.attributes import said
 from rewire_evidence.canonical import js_indented, js_utf8, utf16_key
 from rewire_evidence.descriptions import DescriptionProblem, row_problems
 from rewire_evidence.js import distinct
-from rewire_evidence.jsonl import StoreError, read_values
+from rewire_evidence.jsonl import StoreError, read_values, write_text
+from rewire_evidence.locator import classify_locator, coverage_of, parse_locator, rendered
+from rewire_evidence.locators import (
+    REPORT_DIR,
+    report,
+    report_lines,
+    report_tsv,
+    stored_locators,
+    tally_locators,
+)
 from rewire_evidence.records import load_records
 from rewire_evidence.schema import RecordError, SchemaError
 from rewire_evidence.store import record_files
@@ -77,6 +96,7 @@ from rewire_evidence.writes import (
     plan_change,
     plan_changes_file,
     shapes_check,
+    today,
     write,
 )
 
@@ -90,9 +110,16 @@ def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="rewire-evidence", description="Check a store of benchmark records, and write to it."
     )
-    commands = parser.add_subparsers(dest="group", required=True).add_parser(
-        "records", help="the record store"
+    groups = parser.add_subparsers(dest="group", required=True)
+    commands = groups.add_parser("records", help="the record store")
+    located = groups.add_parser("locator", help="the locator grammar").add_subparsers(
+        dest="action", required=True
     )
+    coverage = located.add_parser("coverage", help="how much of each stored locator the grammar reads")
+    coverage.add_argument("--root", type=Path, default=Path(), help="a rewire-benchmark-data checkout")
+    coverage.add_argument("--out", type=Path, default=None, help="write the report here")
+    parse = located.add_parser("parse", help="print one locator's parse")
+    parse.add_argument("text", nargs="*", metavar="LOCATOR", help="the locator, in one argument or several")
     actions = commands.add_subparsers(dest="action", required=True)
     check = actions.add_parser("check", help="hold every record to every check loadRecords makes")
     check.add_argument("root", type=Path, nargs="?", default=Path(), help="a rewire-benchmark-data checkout")
@@ -230,6 +257,49 @@ def _change(args: argparse.Namespace) -> str:
     )
 
 
+def _check(args: argparse.Namespace) -> str:
+    return check_summary(len(load_records(args.root)))
+
+
+def _listed(args: argparse.Namespace) -> str:
+    return _descriptions(args.root, as_json=args.json)
+
+
+def _coverage(args: argparse.Namespace) -> str:
+    root: Path = args.root
+    rows, total = report(tally_locators(held.printed for held in stored_locators(root)))
+    target: Path = root / REPORT_DIR / f"locator-coverage-{today()}.tsv" if args.out is None else args.out
+    write_text(target, report_tsv(rows))
+    return "\n".join([*report_lines(rows, total), "", f"wrote {os.path.relpath(target, root)}"])
+
+
+def _parse(args: argparse.Namespace) -> str:
+    printed = " ".join(_as_node_reads(part) for part in args.text)
+    parsed = parse_locator(printed)
+    row = parsed.row()
+    return js_indented(
+        {
+            "class": classify_locator(printed),
+            "verdict": parsed.verdict,
+            "coverage": coverage_of(parsed.verdict),
+            "anchors": row["anchors"],
+            "addresses": row["addresses"],
+            "selectors": row["selectors"],
+            "qualifiers": row["qualifiers"],
+            "residue": row["residue"],
+            "rendered": rendered(parsed),
+        }
+    )
+
+
+_ACTIONS: dict[str, Callable[[argparse.Namespace], str]] = {
+    "check": _check,
+    "descriptions": _listed,
+    "add": _add,
+    "change": _change,
+    "coverage": _coverage,
+    "parse": _parse,
+}
 #: What a write is called when it is refused, as the TypeScript calls it.
 _WRITTEN = {"add": "The batch", "change": "The changed records"}
 
@@ -242,15 +312,11 @@ def main(arguments: Sequence[str] | None = None) -> int:
         parser.error(
             "records change takes the IDs of records edited in place, or --changes and a file, not both"
         )
+    if args.action == "parse" and not (args.text and args.text[0]):
+        # The TypeScript prints its usage for no locator and for one that starts with nothing.
+        parser.error("locator parse takes a locator")
     try:
-        if args.action == "check":
-            printed = check_summary(len(load_records(args.root)))
-        elif args.action == "descriptions":
-            printed = _descriptions(args.root, as_json=args.json)
-        elif args.action == "add":
-            printed = _add(args)
-        else:
-            printed = _change(args)
+        printed = _ACTIONS[args.action](args)
     except UndecidedHost as error:
         _write(sys.stderr, f"Cannot judge the store: {error}")
         return UNDECIDED
