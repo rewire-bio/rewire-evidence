@@ -1,6 +1,7 @@
 # Lint, types, tests at full coverage, and the gates that matter: reproducing data that
-# already exists, and refusing what the TypeScript refuses. A second job records the fixtures that need the data repository's own
-# TypeScript, and fails if a committed one is not what that code produces.
+# already exists, and refusing what the TypeScript refuses. A second job records the fixtures
+# that need the data repository's own TypeScript, and fails if a committed one is not what
+# that code produces.
 #
 # The store is pinned to one commit rather than taken from main as it stands. A gate whose
 # input moves is a gate whose result cannot be compared with yesterday's: a run that goes red
