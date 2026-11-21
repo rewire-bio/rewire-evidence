@@ -64,6 +64,22 @@ def test_a_port_out_of_range_is_refused(host: str, port: int) -> None:
     assert protocol_of(f"https://{host}:{port}/") is None
 
 
+@given(hosts, st.integers(0, 6000), st.integers(0, 10**7))
+def test_a_port_is_the_number_its_digits_write_however_many_zeros_come_first(
+    host: str, zeros: int, port: int
+) -> None:
+    # Python refuses to read an integer of more than 4,300 digits, and a port may have more.
+    text = f"https://{host}:{'0' * zeros}{port}/"
+    assert protocol_of(text) == ("https:" if port <= 65535 else None)
+
+
+@given(st.integers(0, 3), st.integers(1, 6000), st.sampled_from("123456789"))
+def test_an_address_with_a_part_too_long_to_read_is_refused(parts: int, digits: int, digit: str) -> None:
+    long = digit * (digits + 10)
+    assert protocol_of(f"http://{'1.' * parts}{long}/") is None
+    assert protocol_of(f"http://{long}{'.1' * parts}/") is None
+
+
 @given(st.text())
 def test_what_parses_has_a_protocol_and_what_does_not_has_none(text: str) -> None:
     try:

@@ -40,14 +40,32 @@ _MAX_PORT = 65535
 _PIECES = 8
 _MAX_IPV4_PARTS = 4
 _BYTE = 255
+#: Where an IPv4 address ends: no part of one may reach this, wherever it stands.
+_IPV4_END = 256**4
 
 
 class UndecidedHost(Exception):  # noqa: N818 - it is a refusal to answer, not an error in the text
     """A URL whose host needs Unicode's IDNA mapping to be judged, which is not ported."""
 
 
+def _decimal(digits: str, most: int) -> int:
+    """The number decimal digits write, or `most` + 1 for one with more digits than `most` has.
+
+    A port and a part of an address are numbers however many digits write them, zeros in
+    front included, and Python refuses to read an integer of more than 4,300 digits. Only
+    whether the number is above a limit matters here, and its length settles that for any
+    number long enough to be refused.
+    """
+    written = digits.lstrip("0")
+    return most + 1 if len(written) > len(str(most)) else int(written or "0")
+
+
 def _ipv4_number(part: str) -> int | None:
-    """The standard's IPv4 number parser: decimal, `0x` hexadecimal, or octal after a `0`."""
+    """The standard's IPv4 number parser: decimal, `0x` hexadecimal, or octal after a `0`.
+
+    A decimal number with more digits than an address can hold is answered as `_IPV4_END`,
+    which is refused wherever it stands.
+    """
     if not part:
         return None
     digits, radix, alphabet = part, 10, "0123456789"
@@ -57,6 +75,9 @@ def _ipv4_number(part: str) -> int | None:
         digits, radix, alphabet = part[1:], 8, "01234567"
     if any(digit not in alphabet for digit in digits):
         return None
+    if radix == 10:  # noqa: PLR2004 - decimal
+        return _decimal(digits, _IPV4_END - 1)
+    # Python reads a power-of-two radix at any length.
     return int(digits, radix) if digits else 0
 
 
@@ -166,7 +187,7 @@ def _authority_ok(rest: str, *, special: bool) -> bool:
     if split < len(host_and_port):
         if not host:
             return False
-        if port and (not port.isascii() or not port.isdigit() or int(port) > _MAX_PORT):
+        if port and (not port.isascii() or not port.isdigit() or _decimal(port, _MAX_PORT) > _MAX_PORT):
             return False
     elif special and not host:
         return False
