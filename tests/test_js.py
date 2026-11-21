@@ -6,10 +6,12 @@ with Node's built-ins. Every expected value here is something Node produced.
 
 from __future__ import annotations
 
+import decimal
 import json
 import math
 import re
 from importlib import resources
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -196,3 +198,47 @@ def test_strict_equality_holds_between_a_value_and_itself_only_for_what_javascri
     held = js_value(value)
     assert js.strictly_equal(held, held)
     assert js.truthy(held) is (held not in (None, False, 0, ""))
+
+
+#: What `toFixed` writes, recorded by `scripts/fixtures/record_pattern_fixture.mjs`.
+FIXED: list[list[Any]] = json.loads((Path(__file__).parent / "fixtures/js-patterns.json").read_text("utf-8"))[
+    "fixed"
+]
+
+
+@pytest.mark.parametrize(("text", "digits", "expected"), FIXED)
+def test_a_number_is_written_to_fixed_digits_as_javascript_writes_it(
+    text: str, digits: int, expected: str
+) -> None:
+    assert js.fixed(js.number_of_text(text), digits) == expected
+
+
+def test_the_recorded_numbers_include_the_ones_python_rounds_the_other_way() -> None:
+    assert len(FIXED) > 30
+    disagreeing = [
+        text for text, digits, expected in FIXED if digits == 1 and f"{float(text):.1f}" != expected
+    ]
+    assert "0.25" in disagreeing
+    assert "12.25" in disagreeing
+
+
+@given(st.floats(allow_nan=False, allow_infinity=False, min_value=-1e20, max_value=1e20), st.integers(0, 12))
+def test_fixed_digits_are_the_nearest_to_the_exact_value_and_the_larger_of_two(
+    value: float, digits: int
+) -> None:
+    with decimal.localcontext() as context:
+        context.prec = 500
+        exact = decimal.Decimal(value)
+        step = decimal.Decimal(1).scaleb(-digits)
+        nearest = abs(exact).quantize(step, rounding=decimal.ROUND_HALF_UP)
+    written = js.fixed(value, digits)
+    assert written == ("-" if value < 0 else "") + f"{nearest:f}"
+    assert js.fixed(-value, digits).lstrip("-") == written.lstrip("-")
+
+
+@given(st.text())
+def test_pairing_the_units_of_text_gives_the_text_javascript_holds(text: str) -> None:
+    whole = js.paired(js.unit_text(text))
+    assert js.unit_text(whole) == js.unit_text(text)
+    assert js.paired(whole) == whole
+    assert js.units(whole) == js.units(text)

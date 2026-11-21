@@ -45,6 +45,7 @@ type Lookup = Callable[[str, str], Ranges]
 #: Where the recorded sets are, inside the package.
 CLASSES_FILE = "data/pattern-classes.json"
 _LAST_UNIT = 0xFFFF
+_LAST_CHARACTER = 0x10FFFF
 _FLAGS = frozenset("giu")
 #: What a backslash may stand before to mean the character itself, with or without `u`.
 _SYNTAX = "^$\\.*+?()[]{}|/"
@@ -62,7 +63,7 @@ _NEVER = "(?!)"
 _OPENERS = ("?:", "?=", "?!", "?<=", "?<!")
 
 
-class Unsupported(ValueError):
+class Unsupported(ValueError):  # noqa: N818 - it is a refusal to run a pattern, not an error in one
     """A pattern, or a part of one, that this module will not claim to run as JavaScript does."""
 
 
@@ -230,12 +231,12 @@ class _Reader:
         raise self.refused(f"the escape \\{character}, which this module does not run")
 
     def coded(self) -> str:
-        """The character a `\\u` escape names, as four digits or, with the `u` flag, in braces."""
+        """The character a `u` escape names, as four digits or, with the `u` flag, in braces."""
         if "u" in self.mode and self.peek() == "{":
             code = int(self.taken(_BRACED, "a \\u{ with no code in it")[1], 16)
         else:
             code = int(self.taken(_HEX4, "a \\u with no four digits")[0], 16)
-        if _SURROGATE.match(chr(code)) or code > 0x10FFFF:  # noqa: PLR2004
+        if code > _LAST_CHARACTER or _SURROGATE.match(chr(code)):
             raise self.refused("an escape for half a character, or for none")
         return chr(code)
 
@@ -341,6 +342,7 @@ class JsPattern:
     """A JavaScript pattern. Compiled when first used, so declaring one reads no data."""
 
     def __init__(self, source: str, flags: str = "") -> None:
+        """Hold a pattern as JavaScript writes it between the slashes, and its flags."""
         self.source = source
         self.flags = flags
 

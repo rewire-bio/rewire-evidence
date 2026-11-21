@@ -313,6 +313,8 @@ def fixed(value: float, digits: int) -> str:
     if not abs(value) < _FIXED_BELOW:
         return "NaN" if math.isnan(value) else js_string(value)
     scaled = abs(Fraction(value)) * 10**digits
-    whole = str((2 * scaled.numerator + scaled.denominator) // (2 * scaled.denominator)).rjust(digits + 1, "0")
+    whole = str((2 * scaled.numerator + scaled.denominator) // (2 * scaled.denominator)).rjust(
+        digits + 1, "0"
+    )
     sign = "-" if value < 0 else ""
     return f"{sign}{whole[:-digits]}.{whole[-digits:]}" if digits else f"{sign}{whole}"
