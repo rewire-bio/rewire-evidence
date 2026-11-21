@@ -74,6 +74,10 @@
   "facets.method_types method-type": 4115,
   "status status": 93216
  },
+ "blank_labels": {
+  "documents": 307,
+  "anonymous": 80
+ },
  "schemes": {
   "agent": {
    "iri": "https://benchmarks.rewire.it/vocab/agent/",
