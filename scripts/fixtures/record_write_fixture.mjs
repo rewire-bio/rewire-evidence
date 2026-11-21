@@ -91,6 +91,9 @@ class StoppedDate extends RealDate {
   }
 }
 
+// A case the TypeScript does not take as its name says is reported at the end, with the rest,
+// and after the file is written, so that one run shows every such case and what it did.
+const unexpected = [];
 const recorded = cases.map((held) => {
   const work = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "rewire-evidence-write-")));
   const root = path.join(work, "store");
@@ -119,8 +122,8 @@ const recorded = cases.map((held) => {
   for (const file of new Set([...Object.keys(before), ...Object.keys(left)])) if (before[file] !== left[file]) after[file] = left[file] ?? null;
   fs.rmSync(work, { recursive: true });
   if (held.accepted !== null && held.accepted !== (error === null))
-    throw new Error(`${held.command}: ${held.name}: expected to be ${held.accepted ? "accepted" : "refused"}, and got ${JSON.stringify(error)}`);
-  if (error !== null && Object.keys(after).length) throw new Error(`${held.command}: ${held.name}: refused, and left ${Object.keys(after).join(", ")} changed`);
+    unexpected.push(`${held.command}: ${held.name}: expected to be ${held.accepted ? "accepted" : "refused"}, and got ${JSON.stringify(error)}`);
+  if (error !== null && Object.keys(after).length) unexpected.push(`${held.command}: ${held.name}: refused, and left ${Object.keys(after).join(", ")} changed`);
   return { ...held, error, returned, after };
 });
 
@@ -178,4 +181,9 @@ console.log(`the pinned store: ${added} added and ${changed.length} changed from
 fs.writeFileSync(path.join(repo, "tests/fixtures/write-path.json"), `${written({ recorded_from: recordedFrom, clock: CLOCK, date: DATE, stores, cases: recorded }, 2)}\n`);
 const count = (command) => recorded.filter((held) => held.command === command).length;
 const refused = recorded.filter((held) => held.error !== null).length;
+if (unexpected.length) {
+  for (const line of unexpected) console.error(line);
+  console.error(`${unexpected.length} cases were not accepted or refused as write_cases.mjs says they should be.`);
+  process.exitCode = 1;
+}
 console.log(`write path: ${count("add")} adds, ${count("change")} changes by ID, ${count("changes")} changes files; ${refused} refused, ${recorded.length - refused} written`);
