@@ -523,6 +523,14 @@ jobs:
       - name: Record the table reader
         working-directory: store
         run: node_modules/.bin/tsx ../scripts/fixtures/record_tables_fixture.mjs
+      # The archive read side and the licence map: every manifest row, receipt and candidate
+      # of the pinned checkout held to its schema and written back, the work list, the triage
+      # queue and the reclassification plan, what each command prints, and what the schemas,
+      # the manifest writes, the cache check and the classifier do with rows and trees the
+      # checkout has no like of.
+      - name: Record the archive read side
+        working-directory: store
+        run: node_modules/.bin/tsx ../scripts/fixtures/record_archive_fixture.mjs
       - name: Keep what was recorded
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -538,6 +546,9 @@ jobs:
             tests/fixtures/locator.json
             tests/fixtures/checks.json
             tests/fixtures/tables.json
+            tests/fixtures/archive.json
+            scripts/expected/store-archive.json
+            scripts/expected/store-archive.jsonl.gz
             scripts/expected/store-tables.json
             scripts/expected/store-tables.jsonl.gz
             scripts/expected/store-checks.json
