@@ -36,6 +36,7 @@ from rewire_evidence import ratchet
 from rewire_evidence.canonical import JsonObject, JsonValue, js_parse, js_stringify, js_utf8, sha256_hex
 from rewire_evidence.cells import CellError, parse_cell
 from rewire_evidence.checks import (
+    CHECKS,
     CheckInput,
     RunResult,
     anchor_of,
@@ -168,8 +169,14 @@ def _rule_of(row: bytes) -> str:
 
 
 def by_rule(mine: Sequence[bytes], theirs: Sequence[bytes]) -> dict[str, Lines]:
-    """Rows of two reports by check and rule: how many each has, and how many are the same in turn."""
-    grouped: dict[str, tuple[list[bytes], list[bytes]]] = {}
+    """Rows of two reports by check and rule: how many each has, and how many are the same in turn.
+
+    Every rule the pack declares is there, in its order, with or without rows. A row under
+    any other name follows them.
+    """
+    grouped: dict[str, tuple[list[bytes], list[bytes]]] = {
+        f"{check.id}.{rule}": ([], []) for check in CHECKS for rule in check.rules
+    }
     for side, rows in enumerate((mine, theirs)):
         for row in rows:
             grouped.setdefault(_rule_of(row), ([], []))[side].append(row)

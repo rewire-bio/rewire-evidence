@@ -10,10 +10,14 @@ from pathlib import Path
 import pytest
 
 from rewire_evidence.families import manifest_shard_path
-from rewire_evidence.gates import digests_gate, layout_gate, locators_gate, writes_gate
+from rewire_evidence.gates import checks_gate, digests_gate, layout_gate, locators_gate, writes_gate
 from rewire_evidence.jsonl import write_text
 from rewire_evidence.parity import verify_store
+from tests.checked import CHECKED, named
 from tests.history import build as build_history
+from tests.test_checkparity import build as build_checked
+from tests.test_checkparity import recorded_of as checks_recorded_of
+from tests.test_checkparity import store_only
 from tests.test_locators import RESULTS, recorded_of
 from tests.test_locators import build as build_located
 from tests.test_parity import RELEASE, build
@@ -326,3 +330,81 @@ def test_the_locator_script_is_the_gate(tmp_path: Path) -> None:
     # With no --expected the script holds the store to the committed recording, which this is not.
     assert run_script("verify_store_locators.py", str(root)).returncode == 1
     assert "usage:" in run_script("verify_store_locators.py", "--help").stdout
+
+
+def test_the_checks_gate_passes_the_checkouts_it_was_recorded_on_and_fails_another(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    pinned, first = build_checked(tmp_path / "pinned"), store_only(tmp_path / "first")
+    checks_recorded_of(pinned, first, tmp_path / "expected")
+    expected = tmp_path / "expected" / "expected.json"
+    measured = tmp_path / "measured.json"
+    assert checks_gate([str(pinned), str(first), "--json", str(measured)], expected) == 0
+    out = capsys.readouterr()
+    assert out.err == ""
+    assert out.out.startswith(
+        "expecting the committed report of the first run, and the run the TypeScript recorded at abc123\n"
+        "first run, the store at 0123abc: 6 records\n  rows of the committed report reproduced: 9 of 9\n"
+    )
+    assert out.out.endswith(
+        "\nAll 9 rows of the committed report reproduce, the committed baseline is written byte for byte, "
+        "and all 9 rows at the pinned commit are the TypeScript's.\n"
+    )
+    report = json.loads(measured.read_text("utf-8"))
+    assert (report["first_rows_reproduced"], report["pinned_rows_reproduced"], report["problems"]) == (
+        9,
+        9,
+        [],
+    )
+
+    files = named(CHECKED["checkouts"])["a small checkout"]["files"]
+    thinner = store_only(
+        tmp_path / "thinner", {name: text for name, text in files.items() if not name.endswith("0.jsonl")}
+    )
+    arguments = [str(pinned), str(thinner), "--expected", str(expected), "--json", str(measured)]
+    assert checks_gate(arguments, tmp_path / "unused.json") == 1
+    said = capsys.readouterr()
+    assert "  rows of the committed report reproduced: 0 of 9\n" in said.out
+    assert (
+        "  the report of the first run, maintenance/reports/checks-2026-01-01.tsv: 2 lines made" in said.err
+    )
+    assert said.err.endswith(
+        " problems. 0 of 9 rows of the first run and 9 of 9 at the pinned commit reproduce.\n"
+    )
+    assert json.loads(measured.read_text("utf-8"))["baseline_reproduced"] is False
+
+
+def test_the_checks_gate_cannot_be_run_on_nothing(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    files = named(CHECKED["checkouts"])["vocabularies and no store"]["files"]
+    pinned, first = build_checked(tmp_path / "pinned", files), store_only(tmp_path / "first", files)
+    recorded, _ = checks_recorded_of(pinned, first, tmp_path / "expected")
+    expected = tmp_path / "expected" / "expected.json"
+    # A store with no findings reproduces, and holds the checks to nothing.
+    assert recorded["total_findings"] == 0
+    assert checks_gate([str(pinned), str(first)], expected) == 2
+    said = capsys.readouterr()
+    assert said.err == "Cannot verify: a report with no rows holds the checks to nothing\n"
+    assert "  rows of the committed report reproduced: 0 of 0\n" in said.out
+    assert checks_gate([str(pinned), str(tmp_path / "nowhere")], expected) == 2
+    assert capsys.readouterr().err.startswith("Cannot verify: ")
+    assert checks_gate([str(pinned), str(first)], tmp_path / "missing.json") == 2
+    (tmp_path / "expected" / "cells.gz").write_bytes(b"not gzip")
+    assert checks_gate([str(pinned), str(first)], expected) == 2
+    assert "cells.gz cannot be read" in capsys.readouterr().err
+
+
+def test_the_checks_script_is_the_gate(tmp_path: Path) -> None:
+    pinned, first = build_checked(tmp_path / "pinned"), store_only(tmp_path / "first")
+    checks_recorded_of(pinned, first, tmp_path / "expected")
+    passed = run_script(
+        "verify_store_checks.py",
+        str(pinned),
+        str(first),
+        "--expected",
+        str(tmp_path / "expected" / "expected.json"),
+    )
+    assert passed.returncode == 0, passed.stderr
+    assert "All 9 rows of the committed report reproduce" in passed.stdout
+    # With no --expected the script holds the store to the committed recording, which this is not.
+    assert run_script("verify_store_checks.py", str(pinned), str(first)).returncode == 1
+    assert "usage:" in run_script("verify_store_checks.py", "--help").stdout

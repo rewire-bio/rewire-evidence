@@ -41,7 +41,7 @@ env:
   CHECKS_REF: 991a09ef6b6b417ff51d265bd87d862f49d4dbe3
   CHECKS_ROWS: "10754"
   CHECKS_RECORDS: "93187"
-  CHECKS_PINNED_ROWS: "0"
+  CHECKS_PINNED_ROWS: "10754"
 
 jobs:
   checks:
@@ -289,8 +289,10 @@ jobs:
               exit 1
             fi
           done
-          if [ "$CHECKS_PINNED_ROWS" -lt 1 ] || [ "$(jq -r '.first_rules | length' checks.json)" -lt 13 ]; then
-            echo "::error::The checks gate has to hold rows at the pinned commit and thirteen rules of the first run."
+          # Sixteen rules are declared, and thirteen of them have rows in the first run.
+          held=$(jq -r '[.first_rules[] | select(.expected > 0 and .same == .expected)] | length' checks.json)
+          if [ "$CHECKS_PINNED_ROWS" -lt 1 ] || [ "$(jq -r '.first_rules | length' checks.json)" != 16 ] || [ "$held" != 13 ]; then
+            echo "::error::The checks gate has to hold rows at the pinned commit, and every row of thirteen rules of the first run. It held ${held}."
             exit 1
           fi
 
@@ -494,6 +496,7 @@ jobs:
             src/rewire_evidence/data/attribute-registry.json
             src/rewire_evidence/data/lowercase.json
             src/rewire_evidence/data/pattern-classes.json
+            src/rewire_evidence/data/powers-of-ten.json
           if-no-files-found: ignore
       - name: Fixtures are what the TypeScript produces
         run: |

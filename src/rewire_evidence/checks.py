@@ -25,7 +25,9 @@ What is held to the TypeScript is what it does with a record whose `id` is text,
 `source_ids` are a list or absent, and whose `attributes` are anything. A record with an ID
 that is not text, or source IDs that are not a list, is refused with `StoreError`, where the
 TypeScript would write `undefined` into a report or fail on a type. The store reader refuses
-the first before any check runs.
+the first before any check runs. C13 asks more, because `normalize_attributes` does: a kind
+that is text and links that are a list. It refuses a record without them, where the
+TypeScript fails on a type for a result or an evaluation and takes any other kind.
 
 The order of the findings is part of the report: the checks in the order of `CHECKS`, and
 inside each the order its TypeScript gives, which is the order of the store for C1 to C4 and
@@ -35,9 +37,12 @@ ordered as JavaScript orders it, by UTF-16 unit.
 
 from __future__ import annotations
 
+import functools
+import json
 import math
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
+from importlib import resources
 from pathlib import Path
 
 from rewire_evidence.attributes import normalize_attributes
@@ -124,6 +129,8 @@ PATTERNS: tuple[JsPattern, ...] = (
 
 #: `same` compares at this relative tolerance.
 TOLERANCE = 1e-12
+#: Where the powers of ten are, inside the package, as Node gives them.
+POWERS_FILE = "data/powers-of-ten.json"
 
 
 @dataclass(frozen=True)
@@ -474,9 +481,22 @@ def js_round(value: float) -> float:
     return math.copysign(rounded, value) if rounded == 0 else rounded
 
 
+@functools.cache
+def _powers() -> tuple[float, ...]:
+    held = resources.files("rewire_evidence").joinpath(POWERS_FILE).read_text("utf-8")
+    return tuple(float(power) for power in json.loads(held)["powers"])
+
+
 def power_of_ten(places: int) -> float:
-    """`10 ** places` for a count of decimal places: the nearest double, or infinity."""
-    return float(f"1e{places}")
+    """`10 ** places` for a count of decimal places, as Node gives it, or infinity.
+
+    V8 does not give the nearest double for every power: Node 24.22.3 gives
+    1.0000000000000001e+23 for 23 places, and is one step out again for 210. So the powers
+    are data, recorded by `scripts/fixtures/record_checks_fixture.mjs` on the Node the data
+    repository runs, up to the last one that is finite.
+    """
+    powers = _powers()
+    return powers[places] if places < len(powers) else math.inf
 
 
 def rounds_to(value: float, printed: str) -> bool:
@@ -796,8 +816,22 @@ def _written(value: Held) -> str | None:
     return None if isinstance(value, Missing) else js_written(value)
 
 
+def _normalisable(record: JsonObject) -> JsonObject:
+    """A record `normalize_attributes` reads as the TypeScript does: one with a kind and links.
+
+    Raises `StoreError` for another. The TypeScript fails on a type for some of them and
+    takes the rest, and which is which depends on the kind.
+    """
+    if not isinstance(record.get("kind"), str) or not isinstance(record.get("links"), list):
+        raise StoreError(
+            f"the record {subject_of(record)} has a kind that is not text or links that are not a list, "
+            "and normalizeAttributes is not held to the TypeScript for one"
+        )
+    return record
+
+
 def _normalise_or_refuse(given: CheckInput) -> list[Finding]:
-    rows = list(given.records)
+    rows = [_normalisable(record) for record in given.records]
     findings: list[Finding] = []
     for record, after in zip(rows, normalize_attributes(rows), strict=True):
         if after is record:

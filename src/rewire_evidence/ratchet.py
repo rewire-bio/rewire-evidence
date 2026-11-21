@@ -108,7 +108,8 @@ type Count = int | float
 class BaselineCheck:
     """One check as the baseline pins it."""
 
-    title: str
+    #: None for a check the file gives no title, which is then named by its ID alone.
+    title: str | None
     findings: Count
     rules: Mapping[str, Count]
 
@@ -148,8 +149,8 @@ def baseline_of(value: JsonValue, where: str = BASELINE_FILE) -> Baseline:
         if not isinstance(check, dict) or not isinstance(rules, dict):
             raise StoreError(f"{where} gives the check {check_id} no rules")
         title = check.get("title")
-        if not isinstance(title, str):
-            raise StoreError(f"{where} gives the check {check_id} no title")
+        if title is not None and not isinstance(title, str):
+            raise StoreError(f"{where} gives the check {check_id} a title that is not text")
         held[check_id] = BaselineCheck(
             title,
             _count(check.get("findings"), f"the findings of {check_id} in {where}"),

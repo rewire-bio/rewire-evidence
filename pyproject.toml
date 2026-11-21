@@ -84,6 +84,12 @@ ignore = [
 "src/rewire_evidence/locator.py" = [
   "RUF001",  # the patterns are the TypeScript's, curly quotation marks included
 ]
+"tests/test_cells.py" = [
+  "RUF001",  # the cells are the ones a paper prints, with its dashes and its bold digits
+]
+"tests/test_checks.py" = [
+  "RUF001",  # the cases are characters JavaScript and Python order or match differently
+]
 "src/rewire_evidence/cells.py" = [
   "RUF001",  # the patterns are the TypeScript's, with the dashes and signs a paper prints
   "RUF003",  # as RUF001, where a comment shows a cell

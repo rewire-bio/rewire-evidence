@@ -23,6 +23,9 @@
 //   scripts/expected/store-checks-cells.jsonl.gz
 //       For every printed value in the store, with and without its unit being percent as
 //       the store has it, what parseCell reads or the message it throws.
+//   src/rewire_evidence/data/powers-of-ten.json
+//       10 ** n for every n that gives a finite number. V8 does not give the nearest double
+//       for every power, so the library reads them from here.
 //   tests/fixtures/checks.json
 //       The patterns and constants as the TypeScript holds them, and what it does with the
 //       cells, numbers, locators, small stores, checkouts, baselines and command lines in
@@ -304,6 +307,13 @@ function commanded({ name, files, steps }) {
 }
 
 const number = (held) => (Object.is(held, -0) ? "-0" : String(held));
+
+const finite = [];
+for (let places = 0; Number.isFinite(10 ** places); places += 1) finite.push(String(10 ** places));
+fs.writeFileSync(
+  path.join(repo, "src/rewire_evidence/data/powers-of-ten.json"),
+  `{\n "recorded_from": ${JSON.stringify({ script: recordedFrom.script, node: recordedFrom.node })},\n "powers": ${JSON.stringify(finite)}\n}\n`,
+);
 const baselineOnly = (held) => ({ note: held.note, notes: held.notes, commit: held.commit, run_date: held.run_date, store: held.store, total_findings: held.total_findings, checks: held.checks });
 
 fs.writeFileSync(

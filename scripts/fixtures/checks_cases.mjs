@@ -9,24 +9,24 @@
 // ---------------------------------------------------------------------------------------
 
 const printed = [
-  "0.5", "-0.5", "−0.5", "–0.5", "—0.5", "‐0.5", "―0.5", "+0.5", ".5", "5.", "-.5", "00012", "-0", "−0.0",
-  "0.31 ± 0.01", "0.31±0.01", "0.31 (0.01)", "0.31 (0.01", "0.31(0.01)", "0.31 ± (0.01)", "0.31 ( ± 0.01)",
-  "45 (59.2%)", "4,205 (264)", "59.2%", "59.2 %", "59.2% ", "12 (3%)", "0.5%%", "% 5", "5 % (1 %)", "5% ± 1%",
-  "1×10−2", "1×10^-2", "1×10^{-2}", "1.5×10^{3}", "1.5×10^{3", "1.5×10^3}", "9×10−4 ± 1×10−5", "1×10^999", "1×10^-999",
-  "1×10−7", "1×10^21", "0.1×10^1", "-1×10−2", "1×10", "×10^2", "1 × 10 ^ 2", "1x10^2", "1×10^+2", "1×10^2.5", ".5×10^1",
+  "0.5", "-0.5", "\u22120.5", "\u20130.5", "\u20140.5", "\u20100.5", "\u20150.5", "+0.5", ".5", "5.", "-.5", "00012", "-0", "\u22120.0",
+  "0.31 \u00b1 0.01", "0.31\u00b10.01", "0.31 (0.01)", "0.31 (0.01", "0.31(0.01)", "0.31 \u00b1 (0.01)", "0.31 ( \u00b1 0.01)",
+  "45 (59.2%)", "4,205 (264)", "59.2%", "59.2 %", "59.2% ", "12 (3%)", "0.5%%", "% 5", "5 % (1 %)", "5% \u00b1 1%",
+  "1\u00d710\u22122", "1\u00d710^-2", "1\u00d710^{-2}", "1.5\u00d710^{3}", "1.5\u00d710^{3", "1.5\u00d710^3}", "9\u00d710\u22124 \u00b1 1\u00d710\u22125", "1\u00d710^999", "1\u00d710^-999",
+  "1\u00d710\u22127", "1\u00d710^21", "0.1\u00d710^1", "-1\u00d710\u22122", "1\u00d710", "\u00d710^2", "1 \u00d7 10 ^ 2", "1x10^2", "1\u00d710^+2", "1\u00d710^2.5", ".5\u00d710^1",
   "4.03e-04", "4.03E+04", "1e999", "-1e999", "1e5", "1E5 (2e1)", "1e-7", "1e", "e5", "1e5.5", "1e+", "0x10", "1_000", "Infinity", "-Infinity", "NaN5",
-  "", " ", "\t", "-", "--", "---", "–", "—", "‒", "−", "n/a", "N/A", "na", "NA", "Na", "NaN", "nan", "nAn", ".", "/", "..", "n//a", "n\\a", "n /a", " n/a ", "none", "null",
-  "ſ", "NAK", "N∕A", "ɴa", "ｎａ", "nıa",
-  "0.5*", "0.5†", "0.5‡", "↑0.5", "0.5 ↓", "*0.5*", "0.5**", "0.5§", "0.5¶", "0.5a", "0.5^a",
-  "𝟎.𝟓", "𝟬.𝟵𝟭 ± 𝟬.𝟬𝟭", "𝟿", "𝟍", "𝘀", "𝟘𝟢𝟶", "1𝟎", "𝟎 (𝟏)",
-  "0.31 ±plus-or-minus± 0.01", "0.31±plus-or-minus±0.01", "±plus-or-minus±", "0.31 plus-or-minus 0.01",
-  "1,234.5", "1 234.5", "1 234", "1 234", "1 234", "1﻿234", "1​234", "1\u0085234", "1\u001c234", "1.234,5", "1,2,3", ",5", "5,",
-  "abc", "0.5 abc", "0.5 (abc)", "0.5 ± -0.1", "0.5 (−0.1)", "0.5 (-0)", "0.5 ± 0", "0.5 (0.1) (0.2)", "0.5 ± 0.1 ± 0.2", "(0.5)", "±0.5", "0.5 ()",
-  "0.5 ( )", "0.5 (0.1))", "0.5\t±\n0.1", "0.5 [0.4, 0.6]", "0.5 (0.4, 0.6)", "0.5 (0.4-0.6)", "0.5 (0.4–0.6)", "0.5 ± 0.1 (n=3)", "0.5 (n=3)", "0.5 (3)",
-  "0.5 (1e999)", "0.5 ± 1×10^999", "0.5 (±0.1)", "0.5±", "0.5(", "0.5 ± ", "a (0.1)", "(0.1) 0.5", "0.5 ± 0.1)", "0.5 ± 0.1%", "0.5% (0.1%)",
-  "0.5\ud83d", "\ud835", "\udfce", "0.5 😀", "😀", "0.5 (😀)", "0.5 ", "﻿0.5", "0.5\n", "\r\n0.5\r\n", "0 . 5", "0.5 ±± 0.1",
+  "", " ", "\t", "-", "--", "---", "\u2013", "\u2014", "\u2012", "\u2212", "n/a", "N/A", "na", "NA", "Na", "NaN", "nan", "nAn", ".", "/", "..", "n//a", "n\\a", "n /a", " n/a ", "none", "null",
+  "\u017f", "NA\u212a", "N\u2215A", "\u0274a", "\uff4e\uff41", "n\u0131a",
+  "0.5*", "0.5\u2020", "0.5\u2021", "\u21910.5", "0.5 \u2193", "*0.5*", "0.5**", "0.5\u00a7", "0.5\u00b6", "0.5a", "0.5^a",
+  "\ud835\udfce.\ud835\udfd3", "\ud835\udfec.\ud835\udff5\ud835\udfed \u00b1 \ud835\udfec.\ud835\udfec\ud835\udfed", "\ud835\udfff", "\ud835\udfcd", "\ud835\ude00", "\ud835\udfd8\ud835\udfe2\ud835\udff6", "1\ud835\udfce", "\ud835\udfce (\ud835\udfcf)",
+  "0.31 \u00b1plus-or-minus\u00b1 0.01", "0.31\u00b1plus-or-minus\u00b10.01", "\u00b1plus-or-minus\u00b1", "0.31 plus-or-minus 0.01",
+  "1,234.5", "1 234.5", "1\u00a0234", "1\u202f234", "1\u2009234", "1\ufeff234", "1\u200b234", "1\u0085234", "1\u001c234", "1.234,5", "1,2,3", ",5", "5,",
+  "abc", "0.5 abc", "0.5 (abc)", "0.5 \u00b1 -0.1", "0.5 (\u22120.1)", "0.5 (-0)", "0.5 \u00b1 0", "0.5 (0.1) (0.2)", "0.5 \u00b1 0.1 \u00b1 0.2", "(0.5)", "\u00b10.5", "0.5 ()",
+  "0.5 ( )", "0.5 (0.1))", "0.5\t\u00b1\n0.1", "0.5 [0.4, 0.6]", "0.5 (0.4, 0.6)", "0.5 (0.4-0.6)", "0.5 (0.4\u20130.6)", "0.5 \u00b1 0.1 (n=3)", "0.5 (n=3)", "0.5 (3)",
+  "0.5 (1e999)", "0.5 \u00b1 1\u00d710^999", "0.5 (\u00b10.1)", "0.5\u00b1", "0.5(", "0.5 \u00b1 ", "a (0.1)", "(0.1) 0.5", "0.5 \u00b1 0.1)", "0.5 \u00b1 0.1%", "0.5% (0.1%)",
+  "0.5\ud83d", "\ud835", "\udfce", "0.5 \ud83d\ude00", "\ud83d\ude00", "0.5 (\ud83d\ude00)", "0.5\u2028", "\ufeff0.5", "0.5\n", "\r\n0.5\r\n", "0 . 5", "0.5 \u00b1\u00b1 0.1",
   "123456789012345678901234567890", "0.000000000000000000001", "1e21", "1e-7 (1e-8)", "9007199254740993", "1.7976931348623157e308", "1.7976931348623159e308", "5e-324", "2e-324",
-  "12.50", "0.125", "100", "1e2", "1.0e2", "-12.5 (0.5)", "12.5 (−12.5)",
+  "12.50", "0.125", "100", "1e2", "1.0e2", "-12.5 (0.5)", "12.5 (\u221212.5)",
 ];
 
 export const cells = [
@@ -35,7 +35,7 @@ export const cells = [
   ["59.2%", "fraction"], ["59.2%", ""], ["59.2%", "Percent"], ["59.2%", "percent "],
 ];
 
-export const missing = [...printed, "  -  ", " — ", "﻿n/a", "N/a ", "\u0085-", "-\u001f"];
+export const missing = [...printed, "  -  ", "\u00a0\u2014\u00a0", "\ufeffn/a", "N/a\u2028", "\u0085-", "-\u001f"];
 
 // ---------------------------------------------------------------------------------------
 // Numbers: Math.round, 10 ** n, and the two comparisons of C3.
@@ -73,14 +73,14 @@ export const roundings = [
 // ---------------------------------------------------------------------------------------
 
 export const lines = [
-  "plain", " padded ", "a\tb", "a\nb", "a\r\nb", "a\t\t\n\rb", "\ta\t", "\n", "", "a b", "a\u000bb", "a\u000cb", "﻿a ", "a  b", "😀\tx", "\ud83d\tx", "\u0085a\u0085", "\u001fa\u001f",
+  "plain", " padded ", "a\tb", "a\nb", "a\r\nb", "a\t\t\n\rb", "\ta\t", "\n", "", "a\u2028b", "a\u000bb", "a\u000cb", "\ufeffa\u00a0", "a  b", "\ud83d\ude00\tx", "\ud83d\tx", "\u0085a\u0085", "\u001fa\u001f",
 ];
 
 export const locators = [
   "Table 1, column 'AUROC'", "Table 2, row 'X', column \"F1\"", "table 3 column(AUPRC)", "Table 4, column MCC, row 5", "TABLE 5; COLUMN 'Top-1'", "Tables 2, column 'a'", "tables2 column 'a'",
   "Supplementary Table 6, column 'x'", "Supplemental Table S6, column 'x'", "Extended Data Fig. 3b, column 'x'", "Extended Data Figure 3, column 'x'", "Additional file 2 Table S3, column 'x'",
   "Additional file 2, Table S3, column 'x'", "Additional file Table S3, column 'x'", "Appendix Table A1, column 'x'", "Appendix Supplementary Extended Data Table 1, column 'x'",
-  "Supplementary  Table\t6, column 'x'", "  Table 7, column 'x'", "﻿Table 7, column 'x'", " Table 7, column 'x'", "Table\n8, column 'x'", "Table S12, column 'x'", "Table S1a, column 'x'",
+  "Supplementary  Table\t6, column 'x'", "  Table 7, column 'x'", "\ufeffTable 7, column 'x'", "\u00a0Table\u00a07, column 'x'", "Table\n8, column 'x'", "Table S12, column 'x'", "Table S1a, column 'x'",
   "Table SI12, column 'x'", "Table ABC1, column 'x'", "Table 1.2.3, column 'x'", "Table 1.2.a, column 'x'", "Table 1ab, column 'x'", "Table A, column 'x'", "Table, column 'x'", "Table IV, column 'x'",
   "Fig 2, column 'x'", "Fig. 2, column 'x'", "Fig.2, column 'x'", "Figure S2A, column 'x'", "figure2b column 'x'", "Fig.. 2, column 'x'", "Figs 2, column 'x'", "Figures 2, column 'x'",
   "See Table 1, column 'x'", "Section 3, Table 1, column 'x'", "Page 4, column 'x'", "column 'x'", "", " ", "Table 1", "Table 1, row 'a'", "Table 1, columns 'a' and 'b'", "Table 1, column",
@@ -88,13 +88,13 @@ export const locators = [
   "Table 1, column group 'G', column 'x'", "Table 1, column 'x', column group 'G'", "Table 1, column group 'G'", "Table 1, column groupie", "Table 1, column  group  'G', column  'x'",
   "Table 1, column Group \"G\"; column \"A  B\"", "Table 1, column groups 'G'", "Table 1, column group", "Table 1, columngroup 'x'", "Table 1, column\ngroup 'G'",
   "Table 1, column 'a', column 'b'", "Table 1, column 'a', column ''", "Table 1, column 'a'; column \"B\"; column (C)", "Table 1, column (a (b))", "Table 1, column 'it''s'",
-  "Table 1, column \"a 'b' c\"", "Table 1, column 'a \"b\" c'", "Table 1, column a 'b' c, row 2", "Table 1, column a\tb\n c", "Table 1, column 'A  B'", "Table 1, column x; y",
-  "Table 1, COLUMN 'X'", "Table 1, Column ‘X’", "Table 1, column “X”", "Table 1, subcolumn 'x'", "Table 1, column_'x'", "Table 1, column-'x'", "Table 1, columnx", "Table 1, column: 'x'",
-  "Table 1, column=x", "Table 1, column 'x", "Table 1, column \"x", "Table 1, column (x", "Table 1, column x)", "Table 1, column 'x' (percent)", "Table 1, column 'x'", "Table 1, column﻿x",
-  "Table 1, column 'İ'", "Table 1, column 'ΑΣ'", "Table 1, column 'ΑΣ Σ'", "Table 1, column '𐐀'", "Table 1, column '😀'", "Table 1, column \ud83d", "Table 1, column 'K'",
-  "Table 1, column 'ÉCOLE'", "Table 1, Kolumn 'x'", "Table 1, cölumn 'x'", "Table 1, columɴ 'x'", "Ťable 1, column 'x'", "TABLE 1, column 'x'", "Tabſe 1, column 'x'", "Table ١, column 'x'",
-  "Table １, column 'x'", "Table 1١, column 'x'", "FIG. 1, column 'x'", "Extended  Data  Table 1, column 'x'", "Additional file 12, Table 1, column 'x'", "Additional file 1,, Table 1, column 'x'",
-  "Supplementary Table S1, column 'x'", "Supplementary Figure 1.2, column \"Mean ± SD\"", "Table 1, column 'a,b'", "Table 1, column a,b", "Table 1, column \"a;b\"", "Table 1, column a;b",
+  "Table 1, column \"a 'b' c\"", "Table 1, column 'a \"b\" c'", "Table 1, column a 'b' c, row 2", "Table 1, column a\tb\n c", "Table 1, column 'A\u00a0\u2003B'", "Table 1, column x; y",
+  "Table 1, COLUMN 'X'", "Table 1, Column \u2018X\u2019", "Table 1, column \u201cX\u201d", "Table 1, subcolumn 'x'", "Table 1, column_'x'", "Table 1, column-'x'", "Table 1, columnx", "Table 1, column: 'x'",
+  "Table 1, column=x", "Table 1, column 'x", "Table 1, column \"x", "Table 1, column (x", "Table 1, column x)", "Table 1, column 'x' (percent)", "Table 1, column\u00a0'x'", "Table 1, column\ufeffx",
+  "Table 1, column '\u0130'", "Table 1, column '\u0391\u03a3'", "Table 1, column '\u0391\u03a3 \u03a3'", "Table 1, column '\ud801\udc00'", "Table 1, column '\ud83d\ude00'", "Table 1, column \ud83d", "Table 1, column '\u212a'",
+  "Table 1, column '\u00c9COLE'", "Table 1, \u212aolumn 'x'", "Table 1, c\u00f6lumn 'x'", "Table 1, colum\u0274 'x'", "\u0164able 1, column 'x'", "TABLE 1, column 'x'", "Tab\u017fe 1, column 'x'", "Table \u0661, column 'x'",
+  "Table \uff11, column 'x'", "Table 1\u0661, column 'x'", "FIG. 1, column 'x'", "Extended  Data  Table 1, column 'x'", "Additional file 12, Table 1, column 'x'", "Additional file 1,, Table 1, column 'x'",
+  "Supplementary Table\u00a0S1, column 'x'", "Supplementary Figure 1.2, column \"Mean \u00b1 SD\"", "Table 1, column 'a,b'", "Table 1, column a,b", "Table 1, column \"a;b\"", "Table 1, column a;b",
   "Table 1, row 'column', column 'x'", "Table 1, row \"column 'y'\", column 'x'", "Table 1, column 'x', row 'column'", "Table 1, column 'x', row 'in column y'",
 ];
 
@@ -141,12 +141,12 @@ export const runs = [
   {
     name: "units for a metric: three units tied, where the first in text order is the majority of none",
     ...vocabulary,
-    records: [result("x-1", { metric: "m", unit: "b" }), result("x-2", { metric: "m", unit: "a" }), result("x-3", { metric: "m", unit: "B" }), result("y-1", { metric: "n", unit: "ｚ" }), result("y-2", { metric: "n", unit: "😀" })],
+    records: [result("x-1", { metric: "m", unit: "b" }), result("x-2", { metric: "m", unit: "a" }), result("x-3", { metric: "m", unit: "B" }), result("y-1", { metric: "n", unit: "\uff5a" }), result("y-2", { metric: "n", unit: "\ud83d\ude00" })],
   },
   {
     name: "units for a metric: two units equally common, ordered by UTF-16 unit and not by character",
     ...vocabulary,
-    records: [result("y-1", { metric: "n", unit: "ｚ" }), result("y-2", { metric: "n", unit: "😀" }), result("z-1", { metric: "o", unit: "b" }), result("z-2", { metric: "o", unit: "a" })],
+    records: [result("y-1", { metric: "n", unit: "\uff5a" }), result("y-2", { metric: "n", unit: "\ud83d\ude00" }), result("z-1", { metric: "o", unit: "b" }), result("z-2", { metric: "o", unit: "a" })],
   },
   {
     name: "scope notes: each unit ruled out, and a metric two notes name",
@@ -187,16 +187,16 @@ export const runs = [
       result("i-16", { printed_value: "0.5", numeric_value: " 0.5 " }), result("i-17", { printed_value: "16", numeric_value: "0x10" }), result("i-18", { printed_value: "0.5", numeric_value: 0.5 }),
       result("i-19", { printed_value: 0.5, numeric_value: "0.5" }), result("i-20", { numeric_value: "0.5" }), result("i-21", { printed_value: "0.5" }), result("i-22", { printed_value: "59.2%", numeric_value: "59.2", unit: "percent" }),
       result("i-23", { printed_value: "59.2%", numeric_value: "59.2", unit: "fraction" }), result("i-24", { printed_value: "59.2%", numeric_value: "0.592", unit: "percent" }), result("i-25", { printed_value: "1e307", numeric_value: "5" }),
-      result("i-26", { printed_value: "1e-320", numeric_value: "0" }), result("i-27", { printed_value: "0", numeric_value: "-0" }), result("i-28", { printed_value: "9×10−4", numeric_value: "9e-4" }),
-      result("i-29", { printed_value: "9×10−4", numeric_value: "0.0009000000000000001" }), result("i-30", { printed_value: "1e2", numeric_value: "100.4" }), result("i-31", { printed_value: "100", numeric_value: "100.4" }),
+      result("i-26", { printed_value: "1e-320", numeric_value: "0" }), result("i-27", { printed_value: "0", numeric_value: "-0" }), result("i-28", { printed_value: "9\u00d710\u22124", numeric_value: "9e-4" }),
+      result("i-29", { printed_value: "9\u00d710\u22124", numeric_value: "0.0009000000000000001" }), result("i-30", { printed_value: "1e2", numeric_value: "100.4" }), result("i-31", { printed_value: "100", numeric_value: "100.4" }),
       result("i-32", { printed_value: "-0.13", numeric_value: "-0.125" }), result("i-33", { printed_value: "-0.12", numeric_value: "-0.125" }), result("i-34", { printed_value: "3", numeric_value: "2.5" }),
-      result("i-35", { printed_value: "0.5 ± 0.1", numeric_value: "0.1" }), result("i-36", { printed_value: "0.5 ± 0.1", numeric_value: "0.7" }), result("i-37", { printed_value: "0.5 (5e1)", numeric_value: "50" }),
-      result("i-38", { printed_value: "0.5 (0.5)", numeric_value: "0.5" }), result("i-39", { printed_value: "0.50 (0.004)", numeric_value: "0.004" }), result("i-40", { printed_value: "𝟎.𝟓", numeric_value: "0.5" }),
-      result("i-41", { printed_value: "𝟎.𝟓", numeric_value: "0.6" }), result("i-42", { printed_value: "0.5\ud83d", numeric_value: "0.5" }), result("i-43", { printed_value: "a\tb\nc", numeric_value: "1" }),
+      result("i-35", { printed_value: "0.5 \u00b1 0.1", numeric_value: "0.1" }), result("i-36", { printed_value: "0.5 \u00b1 0.1", numeric_value: "0.7" }), result("i-37", { printed_value: "0.5 (5e1)", numeric_value: "50" }),
+      result("i-38", { printed_value: "0.5 (0.5)", numeric_value: "0.5" }), result("i-39", { printed_value: "0.50 (0.004)", numeric_value: "0.004" }), result("i-40", { printed_value: "\ud835\udfce.\ud835\udfd3", numeric_value: "0.5" }),
+      result("i-41", { printed_value: "\ud835\udfce.\ud835\udfd3", numeric_value: "0.6" }), result("i-42", { printed_value: "0.5\ud83d", numeric_value: "0.5" }), result("i-43", { printed_value: "a\tb\nc", numeric_value: "1" }),
       result("i-44", { printed_value: "0.5", numeric_value: "1e999" }), result("i-45", { printed_value: "0.5", numeric_value: "-Infinity" }), result("i-46", { printed_value: "0.5", numeric_value: "NaN" }),
       result("i-47", { printed_value: "0.5", numeric_value: "1,000" }), result("i-48", { printed_value: "1,000", numeric_value: "1000" }), result("i-49", { printed_value: "1.000,5", numeric_value: "1000.5" }),
       result("i-50", { printed_value: "1e-7", numeric_value: "0.0000002" }), result("i-51", { printed_value: "123456789012345678901234567890", numeric_value: "1" }), result("i-52", { printed_value: "0.000001", numeric_value: "0.0000014" }),
-      result("i-53", { printed_value: "0.0000001", numeric_value: "0.00000014" }), result("i-54", { printed_value: "0.5 ± -0.1", numeric_value: "0.5" }), result("i-55", { printed_value: "0.5 (x)", numeric_value: "0.5", unit: "percent" }),
+      result("i-53", { printed_value: "0.0000001", numeric_value: "0.00000014" }), result("i-54", { printed_value: "0.5 \u00b1 -0.1", numeric_value: "0.5" }), result("i-55", { printed_value: "0.5 (x)", numeric_value: "0.5", unit: "percent" }),
       result("i-56", { printed_value: "0.5", numeric_value: "0.6", unit: "" }), result("i-57", { printed_value: "0.5", numeric_value: "0.6", unit: 5 }), result("i-58", { printed_value: "n/a", numeric_value: "0.6", unit: "percent" }),
       result("i-59", { printed_value: "1.7976931348623157e308", numeric_value: "1" }), result("i-60", { printed_value: "1", numeric_value: "1.7976931348623157e308" }), result("i-61", { printed_value: "0.00", numeric_value: "0.004" }),
       result("i-62", { printed_value: "0.00", numeric_value: "-0.004" }), result("i-63", { printed_value: "-0.00", numeric_value: "0.004" }), result("i-64", { printed_value: "12.50", numeric_value: "12.5" }),
@@ -220,10 +220,10 @@ export const runs = [
       result("k-04", { metric_qualifier: "min-max normalised" }), result("k-05", { metric_qualifier: "max absolute track aggregation" }), result("k-06", { metric_qualifier: "yes" }), result("k-07", { metric_qualifier: "no" }),
       result("k-08", { metric_qualifier: "no, yes; (max) high" }), result("k-09", { metric_qualifier: "xhigh" }), result("k-10", { metric_qualifier: "low effort" }), result("k-11", { metric_qualifier: "medium effort" }),
       result("k-12", { metric_qualifier: "low  effort" }), result("k-13", { metric_qualifier: "LOW EFFORT" }), result("k-14", { metric_qualifier: "low\teffort" }), result("k-15", { metric_qualifier: "(no)" }), result("k-16", { metric_qualifier: "[no]" }),
-      result("k-17", { metric_qualifier: "no." }), result("k-18", { metric_qualifier: "no:" }), result("k-19", { metric_qualifier: "yeſ" }), result("k-20", { metric_qualifier: "Ko" }), result("k-21", { metric_qualifier: "no signal" }),
-      result("k-22", { metric_qualifier: "say﻿no more" }), result("k-23", { metric_qualifier: "no\u0085" }), result("k-24", { metric_qualifier: "no\u001f" }), result("k-25", { metric_qualifier: "nono" }), result("k-26", { metric_qualifier: "no no" }),
-      result("k-27", { metric_qualifier: "" }), result("k-28", { metric_qualifier: 5 }), result("k-29", {}), result("k-30", { metric_qualifier: "hıgh" }), result("k-31", { metric_qualifier: "HIGH\nmax" }), result("k-32", { metric_qualifier: "\"no\"" }),
-      result("k-33", { metric_qualifier: "max, nó, nó" }), result("k-34", { metric_qualifier: "no😀" }), result("k-35", { metric_qualifier: "\ud83d no" }), result("k-36", { metric_qualifier: "medium effort, low effort, xhigh, high, max, no, yes" }),
+      result("k-17", { metric_qualifier: "no." }), result("k-18", { metric_qualifier: "no:" }), result("k-19", { metric_qualifier: "ye\u017f" }), result("k-20", { metric_qualifier: "\u212ao" }), result("k-21", { metric_qualifier: "no\u00a0signal" }),
+      result("k-22", { metric_qualifier: "say\ufeffno\u2003more" }), result("k-23", { metric_qualifier: "no\u0085" }), result("k-24", { metric_qualifier: "no\u001f" }), result("k-25", { metric_qualifier: "nono" }), result("k-26", { metric_qualifier: "no no" }),
+      result("k-27", { metric_qualifier: "" }), result("k-28", { metric_qualifier: 5 }), result("k-29", {}), result("k-30", { metric_qualifier: "h\u0131gh" }), result("k-31", { metric_qualifier: "HIGH\nmax" }), result("k-32", { metric_qualifier: "\"no\"" }),
+      result("k-33", { metric_qualifier: "max, n\u00f3, no\u0301" }), result("k-34", { metric_qualifier: "no\ud83d\ude00" }), result("k-35", { metric_qualifier: "\ud83d no" }), result("k-36", { metric_qualifier: "medium effort, low effort, xhigh, high, max, no, yes" }),
     ],
   },
   {
@@ -245,7 +245,7 @@ export const runs = [
       result("m-01", { source_locator: "Table 1, column 'a'", metric: "x" }, { source_ids: ["b", "a"] }), result("m-02", { source_locator: "Table 1, column 'a'", metric: "y" }, { source_ids: ["a", "b"] }),
       result("m-03", { source_locator: "Table 1, column 'a'", metric: "x" }, { source_ids: [] }), result("m-04", { source_locator: "Table 1, column 'a'", metric: "y" }, { source_ids: null }),
       (({ source_ids, ...rest }) => rest)(result("m-05", { source_locator: "Table 1, column 'a'", metric: "z" })),
-      result("m-06", { source_locator: "Table 1, column 'a'", metric: "x" }, { source_ids: ["ｚ", "😀", "a"] }), result("m-07", { source_locator: "Table 1, column 'a'", metric: "y" }, { source_ids: ["a", "😀", "ｚ"] }),
+      result("m-06", { source_locator: "Table 1, column 'a'", metric: "x" }, { source_ids: ["\uff5a", "\ud83d\ude00", "a"] }), result("m-07", { source_locator: "Table 1, column 'a'", metric: "y" }, { source_ids: ["a", "\ud83d\ude00", "\uff5a"] }),
       result("m-08", { source_locator: "Table 1, column 'a'", metric: "x" }, { source_ids: [10, 9, "1", null, true, ["z", "y"], { a: 1 }, 1.5, "null"] }),
       result("m-09", { source_locator: "Table 1, column 'a'", metric: "y" }, { source_ids: [{ a: 1 }, true, "null", 1.5, ["z", "y"], 9, null, "1", 10] }),
       result("m-10", { source_locator: "Table 1, column 'a'", metric: "x" }, { source_ids: ["a+b"] }), result("m-11", { source_locator: "Table 1, column 'a'", metric: "y" }, { source_ids: ["a", "b"] }),
@@ -269,10 +269,10 @@ export const runs = [
       source("p-b", { artifact_sha256: "aa", url: "https://a" }), source("p-a", { artifact_sha256: "aa", url: "https://a" }, { status: "superseded" }), source("p-c", { artifact_sha256: "aa", url: "https://b" }),
       source("p-d", { artifact_sha256: "bb", url: "https://a" }), source("p-e", { artifact_sha256: "bb", url: "https://a" }, { status: null }), (({ status, ...rest }) => rest)(source("p-f", { artifact_sha256: "bb", url: "https://a" })),
       source("p-g", { artifact_sha256: "bb", url: "https://a" }, { status: 5 }), source("p-h", { artifact_sha256: "", url: "https://a" }), source("p-i", { artifact_sha256: "cc", url: "" }), source("p-j", { url: "https://a" }),
-      source("p-k", { artifact_sha256: "cc" }), source("p-l", { artifact_sha256: 5, url: "https://a" }), source("p-m", { artifact_sha256: "ｚ", url: "u" }), source("p-n", { artifact_sha256: "ｚ", url: "u" }),
-      source("p-o", { artifact_sha256: "😀", url: "u" }), source("p-p", { artifact_sha256: "😀", url: "u" }), source("p-q", { artifact_sha256: "a b", url: "c" }), source("p-r", { artifact_sha256: "a", url: "b c" }),
+      source("p-k", { artifact_sha256: "cc" }), source("p-l", { artifact_sha256: 5, url: "https://a" }), source("p-m", { artifact_sha256: "\uff5a", url: "u" }), source("p-n", { artifact_sha256: "\uff5a", url: "u" }),
+      source("p-o", { artifact_sha256: "\ud83d\ude00", url: "u" }), source("p-p", { artifact_sha256: "\ud83d\ude00", url: "u" }), source("p-q", { artifact_sha256: "a b", url: "c" }), source("p-r", { artifact_sha256: "a", url: "b c" }),
       source("p-s", { artifact_sha256: "a b", url: "c" }, { status: true }), source("p-t", { artifact_sha256: "t\tab", url: "line\nbreak" }), source("p-u", { artifact_sha256: "t\tab", url: "line\nbreak" }, { status: "a\tb" }),
-      source("P-B", { artifact_sha256: "dd", url: "u" }), source("p-10", { artifact_sha256: "dd", url: "u" }), source("p-9", { artifact_sha256: "dd", url: "u" }), source("ｚ", { artifact_sha256: "dd", url: "u" }), source("😀", { artifact_sha256: "dd", url: "u" }),
+      source("P-B", { artifact_sha256: "dd", url: "u" }), source("p-10", { artifact_sha256: "dd", url: "u" }), source("p-9", { artifact_sha256: "dd", url: "u" }), source("\uff5a", { artifact_sha256: "dd", url: "u" }), source("\ud83d\ude00", { artifact_sha256: "dd", url: "u" }),
       result("p-result", { artifact_sha256: "aa", url: "https://a" }),
     ],
   },
