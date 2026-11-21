@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import gzip
 import json
+from fractions import Fraction
 from pathlib import Path
 from typing import Any
 
@@ -93,9 +94,12 @@ def test_a_share_is_written_to_one_decimal_as_tofixed_writes_it(part: int, whole
     written = locators.report({"other": tally})[0][0][3]
     whole_part, _, tenths = written.partition(".")
     assert len(tenths) == 1
-    # Within a twentieth of a percent of the share, and never the lower of two equally near.
-    assert abs(int(whole_part) * 10 + int(tenths) - 1000 * tally.full / whole) <= 0.5 + 1e-9
-    assert (int(whole_part) * 10 + int(tenths)) * whole * 2 > 2000 * tally.full - whole
+    # The share is a double, and it is the double that is rounded: 3 in 2,000 is the number
+    # just under 0.15 and is written 0.1. The written tenths are the nearest to that double's
+    # exact value, and the larger of two equally near.
+    share = Fraction(100 * tally.full / whole)
+    away = Fraction(int(whole_part) * 10 + int(tenths), 10) - share
+    assert Fraction(-1, 20) < away <= Fraction(1, 20)
 
 
 def laid_out(case: dict[str, Any], root: Path) -> Path:

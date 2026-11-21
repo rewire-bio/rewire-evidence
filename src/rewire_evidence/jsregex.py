@@ -191,12 +191,12 @@ class _Reader:
 
     def literal(self, character: str) -> _Piece:
         code = ord(character)
-        if "i" in self.mode:
-            # Which other characters a letter matches is JavaScript's rule and is recorded.
-            return self.matching(f"\\u{code:04X}" if code <= _LAST_UNIT else f"\\u{{{code:X}}}")
         if code > _LAST_UNIT and "u" not in self.mode:
             self.at -= 1
             raise self.refused("a character beyond U+FFFF, which is two units without the u flag")
+        if "i" in self.mode:
+            # Which other characters a letter matches is JavaScript's rule and is recorded.
+            return self.matching(f"\\u{code:04X}" if code <= _LAST_UNIT else f"\\u{{{code:X}}}")
         return _Piece(re.escape(character), least=1)
 
     def bracketed(self) -> _Piece:

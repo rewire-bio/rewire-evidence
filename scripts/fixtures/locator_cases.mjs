@@ -133,6 +133,15 @@ export const handwritten = [
   "text-layer\u0345 line 3",
   "PDF \u0345\u0345 page",
   "file\u0345.csv",
+  // The layer qualifier stands before the XML cell and the text-layer line and matches where
+  // they would, so it takes both. It has the i and u flags, under which a long s and a Kelvin
+  // sign are word characters, and the other two have i alone. So after one of those two
+  // letters its word boundary fails and theirs holds, which is the only way they are reached.
+  "\u017fXML row 3 col 2",
+  "\u017fXML data tr row 3, column 4",
+  "Table 1, \u212aXML row 12 column 7, row 'a'",
+  "\u212atext-layer line 12",
+  "Table 2 (\u017ftext-layer line 7)",
   // White space as JavaScript has it.
   "Table\u00a03,\u2028row\u3000'x',\ufeffcolumn\u00a0'y'",
   "\ufeffTable 3\ufeff",

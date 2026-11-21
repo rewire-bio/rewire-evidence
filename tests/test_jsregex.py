@@ -152,6 +152,7 @@ UNSUPPORTED = [
     ("a**", "", "follows nothing"),
     ("a{2}{3}", "", "follows nothing"),
     ("a\U0001f600", "", "two units"),
+    ("a\U0001f600", "i", "two units"),
     ("[abc", "", "a class that is not closed"),
     ("[abc\\", "", "a class that is not closed"),
     ("a\\B", "", "the escape \\B"),

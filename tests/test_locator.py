@@ -32,6 +32,9 @@ from tests.located import LOCATOR, addresses_of, anchors_of, qualifiers_of, sele
 
 HELD: dict[str, Any] = LOCATOR["patterns"]
 CASES: list[dict[str, Any]] = LOCATOR["locators"]
+#: The two letters that are word characters under the i and u flags together and not under i alone.
+LONG_S = chr(0x17F)
+KELVIN = chr(0x212A)
 
 
 def test_the_patterns_are_the_typescripts_character_for_character() -> None:
@@ -104,20 +107,8 @@ def test_every_locator_is_read_as_the_typescript_reads_it() -> None:
 def test_the_recorded_locators_reach_every_part_of_the_grammar() -> None:
     parsed = [case["parsed"] for case in CASES]
     assert {anchor["kind"] for case in parsed for anchor in case["anchors"]} == set(locator.ANCHOR_KINDS)
-    # No text is read as an XML cell, in the TypeScript or here. The layer qualifier stands
-    # before that address in the list and matches wherever it would, so it always wins.
-    addressed = {address["kind"] for case in parsed for address in case["addresses"]}
-    assert addressed == set(locator.ADDRESS_KINDS) - {"xml_cell"}
-    assert any(held["text"].startswith("XML row 3") for case in parsed for held in case["qualifiers"])
-    # Nor is any read as a line of the text layer, for the same reason: `text-layer line 12`
-    # is taken whole by the layer qualifier, which stands first.
-    qualified = {held["kind"] for case in parsed for held in case["qualifiers"]}
-    assert qualified == set(locator.QUALIFIER_KINDS) - {"layer_line"}
-    assert any(
-        held == {"kind": "layer", "text": "text-layer line 12"}
-        for case in parsed
-        for held in case["qualifiers"]
-    )
+    assert {address["kind"] for case in parsed for address in case["addresses"]} == set(locator.ADDRESS_KINDS)
+    assert {held["kind"] for case in parsed for held in case["qualifiers"]} == set(locator.QUALIFIER_KINDS)
     assert {held["form"] for case in parsed for held in case["selectors"]} == set(locator.SELECTOR_FORMS)
     assert {case["verdict"] for case in parsed} == set(locator.VERDICTS)
     assert {case["class"] for case in CASES} == set(locator.LOCATOR_CLASSES)
@@ -291,3 +282,30 @@ def test_an_ordinal_after_a_key_does_not_change_what_the_key_names(key: str, num
     assert selector_role(f"{key} {number}") == role
     assert selector_role(f"{key}  {number} of {number + 3}") == role
     assert selector_role(f"{key} {number}x") == "other"
+
+
+def test_an_xml_cell_and_a_line_of_the_text_layer_are_read_only_after_two_letters() -> None:
+    # The layer qualifier stands before both in the list and matches where they would, so it
+    # takes `XML row 3 col 2` and `text-layer line 12` whole. Its word boundary is the one
+    # under the i and u flags, which a long s or a Kelvin sign before the word breaks.
+    plain = parse_locator("XML row 3 col 2; text-layer line 12")
+    assert plain.addresses == ()
+    assert [held.row() for held in plain.qualifiers] == [
+        {"kind": "layer", "text": "XML row 3 col 2"},
+        {"kind": "layer", "text": "text-layer line 12"},
+    ]
+    reached = 0
+    for case in CASES:
+        kinds = {held["kind"] for held in (*case["parsed"]["addresses"], *case["parsed"]["qualifiers"])}
+        if kinds & {"xml_cell", "layer_line"}:
+            reached += 1
+            assert LONG_S in case["printed"] or KELVIN in case["printed"], case["printed"]
+    assert reached == 3
+    after = parse_locator(f"{LONG_S}XML row 3 col 2")
+    assert [held.row() for held in after.addresses] == [
+        {"kind": "xml_cell", "value": "3", "raw": "XML row 3 col 2", "value2": "2"}
+    ]
+    assert rendered(after) == "XML row 3 column 2"
+    assert [held.row() for held in parse_locator(f"{KELVIN}text-layer line 12").qualifiers] == [
+        {"kind": "layer_line", "text": "text-layer line 12"}
+    ]
