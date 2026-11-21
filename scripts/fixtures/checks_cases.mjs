@@ -273,6 +273,7 @@ export const runs = [
       source("p-o", { artifact_sha256: "\ud83d\ude00", url: "u" }), source("p-p", { artifact_sha256: "\ud83d\ude00", url: "u" }), source("p-q", { artifact_sha256: "a b", url: "c" }), source("p-r", { artifact_sha256: "a", url: "b c" }),
       source("p-s", { artifact_sha256: "a b", url: "c" }, { status: true }), source("p-t", { artifact_sha256: "t\tab", url: "line\nbreak" }), source("p-u", { artifact_sha256: "t\tab", url: "line\nbreak" }, { status: "a\tb" }),
       source("P-B", { artifact_sha256: "dd", url: "u" }), source("p-10", { artifact_sha256: "dd", url: "u" }), source("p-9", { artifact_sha256: "dd", url: "u" }), source("\uff5a", { artifact_sha256: "dd", url: "u" }), source("\ud83d\ude00", { artifact_sha256: "dd", url: "u" }),
+      source("p-v", { artifact_sha256: "ee", url: "u" }, { status: "" }), source("p-w", { artifact_sha256: "ee", url: "u" }, { status: 0 }), source("p-x", { artifact_sha256: "ee", url: "u" }, { status: false }),
       result("p-result", { artifact_sha256: "aa", url: "https://a" }),
     ],
   },
