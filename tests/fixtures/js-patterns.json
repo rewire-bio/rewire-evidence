@@ -1,5 +1,5 @@
 {
- "recorded_from": {"script":"scripts/fixtures/record_pattern_fixture.mjs","node":"v24","unicode":"17.0"},
+ "recorded_from": {"script":"scripts/fixtures/record_pattern_fixture.mjs","node":"v24.22.3","unicode":"17.0"},
  "patterns": [
   {"source":"\\bs\\b","flags":"","cases":[{"text":"s","found":{"index":0,"text":"s","groups":{}}},{"text":"a s b","found":{"index":2,"text":"s","groups":{}}},{"text":"ſs","found":{"index":1,"text":"s","groups":{}}},{"text":"sſ","found":{"index":0,"text":"s","groups":{}}},{"text":"Ks","found":{"index":1,"text":"s","groups":{}}},{"text":"és","found":{"index":1,"text":"s","groups":{}}},{"text":"sé","found":{"index":0,"text":"s","groups":{}}},{"text":"_s","found":null},{"text":"S","found":null}]},
   {"source":"\\bs\\b","flags":"i","cases":[{"text":"s","found":{"index":0,"text":"s","groups":{}}},{"text":"S","found":{"index":0,"text":"S","groups":{}}},{"text":"ſs","found":{"index":1,"text":"s","groups":{}}},{"text":"sſ","found":{"index":0,"text":"s","groups":{}}},{"text":"Ks","found":{"index":1,"text":"s","groups":{}}},{"text":"ſ","found":null},{"text":"és","found":{"index":1,"text":"s","groups":{}}}]},
@@ -65,7 +65,19 @@
   {"source":"\\s+\\d+(?:\\s+of\\s+\\d+)?$","flags":"","replacement":"","cases":[{"text":"column 1 of 4","found":{"index":6,"text":" 1 of 4","groups":{}},"replaced":"column"},{"text":"column 4","found":{"index":6,"text":" 4","groups":{}},"replaced":"column"},{"text":"column 4 x","found":null,"replaced":"column 4 x"},{"text":"column 4\n","found":null,"replaced":"column 4\n"},{"text":"1 of 4 of 5","found":{"index":4,"text":" 4 of 5","groups":{}},"replaced":"1 of"}]},
   {"source":"[^a]","flags":"g","replacement":"-","cases":[{"text":"a😀a","found":{"index":1,"text":"\ud83d","groups":{}},"replaced":"a--a"}]},
   {"source":"[^a]","flags":"gu","replacement":"-","cases":[{"text":"a😀a\ud83d","found":{"index":1,"text":"😀","groups":{}},"replaced":"a-a-"}]},
-  {"source":"$","flags":"g","replacement":"!","cases":[{"text":"ab\n","found":{"index":3,"text":"","groups":{}},"replaced":"ab\n!"},{"text":"","found":{"index":0,"text":"","groups":{}},"replaced":"!"}]}
+  {"source":"$","flags":"g","replacement":"!","cases":[{"text":"ab\n","found":{"index":3,"text":"","groups":{}},"replaced":"ab\n!"},{"text":"","found":{"index":0,"text":"","groups":{}},"replaced":"!"}]},
+  {"source":"[a-z]*?","flags":"g","replacement":"<>","cases":[{"text":"x1y","found":{"index":0,"text":"","groups":{}},"replaced":"<>x<>1<>y<>"},{"text":"","found":{"index":0,"text":"","groups":{}},"replaced":"<>"},{"text":"abc","found":{"index":0,"text":"","groups":{}},"replaced":"<>a<>b<>c<>"}]},
+  {"source":"[a-z]*?","flags":"","replacement":"<>","cases":[{"text":"x1y","found":{"index":0,"text":"","groups":{}},"replaced":"<>x1y"}]},
+  {"source":"b??","flags":"g","replacement":"<>","cases":[{"text":"abc","found":{"index":0,"text":"","groups":{}},"replaced":"<>a<>b<>c<>"},{"text":"bb","found":{"index":0,"text":"","groups":{}},"replaced":"<>b<>b<>"}]},
+  {"source":"[^a]??","flags":"g","replacement":"<>","cases":[{"text":"abc","found":{"index":0,"text":"","groups":{}},"replaced":"<>a<>b<>c<>"},{"text":"a😀","found":{"index":0,"text":"","groups":{}},"replaced":"<>a<>\ud83d<>\ude00<>"}]},
+  {"source":"[^a]??","flags":"gu","replacement":"<>","cases":[{"text":"abc","found":{"index":0,"text":"","groups":{}},"replaced":"<>a<>b<>c<>"},{"text":"a😀","found":{"index":0,"text":"","groups":{}},"replaced":"<>a<>😀<>"},{"text":"😀\ud83d","found":{"index":0,"text":"","groups":{}},"replaced":"<>😀<>\ud83d<>"}]},
+  {"source":"|[^a]","flags":"g","replacement":"<>","cases":[{"text":"a's k","found":{"index":0,"text":"","groups":{}},"replaced":"<>a<>'<>s<> <>k<>"},{"text":"\n a","found":{"index":0,"text":"","groups":{}},"replaced":"<>\n<> <>a<>"}]},
+  {"source":"(?<=a)|x+?","flags":"g","replacement":"<>","cases":[{"text":"axxa","found":{"index":1,"text":"","groups":{}},"replaced":"a<>x<>a<>"},{"text":"xax","found":{"index":0,"text":"x","groups":{}},"replaced":"<>a<>x"}]},
+  {"source":"^|\\b","flags":"g","replacement":"<>","cases":[{"text":"ab cd","found":{"index":0,"text":"","groups":{}},"replaced":"<>ab<> <>cd<>"},{"text":" a","found":{"index":0,"text":"","groups":{}},"replaced":"<> <>a<>"}]},
+  {"source":"a??b","flags":"g","replacement":"<>","cases":[{"text":"abab","found":{"index":0,"text":"ab","groups":{}},"replaced":"<><>"},{"text":"bb","found":{"index":0,"text":"b","groups":{}},"replaced":"<><>"}]},
+  {"source":"[^x]$","flags":"u","cases":[{"text":"😀","found":{"index":0,"text":"😀","groups":{}}},{"text":"a😀","found":{"index":1,"text":"😀","groups":{}}},{"text":"😀b","found":{"index":2,"text":"b","groups":{}}},{"text":"ab","found":{"index":1,"text":"b","groups":{}}}]},
+  {"source":"[\\p{L}]$","flags":"u","cases":[{"text":"𝐀","found":{"index":0,"text":"𝐀","groups":{}}},{"text":"a","found":{"index":0,"text":"a","groups":{}}}]},
+  {"source":"(?![^,;])","flags":"u","cases":[{"text":"a𝐀","found":{"index":2,"text":"","groups":{}}},{"text":"a,","found":{"index":1,"text":"","groups":{}}}]}
  ],
  "fixed": [
   ["0.25",1,"0.3"],

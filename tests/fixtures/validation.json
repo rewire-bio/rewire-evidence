@@ -4,7 +4,7 @@
   "cases": "scripts/fixtures/validation_cases.mjs",
   "store_ref": "91f76cf8e61cba9d6037a01a19c9aa3051184900",
   "zod": "4.6.5",
-  "node": "v24"
+  "node": "v24.22.3"
  },
  "contract": {
   "described_kinds": [
