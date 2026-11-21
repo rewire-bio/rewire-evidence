@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import copy
 import json
-import os
 import re
 import shutil
 import tempfile
@@ -490,4 +489,20 @@ def test_the_committed_expectation_names_what_the_gate_replays() -> None:
     # Every case is a first parent and its merge, by full name, with something to do.
     assert all(case.steps and case.merge != case.parent for case in expectation.cases)
     assert sum(case.added for case in expectation.cases) >= 10
-    assert os.sep == "/"
+
+    # The write the TypeScript recorded: one commit, an add and a changes file, and what was left.
+    recorded = read_cases(Path(__file__).parent.parent / "scripts/expected/store-recorded-writes.json")
+    assert recorded.configuration == expectation.configuration
+    (case,) = recorded.cases
+    assert case.merge == case.parent
+    assert [(step.batch is None, step.changes is None) for step in case.steps] == [
+        (False, True),
+        (True, False),
+    ]
+    assert (case.added, case.changed) == (1, 1)
+    assert case.left is not None
+    assert len(case.left) == case.files == 79
+    assert all(
+        re.fullmatch(r"data/(entities|evidence|provenance)/[a-z0-9/-]+\.jsonl", file) for file in case.left
+    )
+    assert all(re.fullmatch(r"[0-9a-f]{40}", name) for name in case.left.values())
