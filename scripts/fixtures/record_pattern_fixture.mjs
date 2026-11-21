@@ -32,7 +32,7 @@ const read = (file) => JSON.parse(fs.readFileSync(path.join(root, file), "utf8")
 const hex = (code) => code.toString(16).toUpperCase();
 const recordedFrom = {
   script: "scripts/fixtures/record_pattern_fixture.mjs",
-  node: process.version.split(".")[0],
+  node: process.version,
   unicode: process.versions.unicode,
 };
 

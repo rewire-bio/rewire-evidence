@@ -53,35 +53,60 @@ const storeRef = execFileSync("git", ["rev-parse", "HEAD"], { cwd: store, encodi
 const recordedFrom = {
   script: "scripts/fixtures/record_locator_fixture.mjs",
   store_ref: storeRef,
-  node: process.version.split(".")[0],
+  node: process.version,
   unicode: process.versions.unicode,
 };
 const sha256 = (data) => crypto.createHash("sha256").update(data).digest("hex");
 const lines = (items) => `[\n${items.map((item) => `  ${JSON.stringify(item)}`).join(",\n")}\n ]`;
 const members = (held) => `{\n${Object.entries(held).map(([key, value]) => ` ${JSON.stringify(key)}: ${value}`).join(",\n")}\n}\n`;
 
-// The patterns are not exported. A copy of the module that exports them is written beside
-// it, read and removed, so that what is recorded is what the module compiles.
+/** A module of the data repository with more of it exported: a copy written beside it, read and removed. */
+async function exposed(file, exports) {
+  const copy = file.replace(/\.ts$/, "-exposed-for-recording.ts");
+  fs.writeFileSync(path.join(store, copy), `${fs.readFileSync(path.join(store, file), "utf8")}\n${exports}\n`);
+  try {
+    return await load(copy);
+  } finally {
+    fs.rmSync(path.join(store, copy));
+  }
+}
+
+// The patterns are not exported, so what is recorded is what the copy of the module compiles.
 async function heldPatterns() {
-  const exposed = "shared/omics/locator-exposed-for-recording.ts";
-  const text = fs.readFileSync(path.join(store, MODULE), "utf8");
   const pair = (pattern) => `[${pattern}.flags, ${pattern}.source]`;
-  fs.writeFileSync(
-    path.join(store, exposed),
-    `${text}\nexport const heldForRecording = {
+  const { heldForRecording } = await exposed(
+    MODULE,
+    `export const heldForRecording = {
       tokens: TOKENS.map((token) => [token.name, token.re.flags, token.re.source]),
       ordinal_key: ${pair("ORDINAL_KEY")}, noise: ${pair("NOISE")}, noise_words: ${pair("NOISE_WORDS")},
       legacy: ${pair("legacyLocatorPattern")}, table_head: ${pair("TABLE_HEAD")},
       row_keys: [...ROW_KEYS], column_keys: [...COL_KEYS],
       direct: [...DIRECT], line_addressed: [...LINE_ADDRESSED], prose: [...PROSE],
       anchor_kind: ANCHOR_KIND, address_kind: ADDRESS_KIND, qualifier_kind: QUALIFIER_KIND, selector_form: SELECTOR_FORM,
-    };\n`,
+    };`,
   );
+  return { ...heldForRecording, classify: classifyPatterns() };
+}
+
+// Most of the patterns classifyLocator runs are written inside it, where no export reaches.
+// They are read off as it runs: each pattern it tests, in the order it first tests them, on
+// two locators that between them fall through every decision it makes.
+function classifyPatterns() {
+  const seen = [];
+  const note = (pattern) => {
+    if (!seen.some(([flags, source]) => flags === pattern.flags && source === pattern.source)) seen.push([pattern.flags, pattern.source]);
+  };
+  const { test, exec } = RegExp.prototype;
+  RegExp.prototype.test = function noted(text) { note(this); return test.call(this, text); };
+  RegExp.prototype.exec = function noted(text) { note(this); return exec.call(this, text); };
   try {
-    return (await load(exposed)).heldForRecording;
+    const classes = ["Table q row", "q"].map((printed) => classifyLocator(printed));
+    if (classes.join() !== "table_unquoted_row,other") throw new Error(`classifyLocator no longer falls through on the two locators: ${classes}`);
   } finally {
-    fs.rmSync(path.join(store, exposed));
+    RegExp.prototype.test = test;
+    RegExp.prototype.exec = exec;
   }
+  return seen;
 }
 
 /** One locator as the TypeScript reads it. */
@@ -109,6 +134,15 @@ function storedResults() {
 }
 
 const results = storedResults();
+// The loop above is this script's, because the command's own storedLocators gives the
+// locators without the IDs the lines carry and is not exported. So the command's is run
+// as well, and the two have to choose the same locators in the same order.
+const { storedLocatorsForRecording } = await exposed(COMMAND, "export const storedLocatorsForRecording = storedLocators;");
+const chosen = storedLocatorsForRecording(store);
+const parted = results.findIndex(({ printed }, at) => printed !== chosen[at]);
+if (chosen.length !== results.length || parted !== -1) {
+  throw new Error(`storedLocators reads ${chosen.length} locators and this script ${results.length}, first differing at ${parted}`);
+}
 const dump = Buffer.from(results.map(({ id, printed }) => `${JSON.stringify({ id, ...reading(printed) })}\n`).join(""), "utf8");
 const dumpFile = path.join(repo, "scripts/expected/store-locators.jsonl.gz");
 const held = fs.existsSync(dumpFile) ? zlib.gunzipSync(fs.readFileSync(dumpFile)) : null;

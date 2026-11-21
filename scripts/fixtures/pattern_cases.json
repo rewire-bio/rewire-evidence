@@ -65,7 +65,19 @@
   {"source": "\\s+\\d+(?:\\s+of\\s+\\d+)?$", "flags": "", "texts": ["column 1 of 4", "column 4", "column 4 x", "column\u00a04\n", "1 of 4 of 5"], "replacement": ""},
   {"source": "[^a]", "flags": "g", "texts": ["a\ud83d\ude00a"], "replacement": "-"},
   {"source": "[^a]", "flags": "gu", "texts": ["a\ud83d\ude00a\ud83d"], "replacement": "-"},
-  {"source": "$", "flags": "g", "texts": ["ab\n", ""], "replacement": "!"}
+  {"source": "$", "flags": "g", "texts": ["ab\n", ""], "replacement": "!"},
+  {"source": "[a-z]*?", "flags": "g", "texts": ["x1y", "", "abc"], "replacement": "<>"},
+  {"source": "[a-z]*?", "flags": "", "texts": ["x1y"], "replacement": "<>"},
+  {"source": "b??", "flags": "g", "texts": ["abc", "bb"], "replacement": "<>"},
+  {"source": "[^a]??", "flags": "g", "texts": ["abc", "a\ud83d\ude00"], "replacement": "<>"},
+  {"source": "[^a]??", "flags": "gu", "texts": ["abc", "a\ud83d\ude00", "\ud83d\ude00\ud83d"], "replacement": "<>"},
+  {"source": "|[^a]", "flags": "g", "texts": ["a's k", "\n a"], "replacement": "<>"},
+  {"source": "(?<=a)|x+?", "flags": "g", "texts": ["axxa", "xax"], "replacement": "<>"},
+  {"source": "^|\\b", "flags": "g", "texts": ["ab cd", " a"], "replacement": "<>"},
+  {"source": "a??b", "flags": "g", "texts": ["abab", "bb"], "replacement": "<>"},
+  {"source": "[^x]$", "flags": "u", "texts": ["\ud83d\ude00", "a\ud83d\ude00", "\ud83d\ude00b", "ab"]},
+  {"source": "[\\p{L}]$", "flags": "u", "texts": ["\ud835\udc00", "a"]},
+  {"source": "(?![^,;])", "flags": "u", "texts": ["a\ud835\udc00", "a,"]}
  ],
  "fixed": [
   ["0.25", 1], ["12.25", 1], ["0.35", 1], ["2.5", 0], ["3.5", 0], ["0.5", 0], ["1.005", 2], ["8.345", 2],

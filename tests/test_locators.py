@@ -18,9 +18,9 @@ from hypothesis import given
 from hypothesis import strategies as st
 
 from rewire_evidence import cli, locators
-from rewire_evidence.canonical import JsonObject, sha256_hex
+from rewire_evidence.canonical import JsonObject, sha256_hex, utf16_key
 from rewire_evidence.cli import main
-from rewire_evidence.js import MISSING
+from rewire_evidence.js import MISSING, fixed
 from rewire_evidence.jsonl import StoreError, write_text
 from rewire_evidence.locator import LOCATOR_CLASSES
 from rewire_evidence.locators import (
@@ -102,6 +102,20 @@ def test_a_share_is_written_to_one_decimal_as_tofixed_writes_it(part: int, whole
     assert Fraction(-1, 20) < away <= Fraction(1, 20)
 
 
+@pytest.mark.parametrize(("full", "written"), [(23, "28.8"), (41, "51.3"), (51, "63.8")])
+def test_a_share_is_multiplied_by_100_before_it_is_divided(full: int, written: str) -> None:
+    # `((100 * part) / whole).toFixed(1)`. 2,300 / 80 is 28.75 exactly and is written 28.8,
+    # and 100 * (23 / 80) is 28.749999999999996, which would be written 28.7.
+    case = COMMANDS[f"coverage of {full} fully addressed in 80"]
+    assert f"fully addressed            {full} of 80 ({written}%)\n" in case["stdout"]
+    assert f"TOTAL\t80\t{full}\t{written}\t" in case["written"]["report.tsv"]
+    tally = Tally(locators=80, full=full)
+    rows, total = report({"other": tally})
+    assert rows[0][3] == rows[1][3] == written
+    assert f"fully addressed            {full} of 80 ({written}%)" in report_lines(rows, total)
+    assert fixed(100 * (full / 80), 1) != written
+
+
 def laid_out(case: dict[str, Any], root: Path) -> Path:
     root.mkdir(parents=True, exist_ok=True)
     for file, text in case["files"].items():
@@ -135,7 +149,7 @@ MISUSED = [name for name, case in COMMANDS.items() if case["status"] == 2]
 
 
 def test_the_runs_of_the_command_are_the_ones_expected() -> None:
-    assert len(PRINTED) == 8
+    assert len(PRINTED) == 11
     assert len(REFUSED) == 3
     assert len(MISUSED) == 4
     assert len(COMMANDS) == len(PRINTED) + len(REFUSED) + len(MISUSED) + 1
@@ -236,6 +250,48 @@ def test_stored_locators_are_read_as_the_typescript_reads_them(tmp_path: Path) -
     )
     assert dump_line(Stored(7, "line 3")).startswith('{"id":7,"class":"line_addressed","coverage":"partial",')
     assert dump_line(Stored(None, "x")).startswith('{"id":null,"class"')
+
+
+#: Two names that code points and UTF-16 units put in opposite orders: a character beyond
+#: U+FFFF is written as two units from U+D800 on, which sort before U+E000.
+PRIVATE_USE = "\ue000"
+BEYOND = "\U0001f600"
+
+
+def test_names_are_sorted_by_utf_16_unit_as_javascript_sorts_them() -> None:
+    assert sorted([BEYOND, PRIVATE_USE]) == [PRIVATE_USE, BEYOND]
+    assert sorted([PRIVATE_USE, BEYOND], key=utf16_key) == [BEYOND, PRIVATE_USE]
+
+
+def test_result_files_are_read_in_the_order_javascript_sorts_their_names(tmp_path: Path) -> None:
+    folder = tmp_path / locators.RESULTS_DIR
+    write_text(folder / f"{PRIVATE_USE}.jsonl", result("r-private", "line 1"))
+    write_text(folder / f"{BEYOND}.jsonl", result("r-beyond", "line 2"))
+    write_text(folder / "a.jsonl", result("r-a", "line 3"))
+    assert [held.id for held in stored_locators(tmp_path)] == ["r-a", "r-beyond", "r-private"]
+
+
+def test_value_check_files_are_read_in_the_order_javascript_sorts_their_paths(tmp_path: Path) -> None:
+    refused = f"{locators.VALUE_CHECK_HEADER}\nr-1\tlocator_not_parsed\t1\tTable 1, row 'a'\n"
+    # `a-b/` sorts before `a/`, though `a` sorts before `a-b`.
+    for name in (PRIVATE_USE, BEYOND, "a", "a-b"):
+        write_text(tmp_path / locators.BATCHES_DIR / name / locators.VALUE_CHECK, refused)
+    assert value_check(tmp_path).disagreed == [
+        f"data/omics/{name}/value-check.tsv r-1" for name in ("a-b", "a", BEYOND, PRIVATE_USE)
+    ]
+
+
+def test_committed_reports_are_listed_in_the_order_javascript_sorts_their_names(tmp_path: Path) -> None:
+    root = build(tmp_path / "store")
+    rows, _ = report(tally_locators(printed for _, printed in RESULTS))
+    for name in (PRIVATE_USE, BEYOND):
+        write_text(root / locators.REPORT_DIR / f"locator-coverage-{name}.tsv", report_tsv(rows))
+    recorded, dump = recorded_of(root, tmp_path / "expected")
+    assert verify_locators(root, recorded, dump).measured["report"]["committed"] == [  # type: ignore[index, call-overload]
+        "maintenance/reports/locator-coverage-2026-11-18.tsv",
+        f"maintenance/reports/locator-coverage-{BEYOND}.tsv",
+        f"maintenance/reports/locator-coverage-{PRIVATE_USE}.tsv",
+    ]
 
 
 @pytest.mark.parametrize(

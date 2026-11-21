@@ -307,12 +307,15 @@ def value_check(root: Path) -> ValueCheck:
     """
     batches = root / BATCHES_DIR
     try:
-        names = sorted((entry.name for entry in batches.iterdir()), key=utf16_key)
+        names = [entry.name for entry in batches.iterdir()]
     except OSError as error:
         raise StoreError(f"{batches} cannot be read: {error}") from error
-    files = [
-        f"{BATCHES_DIR}/{name}/{VALUE_CHECK}" for name in names if (batches / name / VALUE_CHECK).is_file()
-    ]
+    # The recording sorts the paths of the files, not the names of the batches, and the two
+    # orders part where one name starts another: `a-b/` sorts before `a/`.
+    files = sorted(
+        (f"{BATCHES_DIR}/{name}/{VALUE_CHECK}" for name in names if (batches / name / VALUE_CHECK).is_file()),
+        key=utf16_key,
+    )
     counted = ValueCheck(len(files))
     for file in files:
         header, *rows = [line for line in _text(root / file).split("\n") if line] or [""]

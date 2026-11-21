@@ -184,6 +184,24 @@ export const handwritten = [
   "  Table 3, row 'x', column 'y'  ",
   "\nTable 3 row 'x'",
   "Table 3\n, row 'x'",
+  // The edges of the patterns classifyLocator holds. A Roman numeral ends at a word
+  // boundary, so a word that starts with its letters is not one.
+  "Table Ix, col 1",
+  "Table Characteristics, row 2",
+  "Table Cx row 'a'",
+  "Table V2, col 1",
+  "Table IV",
+  "Table IV, row 2",
+  "Supplementary Table Lists, row 2",
+  // A dotted table number has a digit after the dot.
+  "Table 2. Results, row 2",
+  "Table 2.x",
+  "Table A.x, col 1",
+  "Table A. row 'a'",
+  "Table 2.1 row 2",
+  "Table A.2",
+  "Table AB.2",
+  "Appendix Table 12.3, row 'a'",
 ];
 
 const pick = (random, items) => items[Math.floor(random() * items.length)];
@@ -344,6 +362,13 @@ const someResults = [
   result("r-5", "Fig. 3b \u2013 panel \ud83d\ude00"),
 ].join("\n");
 
+// 23 fully addressed in 80 is 28.75%, written 28.8. Dividing before multiplying by 100 gives
+// 28.749999999999996 and 28.7, and 41 in 80 and 51 in 80 part the same way.
+const shares = (full) => [
+  ...Array.from({ length: full }, (_, at) => result(`r-full-${at}`, "Table S18, row 'Bacformer', column 'Binary AUPRC'")),
+  ...Array.from({ length: 80 - full }, (_, at) => result(`r-rest-${at}`, "metrics.ndcg")),
+].join("\n");
+
 /** Runs of the command, each in a folder holding these files. */
 export const commands = [
   { name: "coverage of a store with a few results, written where it is told", files: { "data/evidence/results/0.jsonl": `${someResults}\n` }, args: ["coverage", "--out", "out/report.tsv"] },
@@ -368,6 +393,9 @@ export const commands = [
     },
     args: ["coverage", "--out", "report.tsv"],
   },
+  { name: "coverage of 23 fully addressed in 80", files: { "data/evidence/results/0.jsonl": `${shares(23)}\n` }, args: ["coverage", "--out", "report.tsv"] },
+  { name: "coverage of 41 fully addressed in 80", files: { "data/evidence/results/0.jsonl": `${shares(41)}\n` }, args: ["coverage", "--out", "report.tsv"] },
+  { name: "coverage of 51 fully addressed in 80", files: { "data/evidence/results/0.jsonl": `${shares(51)}\n` }, args: ["coverage", "--out", "report.tsv"] },
   { name: "coverage of a store with no results", files: { "data/evidence/results/0.jsonl": "" }, args: ["coverage", "--out", "report.tsv"] },
   { name: "coverage with --out and nothing after it", files: { "data/evidence/results/0.jsonl": `${someResults}\n` }, args: ["coverage", "--out"] },
   { name: "coverage where there is no store", files: {}, args: ["coverage", "--out", "report.tsv"] },

@@ -18,9 +18,18 @@ it and written out again as a Python pattern that says the same thing.
   gives, one character to a unit. With the `u` flag a pattern sees whole characters, so the
   units are paired up for the match and the result is put back into units.
 - A group captured inside a repeat keeps its last value in Python and is reset by
-  JavaScript on each pass, and the two disagree about a repeat whose body can match
-  nothing. Both are refused, along with every construct the port does not use:
-  `Unsupported` names it. A pattern this module accepts means what JavaScript means by it.
+  JavaScript on each pass. That is refused.
+- JavaScript does not count a pass of a repeat that matched nothing once the repeat has
+  what it needs: it gives the pass up and tries another way, and Python keeps it. So
+  `(?<g>\b)?` leaves the group unset in JavaScript and empty in Python. Any repeat of
+  something that can match nothing is refused, `?` and `{0,1}` included.
+- After a match of nothing, a global `replace` in JavaScript looks again one character
+  further on. Python looks again at the same place for a match that is not empty, and a
+  lazy repeat then takes a character JavaScript would have stepped over. `replace` is
+  therefore written here as JavaScript's own loop over `search`, and `re.sub` is not used.
+
+Every construct the port does not use is refused as well, and `Unsupported` names it. A
+pattern this module accepts means what JavaScript means by it.
 
 `tests/fixtures/js-patterns.json` holds what Node matched for a list of patterns and texts,
 written by the same recorder from `scripts/fixtures/pattern_cases.json`.
@@ -283,11 +292,12 @@ class _Reader:
             written += "?"
         if not piece.width:
             raise self.refused("a repeat of something that matches no characters")
-        if most is None or most > 1:
-            if piece.captures:
-                raise self.refused("a named group inside a repeat, which JavaScript resets on each pass")
-            if not piece.least:
-                raise self.refused("a repeat of something that can match nothing")
+        if piece.captures and (most is None or most > 1):
+            raise self.refused("a named group inside a repeat, which JavaScript resets on each pass")
+        if not piece.least:
+            # JavaScript gives up a pass that matched nothing once the fewest are had, and
+            # Python keeps it, so the two differ even where the repeat is `?`.
+            raise self.refused("a repeat of something that can match nothing")
         return _Piece(piece.text + written, piece.least * fewest, piece.captures)
 
 
@@ -387,8 +397,25 @@ class JsPattern:
         The text is in units and the replacement is written as it stands, with nothing in it
         read as a reference to the match.
         """
-        pattern = self._translated[0]
-        count = 0 if "g" in self.flags else 1
         if not self._whole_characters(text):
-            return pattern.sub(lambda _: replacement, text, count=count)
-        return unit_text(pattern.sub(lambda _: replacement, paired(text), count=count))
+            return self._replaced(text, replacement)
+        return unit_text(self._replaced(paired(text), replacement))
+
+    def _replaced(self, text: str, replacement: str) -> str:
+        """The loop of `RegExp.prototype[Symbol.replace]`, over text that is one item to a character.
+
+        Each search starts where the last match ended, and one character further on when
+        that match was of nothing, which is where `re.sub` differs. A search that starts
+        part of the way along still sees the text before it, as `lastIndex` does: the start
+        of the text is the start of the whole text, and a lookbehind reads what came before.
+        """
+        pattern = self._translated[0]
+        every = "g" in self.flags
+        written: list[str] = []
+        kept = at = 0
+        # A search from beyond the end finds nothing in JavaScript. Python would look at the end again.
+        while at <= len(text) and (found := pattern.search(text, at)) is not None:
+            written += (text[kept : found.start()], replacement)
+            kept = found.end()
+            at = kept + (found.start() == kept) if every else len(text) + 1
+        return "".join((*written, text[kept:]))

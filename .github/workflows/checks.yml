@@ -10,6 +10,11 @@
 # commit, and the numbers it is expected to produce go in that commit: STORE_REF and
 # STORE_RECORDS here, and every other count and the digest of each family's files in
 # scripts/expected/store-layout.json.
+#
+# The same holds for what does the recording. Node is named by its exact version, because
+# the sets of characters a pattern matches and the lowercase mapping follow the Unicode data
+# and the V8 that build carries, and the recordings name the version they were made with.
+# Each action is named by a commit, which a tag is not. A test holds both.
 name: Checks
 
 on:
@@ -34,8 +39,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           python-version: "3.12"
 
@@ -53,9 +58,9 @@ jobs:
 
       # The JavaScript fixtures are recorded again from the script that claims to have
       # produced them. Built-ins only, so there is nothing to install.
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: "22"
+          node-version: "22.23.5"
       - name: Fixtures are what Node produces
         run: |
           node scripts/fixtures/record_js_fixture.mjs
@@ -68,7 +73,7 @@ jobs:
           uv run --no-sync python -m pytest --cov --cov-branch --cov-fail-under=100 --cov-report=term-missing 2>&1 | tee coverage.log
 
       # Public repository, so no token. Shallow by default: the gates read the tree, not history.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: rewire-bio/rewire-benchmark-data
           ref: ${{ env.STORE_REF }}
@@ -268,8 +273,8 @@ jobs:
       WRITE_CHANGES_RECORDED: "1283"
       WRITE_FILES_COMPARED: "1185"
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
         with:
           python-version: "3.12"
       - name: Install
@@ -331,15 +336,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: rewire-bio/rewire-benchmark-data
           ref: ${{ env.STORE_REF }}
           path: store
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: "24"
+          node-version: "24.22.3"
           cache: npm
           cache-dependency-path: store/package-lock.json
       - name: Install the data repository's locked dependencies
@@ -378,7 +383,7 @@ jobs:
         run: node_modules/.bin/tsx ../scripts/fixtures/record_locator_fixture.mjs
       - name: Keep what was recorded
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: schema-fixtures
           path: |

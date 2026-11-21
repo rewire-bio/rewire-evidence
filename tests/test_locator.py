@@ -52,6 +52,41 @@ def test_the_patterns_are_the_typescripts_character_for_character() -> None:
     assert len(locator.PATTERNS) == len(locator.TOKENS) + 14
 
 
+def test_the_patterns_that_class_a_locator_are_the_ones_the_typescript_runs() -> None:
+    # Most of them are written inside classifyLocator, so the recorder reads them off as it
+    # runs: the flags and source of each pattern it tests, in the order it first tests them.
+    classing = locator.PATTERNS[len(locator.TOKENS) + 3 :]
+    assert [[held.flags, held.source] for held in classing] == HELD["classify"]
+    assert len(classing) == 11
+    assert [classing[0].flags, classing[0].source] == HELD["legacy"]
+    assert [classing[1].flags, classing[1].source] == HELD["table_head"]
+
+
+@pytest.mark.parametrize(
+    ("printed", "named"),
+    [
+        # A Roman numeral ends at a word boundary.
+        ("Table IV", "roman_table"),
+        ("Table IV, row 2", "roman_table"),
+        ("Table Ix, col 1", "table_no_row_keyword"),
+        ("Table Characteristics, row 2", "table_unquoted_row"),
+        ("Table Cx row 'a'", "table_row_unmatched"),
+        # A dotted number has a digit after the dot.
+        ("Table 2.1 row 2", "dotted_table"),
+        ("Table A.2", "dotted_table"),
+        ("Table 2. Results, row 2", "table_unquoted_row"),
+        ("Table 2.x", "table_no_row_keyword"),
+        ("Table A. row 'a'", "table_row_unmatched"),
+    ],
+)
+def test_a_table_is_classed_at_the_edges_of_its_patterns_as_the_typescript_classes_it(
+    printed: str, named: str
+) -> None:
+    recorded = {case["printed"]: case["class"] for case in CASES}
+    assert recorded[printed] == named
+    assert classify_locator(printed) == named
+
+
 def test_the_tables_of_the_grammar_are_the_typescripts() -> None:
     assert set(HELD["row_keys"]) == locator.ROW_KEYS
     assert set(HELD["column_keys"]) == locator.COLUMN_KEYS

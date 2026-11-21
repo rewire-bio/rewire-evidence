@@ -8,6 +8,7 @@ Every expected match here is something Node returned.
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -188,6 +189,16 @@ UNSUPPORTED = [
     ("(?:a?)*", "", "can match nothing"),
     ("(?:a|)+", "", "can match nothing"),
     ("(?:a*){2,3}", "", "can match nothing"),
+    # JavaScript gives up a pass that matched nothing, so `?` differs as well: Node leaves
+    # the group of /E(?<g>\b)?/ unset on "e", and matches "ss" where Python's `re` matches "".
+    ("E(?<g>\\b)?", "", "can match nothing"),
+    ("(?:\\w?[^x]{0,2}\\b|\\w?[^x]q{0,2})?", "", "can match nothing"),
+    ("(?:a?)?", "", "can match nothing"),
+    ("(?:a|)??", "", "can match nothing"),
+    ("(?:a*){0,1}", "", "can match nothing"),
+    ("(?<g>a*){0,1}?", "", "can match nothing"),
+    ("(?:a?){1}", "", "can match nothing"),
+    ("(?:(?=a))?", "", "can match nothing"),
     ("[qz]", "", "what [qz] matches under no flags has not been recorded"),
     ("\\p{Lu}", "iu", "what \\p{Lu} matches under the flags iu has not been recorded"),
     ("q", "i", "what \\u0071 matches under the flags i has not been recorded"),
@@ -203,6 +214,61 @@ def test_a_pattern_python_would_run_differently_is_refused(source: str, flags: s
         JsPattern(source, flags).exec("a")
     assert said in str(refused.value)
     assert source in str(refused.value) or "recorded" in str(refused.value)
+
+
+@pytest.mark.parametrize(("source", "flags", "said"), UNSUPPORTED)
+def test_a_pattern_python_would_run_differently_is_refused_for_replacing_too(
+    source: str, flags: str, said: str
+) -> None:
+    with pytest.raises(Unsupported) as refused:
+        JsPattern(source, flags).replace("a", "b")
+    assert said in str(refused.value)
+
+
+def test_an_option_that_can_match_nothing_was_run_as_python_runs_it() -> None:
+    # What `re` gives for the two patterns Node was seen to read otherwise, which is why
+    # they are refused and not translated.
+    assert re.search(r"E(?P<g>\b)?", "E").groupdict() == {"g": ""}  # type: ignore[union-attr]
+    assert re.search(r"(?:\w?[^x]{0,2}\b|\w?[^x]q{0,2})?", "ssheet")[0] == ""  # type: ignore[index]
+
+
+def test_replacing_every_match_steps_over_a_character_after_a_match_of_nothing() -> None:
+    # Node writes these, and they are recorded. `re.sub` does not: after a match of nothing
+    # it looks for one that is not empty at the same place, which a lazy repeat then gives it.
+    lazy = JsPattern("[a-z]*?", "g")
+    assert lazy.replace("x1y", "<>") == "<>x<>1<>y<>"
+    assert re.sub("[a-z]*?", "<>", "x1y") == "<><><>1<><><>"
+    assert JsPattern("b??", "g").replace("abc", "<>") == "<>a<>b<>c<>"
+    assert JsPattern("[^a]??", "g").replace("abc", "<>") == "<>a<>b<>c<>"
+    assert re.sub("[^a]??", "<>", "abc") == "<>a<><><><><>"
+    # One match only without the g flag, and one after the end of the text with it.
+    assert JsPattern("[a-z]*?").replace("x1y", "<>") == "<>x1y"
+    assert lazy.replace("", "<>") == "<>"
+    assert JsPattern("x*", "g").replace("axxb", "-") == "-a--b-"
+    # A search part of the way along still sees the start of the text and what came before.
+    assert JsPattern("^a|(?<=a)a", "g").replace("aaba", "-") == "--ba"
+    # With the u flag the step is a whole character, and without it one unit.
+    emoji = unit_text("\U0001f600")
+    assert JsPattern("[^a]??", "gu").replace(emoji, "-") == f"-{emoji}-"
+    assert JsPattern("[^a]??", "g").replace(emoji, "-") == f"-{emoji[0]}-{emoji[1]}-"
+
+
+def test_the_node_the_fixtures_job_runs_is_the_one_the_sets_were_recorded_with() -> None:
+    # A set follows the Unicode data and the V8 a Node build carries, so the workflow names
+    # one build and the recordings name the same one.
+    workflow = (HERE.parent / ".github/workflows/checks.yml").read_text("utf-8")
+    pinned = re.findall(r'node-version: "([^"]+)"', workflow)
+    assert len(pinned) == 2
+    assert all(re.fullmatch(r"\d+\.\d+\.\d+", version) for version in pinned)
+    held = json.loads((HERE.parent / "src/rewire_evidence" / jsregex.CLASSES_FILE).read_text("utf-8"))
+    lowercase = json.loads((HERE.parent / "src/rewire_evidence/data/lowercase.json").read_text("utf-8"))
+    for recorded in (RECORDED, held, lowercase):
+        assert recorded["recorded_from"]["node"] == f"v{pinned[1]}"
+    assert RECORDED["recorded_from"]["unicode"] == held["recorded_from"]["unicode"] == "17.0"
+    # Every action is named by a commit, which a tag is not.
+    used = re.findall(r"uses: (\S+)", workflow)
+    assert len(used) >= 11
+    assert all(re.fullmatch(r"[\w./-]+@[0-9a-f]{40}", action) for action in used)
 
 
 def test_a_pattern_is_read_only_when_it_is_first_run() -> None:
@@ -261,6 +327,28 @@ def test_a_match_is_a_piece_of_the_text_and_replacing_it_with_itself_changes_not
     assert once.replace(text, "") == text[: found.index] + text[found.index + len(found.text) :]
     for group in found.groups.values():
         assert group is None or group in found.text
+
+
+@given(SAMPLED, TEXTS)
+def test_replacing_every_match_writes_once_for_each_and_first_where_the_first_match_is(
+    held: tuple[str, str], written: str
+) -> None:
+    text = unit_text(written)
+    every = JsPattern(held[0], held[1] if "g" in held[1] else held[1] + "g")
+    found = JsPattern(held[0], held[1].replace("g", "")).exec(text)
+    marked = every.replace(text, "\x00")
+    if found is None:
+        assert marked == text
+        return
+    assert marked.startswith(text[: found.index] + "\x00")
+    # No more than one match starts at each place in the text and one at its end.
+    assert 1 <= marked.count("\x00") <= len(text) + 1
+    # What is left is the text with the matches taken out, in order.
+    left = iter(text)
+    assert all(unit in left for unit in marked.replace("\x00", ""))
+    if every.least:
+        assert len(marked) - marked.count("\x00") <= len(text) - marked.count("\x00") * every.least
+    assert every.replace(text, "") == marked.replace("\x00", "")
 
 
 @given(TEXTS)
