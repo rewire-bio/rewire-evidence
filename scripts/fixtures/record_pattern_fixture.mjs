@@ -15,7 +15,8 @@
 //       units. With it they are over every code point, a lone surrogate included.
 //   tests/fixtures/js-patterns.json
 //       What `exec` returns and `replace` writes for each pattern and text in
-//       scripts/fixtures/pattern_cases.json, and what `toFixed` writes for each number there.
+//       scripts/fixtures/pattern_cases.json, every match `matchAll` gives for a pattern with
+//       the `g` flag, and what `toFixed` writes for each number there.
 //
 // The requests are listed by scripts/fixtures/list_pattern_requests.py from the patterns the
 // library runs and the ones in pattern_cases.json, and a test fails if the list is stale.
@@ -67,6 +68,7 @@ fs.writeFileSync(
   `{\n "recorded_from": ${JSON.stringify(recordedFrom)},\n "classes": ${lines(classes)}\n}\n`,
 );
 
+const shown = (found) => ({ index: found.index, text: found[0], groups: { ...(found.groups ?? {}) } });
 const cases = read("scripts/fixtures/pattern_cases.json");
 const patterns = cases.patterns.map(({ source, flags, texts, replacement }) => ({
   source,
@@ -77,8 +79,9 @@ const patterns = cases.patterns.map(({ source, flags, texts, replacement }) => (
     const found = new RegExp(source, flags.replace("g", "")).exec(text);
     return {
       text,
-      found: found === null ? null : { index: found.index, text: found[0], groups: { ...(found.groups ?? {}) } },
+      found: found === null ? null : shown(found),
       ...(replacement === undefined ? {} : { replaced: text.replace(pattern, () => replacement) }),
+      ...(flags.includes("g") ? { all: [...text.matchAll(new RegExp(source, flags))].map(shown) } : {}),
     };
   }),
 }));

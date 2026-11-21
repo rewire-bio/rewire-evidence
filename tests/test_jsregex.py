@@ -16,7 +16,7 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
-from rewire_evidence import jsregex, locator
+from rewire_evidence import cells, checks, jsregex, locator
 from rewire_evidence.js import paired, unit_text
 from rewire_evidence.jsregex import Found, JsPattern, Unsupported
 
@@ -56,7 +56,7 @@ REFUSED_INSIDE = named(split(refused=True))
 def every_pattern() -> list[tuple[str, str]]:
     """The patterns the library runs and the ones the cases test the translation with."""
     return [
-        *((held.source, held.flags) for held in locator.PATTERNS),
+        *((held.source, held.flags) for held in (*locator.PATTERNS, *cells.PATTERNS, *checks.PATTERNS)),
         *((case["source"], case["flags"]) for case in CASES["patterns"]),
     ]
 
