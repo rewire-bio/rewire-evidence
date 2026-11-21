@@ -14,7 +14,23 @@ it knows what a record is, against two things recorded from the TypeScript:
   field, and the words it refuses a seeded bad concept in. Everything measured here must
   equal it.
 
+It also runs `records.load_records`, the loader the later stages will call, over the same
+store, and requires it to return the records the schema accepted, in ID order. Without
+that the loader would be held only to the small stores its unit tests build.
+
 The gate reports every disagreement rather than stopping at the first.
+
+What it catches of an edited checkout, and what it leaves to the other two gates:
+
+- a record whose value was edited no longer matches its provenance digest, and a line moved
+  out of ID order or into another file is misplaced. `load_records` refuses both, so each
+  is a problem here. A removed record changes the recorded counts;
+- anything `read_lines` drops before a record is read is not seen: a blank line, a missing
+  or a doubled final newline. The layout gate compares every file with its pinned bytes;
+- a record edited together with its provenance row agrees with itself, and passes here and
+  in the digest gate unless it moves a count. Only the layout gate's pinned bytes refuse it.
+
+CI runs all three.
 """
 
 from __future__ import annotations
@@ -29,11 +45,13 @@ from rewire_evidence.canonical import (
     JsonObject,
     JsonValue,
     js_parse,
+    js_string,
     js_stringify,
     sha256_hex,
     utf16_key,
 )
 from rewire_evidence.jsonl import StoreError, join_lines, parse_row, read_lines
+from rewire_evidence.records import load_records
 from rewire_evidence.schema import (
     Record,
     RecordError,
@@ -42,6 +60,7 @@ from rewire_evidence.schema import (
     validate_references,
 )
 from rewire_evidence.store import record_files
+from rewire_evidence.turtle import BlankLabels
 from rewire_evidence.vocab import (
     ControlledFields,
     Scheme,
@@ -69,6 +88,8 @@ class SchemaReport:
     reproduced: int = 0
     #: Lines that come back byte for byte after their keys were put in another order.
     restored: int = 0
+    #: Records `load_records` returns, when they are the accepted records in ID order.
+    loaded: int = 0
     #: Seeded bad concepts refused in the words the TypeScript recorded.
     seeded: int = 0
     #: Vocabularies read, and the concepts they hold between them.
@@ -159,12 +180,16 @@ def read_store(root: Path, report: SchemaReport) -> list[Record]:
     return records
 
 
-def scheme_facts(root: Path, schemes: dict[str, Scheme]) -> JsonObject:
-    """Each scheme as the TypeScript recorded it: its statements, digested, and its concepts."""
+def scheme_facts(root: Path, schemes: dict[str, Scheme], labels: BlankLabels) -> JsonObject:
+    """Each scheme as the TypeScript recorded it: its statements, digested, and its concepts.
+
+    `labels` is where n3's blank node counters stood when the recorder read the files, so
+    a blank node in one of them is given the label the recorded digest was taken over.
+    """
     facts: JsonObject = {}
     for path in scheme_files(root):
         name = path.name.removesuffix(".ttl")
-        statements = read_scheme_file(path)
+        statements = read_scheme_file(path, labels)
         lines = [statement.line for statement in statements]
         concepts: list[JsonValue] = [
             [concept.key, concept.label] for concept in schemes[name].concepts.values()
@@ -215,7 +240,9 @@ def measure_controlled(mapping: ControlledFields, records: Iterable[Record]) -> 
     """How many controlled values the records hold, by field and scheme."""
     by_field: Counter[str] = Counter()
     for record in records:
-        by_field.update(f"{found.field} {found.scheme}" for found in controlled_values(mapping, record.row()))
+        by_field.update(
+            f"{found.field} {js_string(found.scheme)}" for found in controlled_values(mapping, record.row())
+        )
     return {"controlled_values": sum(by_field.values()), "controlled_values_by_field": _counted(by_field)}
 
 
@@ -284,6 +311,37 @@ def recorded_ref(recorded: JsonObject) -> str:
     return ref
 
 
+def recorded_labels(recorded: JsonObject) -> BlankLabels:
+    """Where n3's blank node counters stood when the recorder read the vocabularies."""
+    held = recorded.get("blank_labels")
+    documents, anonymous = (
+        (held.get("documents"), held.get("anonymous")) if isinstance(held, dict) else (0, 0)
+    )
+    if not isinstance(held, dict) or not isinstance(documents, int) or not isinstance(anonymous, int):
+        raise StoreError("the recorded expectation does not say where n3's blank node counters stood")
+    return BlankLabels(documents, anonymous)
+
+
+def check_loader(root: Path, records: list[Record], report: SchemaReport) -> None:
+    """Hold `load_records` to the store: it must return the accepted records, in ID order.
+
+    A store it refuses is a problem and not a run that could not be made, because every
+    file it reads has been read once already by the time it is called.
+    """
+    try:
+        loaded = load_records(root)
+    except (StoreError, VocabularyError, RecordError) as error:
+        report.problems.append(f"load_records refuses the store: {error}")
+        return
+    if loaded == sorted(records, key=lambda record: utf16_key(record.id)):
+        report.loaded = len(loaded)
+    else:
+        report.problems.append(
+            f"load_records returns {len(loaded)} records, which are not the "
+            f"{len(records)} the schema accepts in ID order"
+        )
+
+
 def verify_schema(root: Path, recorded: JsonObject) -> SchemaReport:
     """Hold a store to the schema, the vocabularies and what the TypeScript recorded of it.
 
@@ -291,6 +349,7 @@ def verify_schema(root: Path, recorded: JsonObject) -> SchemaReport:
     cannot be read, a vocabulary that does not load, an expectation with no seeded cases.
     """
     report = SchemaReport()
+    labels = recorded_labels(recorded)
     mapping = read_mapping(root)
     schemes = load_schemes(root)
     report.schemes = len(schemes)
@@ -306,11 +365,12 @@ def verify_schema(root: Path, recorded: JsonObject) -> SchemaReport:
     report.measured = {
         **measure_records(records),
         **measure_controlled(mapping, records),
-        "schemes": scheme_facts(root, schemes),
+        "schemes": scheme_facts(root, schemes, labels),
     }
     for name, value in report.measured.items():
         report.problems.extend(differences(value, recorded.get(name), name))
     check_seeded(mapping, schemes, recorded.get("seeded"), report)
+    check_loader(root, records, report)
     return report
 
 
@@ -322,6 +382,7 @@ def summary(report: SchemaReport) -> str:
             f"records read: {report.records:,}",
             f"  accepted and written back as the committed line: {report.reproduced:,}",
             f"  restored to the committed line with their keys moved: {report.restored:,}",
+            f"  returned by load_records, in ID order: {report.loaded:,}",
             f"links allowed by the relation rules: {measured.get('links')}",
             f"source IDs naming a source: {measured.get('source_ids')}",
             f"records a public release may hold: {measured.get('public_records')}",
@@ -340,6 +401,7 @@ def to_json(report: SchemaReport, store_ref: str) -> str:
             "records_read": report.records,
             "records_reproduced": report.reproduced,
             "records_restored": report.restored,
+            "records_loaded": report.loaded,
             "seeded_refused": report.seeded,
             "schemes": report.schemes,
             "concepts": report.concepts,

@@ -111,6 +111,22 @@ def test_the_layout_gate_exits_2_when_the_run_cannot_be_made(
     assert out.err.startswith("Cannot verify: ")
     assert f"{RELEASE}.json does not exist" in out.err
 
+    # A report that cannot be written, after a run that found nothing wrong.
+    unwritable = tmp_path / "no-folder" / "report.json"
+    assert layout_gate([str(root), "--expected", str(expected), "--json", str(unwritable)], expected) == 2
+    out = capsys.readouterr()
+    assert out.err.startswith("Cannot verify: [Errno 2] No such file or directory: ")
+    assert "reproduce.\n" not in out.out
+
+    # A file of the store that cannot be opened: a link to itself, as a file nobody may read is.
+    models = root / "data/entities/models.jsonl"
+    models.unlink()
+    models.symlink_to(models)
+    assert layout_gate([str(root), "--expected", str(expected)], expected) == 2
+    assert capsys.readouterr().err.startswith("Cannot verify: ")
+    assert digests_gate([str(root)]) == 2
+    assert capsys.readouterr().err.startswith(f"Cannot verify: {models} cannot be read: ")
+
 
 def test_the_digest_gate_reports_every_record(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     build(tmp_path)

@@ -10,22 +10,26 @@ from pathlib import Path
 import pytest
 
 from rewire_evidence import conformance
-from rewire_evidence.canonical import JsonObject, JsonValue, js_stringify
+from rewire_evidence.canonical import JsonObject, JsonValue, js_stringify, record_sha256
 from rewire_evidence.conformance import (
     SchemaReport,
+    check_loader,
     check_seeded,
     controlled_fields,
     differences,
     moved,
     read_recorded,
+    recorded_labels,
     recorded_ref,
+    scheme_facts,
     verify_schema,
 )
-from rewire_evidence.gates import schema_gate
+from rewire_evidence.gates import digests_gate, schema_gate
 from rewire_evidence.jsonl import StoreError, join_lines, write_text
-from rewire_evidence.schema import Checked, check_record
-from rewire_evidence.store import record_file
-from rewire_evidence.vocab import VOCAB_DIR, load_schemes, read_mapping
+from rewire_evidence.schema import Checked, check_record, parse_record
+from rewire_evidence.store import provenance_file_for, record_file
+from rewire_evidence.turtle import BlankLabels
+from rewire_evidence.vocab import VOCAB_DIR, load_schemes, read_mapping, scheme_iri
 from tests.test_records import RECORDS, build, link, provenance_of, record
 
 SCRIPTS = Path(__file__).parent.parent / "scripts"
@@ -57,9 +61,17 @@ def seeds() -> list[JsonValue]:
 
 def recorded_for(root: Path) -> JsonObject:
     """What the recorder would say of this store, taken from a run that had no problems."""
-    blank: JsonObject = {"recorded_from": {"store_ref": "abc123"}, "seeded": seeds()}
-    report = verify_schema(root, blank)
-    return {**blank, **report.measured}
+    report = verify_schema(root, bare())
+    return {**bare(), **report.measured}
+
+
+def bare() -> JsonObject:
+    """An expectation that says where it came from and nothing of what was measured."""
+    return {
+        "recorded_from": {"store_ref": "abc123"},
+        "blank_labels": {"documents": 0, "anonymous": 0},
+        "seeded": seeds(),
+    }
 
 
 def write_recorded(root: Path, folder: Path) -> Path:
@@ -72,7 +84,7 @@ def test_a_store_that_conforms_is_measured_in_full(tmp_path: Path) -> None:
     build(tmp_path)
     report = verify_schema(tmp_path, recorded_for(tmp_path))
     assert report.problems == []
-    assert (report.records, report.reproduced, report.restored) == (8, 8, 8)
+    assert (report.records, report.reproduced, report.restored, report.loaded) == (8, 8, 8, 8)
     assert (report.schemes, report.concepts, report.seeded) == (5, 7, 5)
     measured = report.measured
     assert measured["records"] == 8
@@ -173,7 +185,8 @@ def test_a_line_the_schema_would_write_differently_is_a_problem(tmp_path: Path) 
         "data/entities/datasets.jsonl:1 is accepted but is not written back as the line it was read from",
         "data/entities/datasets.jsonl:1 is not restored once its keys are put in another order",
     ]
-    assert (report.records, report.reproduced, report.restored) == (8, 7, 7)
+    # The loader follows the TypeScript, which hashes the record the schema makes of the line.
+    assert (report.records, report.reproduced, report.restored, report.loaded) == (8, 7, 7, 8)
 
     # Not a record at all.
     write_text(file, '{"id":"dataset-a","kind":"dataset"}\n')
@@ -182,13 +195,19 @@ def test_a_line_the_schema_would_write_differently_is_a_problem(tmp_path: Path) 
         "data/entities/datasets.jsonl:1 is not a record: invalid_type:name: Invalid input: expected string"
     )
     assert "Dangling eval-a -> dataset-a" in report.problems[1]
-    assert (report.records, report.reproduced) == (8, 7)
+    assert report.problems[-1].startswith("load_records refuses the store: ")
+    assert "datasets.jsonl:1 is not a record: " in report.problems[-1]
+    assert (report.records, report.reproduced, report.loaded) == (8, 7, 0)
 
     # A record JavaScript would write with null in it.
     write_text(file, js_stringify(row).replace('"attributes":{}', '"attributes":{"n":1e400}') + "\n")
     report = verify_schema(tmp_path, recorded)
     refusal = "JSON.stringify writes null for inf; it is not a number a record may hold"
-    assert report.problems == [f"data/entities/datasets.jsonl:1 cannot be written: {refusal}"]
+    assert report.problems[0] == f"data/entities/datasets.jsonl:1 cannot be written: {refusal}"
+    assert [problem.partition(": ")[0] for problem in report.problems] == [
+        "data/entities/datasets.jsonl:1 cannot be written",
+        "load_records refuses the store",
+    ]
 
 
 def test_a_parser_that_reorders_nothing_is_caught(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -233,12 +252,129 @@ def test_faults_in_references_and_vocabularies_are_problems(tmp_path: Path) -> N
         record("model-d", "model", facets={"areas": ["genomics"]}),
     ]
     build(tmp_path, [*RECORDS, *extra])
-    report = verify_schema(tmp_path, {"recorded_from": {"store_ref": "abc123"}, "seeded": seeds()})
+    report = verify_schema(tmp_path, bare())
     assert report.problems[:2] == [
         "the records break a rule of the store: Dangling model-c -> gone",
         'model-d: facets.areas "genomics" is not a concept in the area vocabulary',
     ]
-    assert (report.reproduced, report.restored) == (10, 10)
+    # The loader stops at the first of those it meets, which is the vocabulary.
+    assert report.problems[-1] == (
+        "load_records refuses the store: Uncontrolled values:\n"
+        '  model-d: facets.areas "genomics" is not a concept in the area vocabulary'
+    )
+    assert (report.reproduced, report.restored, report.loaded) == (10, 10, 0)
+
+    # A link to nothing alone gets past the vocabularies and is refused as a reference.
+    build(tmp_path / "dangling", [*RECORDS, extra[0]])
+    report = verify_schema(tmp_path / "dangling", bare())
+    assert report.problems[-1] == "load_records refuses the store: Dangling model-c -> gone"
+
+
+def test_the_loader_must_return_the_records_the_schema_accepts(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    build(tmp_path)
+    records = [parse_record(row) for row in RECORDS]
+    report = SchemaReport()
+    check_loader(tmp_path, records, report)
+    assert (report.loaded, report.problems) == (8, [])
+
+    # Given in another order, they are still compared in ID order.
+    report = SchemaReport()
+    check_loader(tmp_path, list(reversed(records)), report)
+    assert (report.loaded, report.problems) == (8, [])
+
+    # A loader that drops a record, or returns them unsorted, is a problem.
+    for wrong in (records[1:], records):
+        monkeypatch.setattr(conformance, "load_records", lambda _root, wrong=wrong: wrong)
+        report = SchemaReport()
+        check_loader(tmp_path, records, report)
+        assert report.loaded == 0
+        assert report.problems == [
+            f"load_records returns {len(wrong)} records, which are not the 8 the schema accepts in ID order"
+        ]
+
+
+def test_what_the_gate_sees_of_an_edited_store_and_what_it_leaves_to_the_others(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = tmp_path / "store"
+    build(root)
+    expected = write_recorded(root, tmp_path)
+    arguments = [str(root), "--expected", str(expected)]
+    file = record_file("dataset", "dataset-a", root)
+    committed = file.read_text("utf-8")
+
+    # A value edited, and nothing else: still a record, no count moves, and the provenance
+    # digest no longer matches. The loader refuses it, and so does the digest gate.
+    edited = {**RECORDS[3], "description": "edited"}
+    write_text(file, join_lines([js_stringify(edited)]))
+    assert schema_gate(arguments, expected) == 1
+    assert "load_records refuses the store: dataset-a changed without a provenance entry." in (
+        capsys.readouterr().err
+    )
+    assert digests_gate([str(root)]) == 1
+    capsys.readouterr()
+
+    # The same edit with its provenance row written to match agrees with itself. Neither of
+    # these two gates can know, and the layout gate's pinned bytes are what refuse it.
+    provenance = provenance_file_for("dataset-a", root)
+    listed = provenance.read_text("utf-8")
+    write_text(provenance, listed.replace(record_sha256(RECORDS[3]), record_sha256(edited)))
+    assert schema_gate(arguments, expected) == 0
+    assert digests_gate([str(root)]) == 0
+    capsys.readouterr()
+    write_text(provenance, listed)
+
+    # A blank line and a doubled final newline are dropped before a record is read.
+    write_text(file, f"\n{committed}\n")
+    assert schema_gate(arguments, expected) == 0
+    assert digests_gate([str(root)]) == 0
+    capsys.readouterr()
+
+    # Two lines out of ID order are misplaced, which the loader refuses.
+    models = record_file("model", "model-a", root)
+    first, second = models.read_text("utf-8").splitlines()
+    write_text(models, join_lines([second, first]))
+    assert schema_gate(arguments, expected) == 1
+    assert "load_records refuses the store: " in capsys.readouterr().err
+
+
+def test_blank_nodes_in_a_vocabulary_are_named_as_the_recorder_named_them(tmp_path: Path) -> None:
+    build(tmp_path)
+    metric = tmp_path / VOCAB_DIR / "metric.ttl"
+    write_text(metric, metric.read_text("utf-8") + f"<{scheme_iri('metric')}auprc> <a:p> [ <a:q> _:x ] .\n")
+    schemes = load_schemes(tmp_path)
+    fresh = scheme_facts(tmp_path, schemes, BlankLabels())
+    moved_on = scheme_facts(tmp_path, schemes, BlankLabels(documents=25, anonymous=4))
+    again = scheme_facts(tmp_path, schemes, BlankLabels(documents=25, anonymous=4))
+    assert moved_on == again
+    first, later = fresh["metric"], moved_on["metric"]
+    assert isinstance(first, dict)
+    assert isinstance(later, dict)
+    assert (first["blank_nodes"], later["blank_nodes"]) == (2, 2)
+    assert first["quads"] == later["quads"]
+    # The labels are part of each line, so the digests are of the counters too.
+    assert first["quads_sha256"] != later["quads_sha256"]
+    assert fresh["area"] == moved_on["area"]
+
+    recorded = recorded_for(tmp_path)
+    assert verify_schema(tmp_path, recorded).problems == []
+    report = verify_schema(tmp_path, {**recorded, "blank_labels": {"documents": 3, "anonymous": 0}})
+    assert [problem.partition(": ")[0] for problem in report.problems] == [
+        "schemes.metric.quads_sha256",
+        "schemes.metric.quads_sorted_sha256",
+    ]
+
+
+@pytest.mark.parametrize(
+    "held",
+    [None, [], {}, {"documents": 1}, {"documents": "1", "anonymous": 2}, {"documents": 1, "anonymous": None}],
+)
+def test_an_expectation_must_say_where_the_blank_node_counters_stood(held: JsonValue) -> None:
+    with pytest.raises(StoreError, match="does not say where n3's blank node counters stood"):
+        recorded_labels({"blank_labels": held})
+    assert recorded_labels({"blank_labels": {"documents": 3, "anonymous": 4}}) == BlankLabels(3, 4)
 
 
 def test_seeded_concepts_must_be_refused_as_recorded_and_cover_the_mapping(tmp_path: Path) -> None:
@@ -325,6 +461,7 @@ def test_the_schema_gate_passes_the_store_it_was_recorded_on(
         "records read: 8\n"
         "  accepted and written back as the committed line: 8\n"
         "  restored to the committed line with their keys moved: 8\n"
+        "  returned by load_records, in ID order: 8\n"
         "links allowed by the relation rules: 6\n"
         "source IDs naming a source: 1\n"
         "records a public release may hold: 7\n"
@@ -336,6 +473,7 @@ def test_the_schema_gate_passes_the_store_it_was_recorded_on(
     report = json.loads(measured.read_text("utf-8"))
     assert report["store_ref"] == "abc123"
     assert (report["records_read"], report["records_reproduced"], report["records_restored"]) == (8, 8, 8)
+    assert report["records_loaded"] == 8
     assert (report["schemes"], report["concepts"], report["seeded_refused"]) == (5, 7, 5)
     assert report["problems"] == []
     assert report["measured"]["links"] == 6
@@ -401,11 +539,46 @@ def test_the_schema_gate_exits_2_when_the_run_cannot_be_made(
     assert schema_gate([str(tmp_path / "nowhere"), "--expected", str(expected)], expected) == 2
     assert "mapping.json cannot be read" in capsys.readouterr().err
 
-    # A vocabulary that does not load.
+    # A vocabulary that does not load: n3's words, and then the file they are about.
     write_text(root / VOCAB_DIR / "broken.ttl", "not turtle")
     assert schema_gate([str(root)], expected) == 2
-    assert "Cannot verify: broken.ttl is not Turtle" in capsys.readouterr().err
+    assert capsys.readouterr().err == 'Cannot verify: Unexpected "not" on line 1. (in broken.ttl)\n'
+    # Text that begins nothing in Turtle, which once left the gate with a traceback.
+    write_text(root / VOCAB_DIR / "broken.ttl", '?x <a:p> "v" .\n')
+    assert schema_gate([str(root)], expected) == 2
+    assert capsys.readouterr().err == 'Cannot verify: Unexpected "?x" on line 1. (in broken.ttl)\n'
     (root / VOCAB_DIR / "broken.ttl").unlink()
+
+    # A folder where a scheme file belongs.
+    (root / VOCAB_DIR / "zz.ttl").mkdir()
+    assert schema_gate([str(root)], expected) == 2
+    assert capsys.readouterr().err.startswith("Cannot verify: zz.ttl cannot be read: ")
+    (root / VOCAB_DIR / "zz.ttl").rmdir()
+
+    # A record file that cannot be opened: a link to itself, as a file nobody may read is.
+    models = record_file("model", "model-a", root)
+    kept = models.read_bytes()
+    models.unlink()
+    models.symlink_to(models)
+    assert schema_gate([str(root)], expected) == 2
+    assert capsys.readouterr().err.startswith(f"Cannot verify: {models} cannot be read: ")
+    models.unlink()
+    models.write_bytes(kept)
+
+    # A report that cannot be written, after a run that found nothing wrong.
+    assert schema_gate([str(root), "--json", str(tmp_path / "no-folder" / "report.json")], expected) == 2
+    out = capsys.readouterr()
+    assert "seeded bad concepts refused" in out.out
+    assert "records are accepted" not in out.out
+    assert out.err.startswith("Cannot verify: [Errno 2] No such file or directory: ")
+
+    # An expectation that does not say where n3's counters stood.
+    unlabelled = tmp_path / "unlabelled.json"
+    held = json.loads(expected.read_text("utf-8"))
+    del held["blank_labels"]
+    unlabelled.write_text(json.dumps(held), "utf-8")
+    assert schema_gate([str(root)], unlabelled) == 2
+    assert "does not say where n3's blank node counters stood" in capsys.readouterr().err
 
     # A store with a mapping and vocabularies and no records proves nothing.
     empty = tmp_path / "empty"

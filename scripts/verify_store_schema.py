@@ -14,8 +14,15 @@ What ties the run to the TypeScript is `scripts/expected/store-schema.json`, whi
 code at the pinned commit: the records `loadRecords` accepts, their links by relation, the
 records a public release may hold, the statements and concepts of every vocabulary as n3
 reads them, the controlled values by field, and the message for a bad concept seeded in
-each controlled field. Everything measured here has to equal it, so a thinner or an edited
-checkout cannot pass.
+each controlled field. Everything measured here has to equal it, so a checkout with a record
+or a concept removed cannot pass.
+
+`records.load_records`, the loader the later stages call, is then run over the same store
+and has to return the same records in ID order. It holds each record to its provenance
+digest and its place, so a record edited without its provenance row fails here too. A blank
+line, a changed final newline, or a record edited together with its provenance row is not
+seen by this gate: `verify_store_layout.py` compares every file with its pinned bytes, and
+CI runs both, with `verify_store_digests.py`.
 
 The work is in `rewire_evidence.conformance` and `rewire_evidence.gates`, where the tests
 cover it. This file is the command.

@@ -32,6 +32,8 @@ def read_lines(path: Path) -> list[str]:
         text = path.read_bytes().decode("utf-8")
     except UnicodeDecodeError as error:
         raise StoreError(f"{path} is not UTF-8: {error}") from error
+    except OSError as error:
+        raise StoreError(f"{path} cannot be read: {error}") from error
     return [line for line in text.split("\n") if line]
 
 
