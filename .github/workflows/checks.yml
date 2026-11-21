@@ -146,8 +146,8 @@ jobs:
           done
           refused=$(jq -r .seeded_refused validation.json)
           seeded=$(jq -r '.seeded | length' scripts/expected/store-validation.json)
-          if [ "$refused" != "$seeded" ] || [ "$seeded" -lt 19 ]; then
-            echo "::error::${refused} of ${seeded} seeded faults were refused as recorded, and at least 19 are expected."
+          if [ "$refused" != "$seeded" ] || [ "$seeded" -lt 23 ]; then
+            echo "::error::${refused} of ${seeded} seeded faults were refused as recorded, and at least 23 are expected."
             exit 1
           fi
 
