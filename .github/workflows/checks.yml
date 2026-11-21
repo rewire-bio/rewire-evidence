@@ -33,6 +33,24 @@ env:
   # The results among them that carry a locator, and the rows of the value-check files.
   STORE_LOCATORS: "52278"
   VALUE_CHECK_ROWS: "2432"
+  # The checks pack. The data repository commits the report and the baseline of its first run,
+  # measured on the store at CHECKS_REF, which is the commit that baseline names and is older
+  # than the commit that holds the two files. CHECKS_ROWS is the rows of that report and
+  # CHECKS_RECORDS the records it was measured over. CHECKS_PINNED_ROWS is the rows the
+  # TypeScript reports at STORE_REF, as the fixtures job records them, and CHECKS_CELLS the
+  # distinct printed values parseCell was recorded reading there.
+  CHECKS_REF: 991a09ef6b6b417ff51d265bd87d862f49d4dbe3
+  CHECKS_ROWS: "10754"
+  CHECKS_RECORDS: "93187"
+  CHECKS_PINNED_ROWS: "10754"
+  CHECKS_CELLS: "26130"
+  # The table reader. The HTML and XML artifacts the data repository commits at STORE_REF,
+  # the tables the TypeScript reads out of them, the cells of those tables, and the lines the
+  # fixtures job records of both.
+  TABLE_ARTIFACTS: "97"
+  TABLES: "245"
+  TABLE_CELLS: "17307"
+  TABLE_LINES: "342"
 
 jobs:
   checks:
@@ -87,12 +105,30 @@ jobs:
           validated=$(jq -r .recorded_from.store_ref scripts/expected/store-validation.json)
           registry=$(jq -r .recorded_from.store_ref src/rewire_evidence/data/attribute-registry.json)
           located=$(jq -r .recorded_from.store_ref scripts/expected/store-locators.json)
-          for named in "$held" "$expected" "$recorded" "$validated" "$registry" "$located"; do
+          checked=$(jq -r .recorded_from.store_ref scripts/expected/store-checks.json)
+          tabled=$(jq -r .recorded_from.store_ref scripts/expected/store-tables.json)
+          for named in "$held" "$expected" "$recorded" "$validated" "$registry" "$located" "$checked" "$tabled"; do
             if [ "$named" != "$STORE_REF" ]; then
-              echo "::error::STORE_REF is ${STORE_REF}, the checkout is ${held}, the pinned layout was measured at ${expected}, the TypeScript was recorded at ${recorded} and at ${validated}, the attribute registry was read at ${registry} and the locators at ${located}. All seven must be one commit."
+              echo "::error::STORE_REF is ${STORE_REF}, the checkout is ${held}, the pinned layout was measured at ${expected}, the TypeScript was recorded at ${recorded} and at ${validated}, the attribute registry was read at ${registry}, the locators at ${located}, the checks at ${checked} and the tables at ${tabled}. All nine must be one commit."
               exit 1
             fi
           done
+
+      # What the recordings state follows the Node they were made on: the sets a pattern
+      # matches, the lowercase mapping, and 10 ** n, which is not the nearest double for every
+      # n on every V8. The data repository's workflows name a major version and no more, so
+      # the build it runs moves without a commit there. This holds the one thing that can be
+      # held from here: that the pinned checkout still names the major the recordings are of.
+      - name: The data repository runs the Node the recordings were made on
+        run: |
+          recorded=$(jq -r .recorded_from.node scripts/expected/store-checks.json)
+          major=${recorded#v}
+          major=${major%%.*}
+          named=$(grep -h 'node-version:' store/.github/workflows/*.yml | tr -d "\"' " | cut -d: -f2 | sort -u | tr '\n' ' ')
+          if [ "$named" != "${major} " ]; then
+            echo "::error::The recordings were made on Node ${recorded}, and the workflows of the pinned checkout name: ${named}. Record again on the Node the data repository runs, and move node-version in the fixtures job with it."
+            exit 1
+          fi
 
       - name: Reproduce every committed record digest
         run: |
@@ -236,6 +272,97 @@ jobs:
             exit 1
           fi
 
+      # The store as it stood when the checks pack was first run: the records and the two
+      # vocabularies, which are all the pack reads. The report and the baseline of that run
+      # are in the pinned checkout above, because they were committed later.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: rewire-bio/rewire-benchmark-data
+          ref: ${{ env.CHECKS_REF }}
+          path: first-run
+          sparse-checkout: |
+            data/entities
+            data/evidence
+            data/vocab
+
+      - name: The second checkout is the commit the committed baseline names
+        run: |
+          held=$(git -C first-run rev-parse HEAD)
+          named=$(jq -r .commit store/data/omics/checks-baseline.json)
+          recorded=$(jq -r .first_run.commit scripts/expected/store-checks.json)
+          for commit in "$held" "$named" "$recorded"; do
+            if [ "$commit" != "$CHECKS_REF" ]; then
+              echo "::error::CHECKS_REF is ${CHECKS_REF}, the checkout is ${held}, the committed baseline names ${named} and the recording ${recorded}. All four must be one commit."
+              exit 1
+            fi
+          done
+
+      # The seven report-only checks, twice. Over the store of the first run, where the
+      # report has to be the committed one row for row and the baseline file the committed
+      # one byte for byte. Then over the pinned store, where every row has to be the one
+      # the TypeScript wrote in scripts/expected/store-checks.tsv.gz, with the anchor and
+      # column of every locator and the reading of every printed value, which the fixtures
+      # job below records from scripts/omics/checks/ at the same commit. The script fails
+      # on a line that differs, and the counts are pinned here too.
+      - name: Report what the checks pack reports
+        run: |
+          set -o pipefail
+          uv run --no-sync python scripts/verify_store_checks.py store first-run --json checks.json 2>&1 | tee checks.log
+          for pin in "first_rows:$CHECKS_ROWS" "first_rows_reproduced:$CHECKS_ROWS" "first_records:$CHECKS_RECORDS" "pinned_rows:$CHECKS_PINNED_ROWS" "pinned_rows_reproduced:$CHECKS_PINNED_ROWS" "pinned_records:$STORE_RECORDS" "columns.expected:$STORE_LOCATORS" "columns.same:$STORE_LOCATORS" "cells.expected:$CHECKS_CELLS" "cells.same:$CHECKS_CELLS" "baseline_reproduced:true"; do
+            measured=$(jq -r ".${pin%%:*}" checks.json)
+            if [ "$measured" != "${pin##*:}" ]; then
+              echo "::error::The checks gate measured ${pin%%:*} as ${measured} against a pin of ${pin##*:}."
+              exit 1
+            fi
+          done
+          # Sixteen rules are declared, and thirteen of them have rows in the first run.
+          held=$(jq -r '[.first_rules[] | select(.expected > 0 and .same == .expected)] | length' checks.json)
+          if [ "$CHECKS_PINNED_ROWS" -lt 1 ] || [ "$(jq -r '.first_rules | length' checks.json)" != 16 ] || [ "$held" != 13 ]; then
+            echo "::error::The checks gate has to hold rows at the pinned commit, and every row of thirteen rules of the first run. It held ${held}."
+            exit 1
+          fi
+
+      # The commands themselves, which are `npm run checks -- baseline` and `-- report`. The
+      # first writes the report and the baseline into the checkout of the first run, which
+      # holds neither, and both have to be the files the data repository commits. The second
+      # has to find the pinned store no higher than the committed baseline on any count.
+      - name: Write the report and the baseline with the commands
+        run: |
+          set -o pipefail
+          run_date=$(jq -r .run_date store/data/omics/checks-baseline.json)
+          uv run --no-sync rewire-evidence checks baseline --root first-run --date "$run_date" --commit "$CHECKS_REF" | tee first-run.log
+          cmp "first-run/maintenance/reports/checks-${run_date}.tsv" "store/maintenance/reports/checks-${run_date}.tsv"
+          cmp first-run/data/omics/checks-baseline.json store/data/omics/checks-baseline.json
+          uv run --no-sync rewire-evidence checks report --root store --date "$run_date" --out checks-report.tsv | tee pinned-run.log
+          if grep -q "^Check counts rose above" pinned-run.log || ! grep -Eq "^(Counts equal|Below) data/omics/checks-baseline.json" pinned-run.log; then
+            echo "::error::The pinned store is above the committed baseline, or the command did not compare the two."
+            exit 1
+          fi
+          gunzip -c scripts/expected/store-checks.tsv.gz | cmp - checks-report.tsv
+          if [ -n "$(git -C store status --porcelain)" ]; then
+            echo "::error::The command wrote to the pinned store."
+            exit 1
+          fi
+
+      # Every HTML and XML artifact the pinned checkout commits, read into tables by the
+      # reader, and each artifact and each table written out as the line the TypeScript wrote
+      # for it in scripts/expected/store-tables.jsonl.gz: the caption, the rows and cells
+      # counted, and the digest of the rows, of the rows with small capitals joined and of
+      # the headed blocks. The fixtures job below records those lines from
+      # scripts/omics/extract/tables.ts at the same commit. The script fails on a line that
+      # differs, and the counts are pinned here too.
+      - name: Read every committed table as the TypeScript reads it
+        run: |
+          set -o pipefail
+          uv run --no-sync python scripts/verify_store_tables.py store --json tables.json 2>&1 | tee tables.log
+          for pin in "counts.artifacts:$TABLE_ARTIFACTS" "counts.tables:$TABLES" "counts.cells:$TABLE_CELLS" "lines.expected:$TABLE_LINES" "lines.same:$TABLE_LINES" "module_is_recorded:true"; do
+            measured=$(jq -r ".${pin%%:*}" tables.json)
+            if [ "$measured" != "${pin##*:}" ]; then
+              echo "::error::The table gate measured ${pin%%:*} as ${measured} against a pin of ${pin##*:}."
+              exit 1
+            fi
+          done
+
       - name: Summary
         if: always()
         run: |
@@ -249,6 +376,8 @@ jobs:
             if [ -f schema.log ]; then echo; echo "### Schema and vocabularies"; echo; echo '```'; cat schema.log; echo '```'; fi
             if [ -f validation.log ]; then echo; echo "### Validators"; echo; echo '```'; cat validation.log; echo '```'; fi
             if [ -f locators.log ]; then echo; echo "### Locators"; echo; echo '```'; cat locators.log; echo '```'; fi
+            if [ -f checks.log ]; then echo; echo "### Checks pack"; echo; echo '```'; cat checks.log; echo '```'; fi
+            if [ -f tables.log ]; then echo; echo "### Table reader"; echo; echo '```'; cat tables.log; echo '```'; fi
           } >> "$GITHUB_STEP_SUMMARY"
 
   # The write path, held to the data repository's own history. Each case is a merged pull
@@ -381,6 +510,19 @@ jobs:
       - name: Record the locator grammar
         working-directory: store
         run: node_modules/.bin/tsx ../scripts/fixtures/record_locator_fixture.mjs
+      # The checks pack: its run over the pinned store, with the report, the anchor and
+      # column of every locator and parseCell's reading of every printed value, and what it
+      # does with cells, small stores, baselines and command lines the store has no like of.
+      - name: Record the checks pack
+        working-directory: store
+        run: node_modules/.bin/tsx ../scripts/fixtures/record_checks_fixture.mjs
+      # The table reader: every pattern written in scripts/omics/extract/tables.ts as the
+      # compiler reads the file, the tables it reads out of every HTML and XML artifact the
+      # pinned checkout commits, and what it does with sources, captions, sections, headers
+      # and text layers the artifacts have no like of.
+      - name: Record the table reader
+        working-directory: store
+        run: node_modules/.bin/tsx ../scripts/fixtures/record_tables_fixture.mjs
       - name: Keep what was recorded
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -394,6 +536,14 @@ jobs:
             tests/fixtures/write-path.json
             tests/fixtures/js-patterns.json
             tests/fixtures/locator.json
+            tests/fixtures/checks.json
+            tests/fixtures/tables.json
+            scripts/expected/store-tables.json
+            scripts/expected/store-tables.jsonl.gz
+            scripts/expected/store-checks.json
+            scripts/expected/store-checks.tsv.gz
+            scripts/expected/store-checks-columns.jsonl.gz
+            scripts/expected/store-checks-cells.jsonl.gz
             scripts/expected/store-locators.json
             scripts/expected/store-locators.jsonl.gz
             scripts/expected/store-schema.json
@@ -403,6 +553,7 @@ jobs:
             src/rewire_evidence/data/attribute-registry.json
             src/rewire_evidence/data/lowercase.json
             src/rewire_evidence/data/pattern-classes.json
+            src/rewire_evidence/data/powers-of-ten.json
           if-no-files-found: ignore
       - name: Fixtures are what the TypeScript produces
         run: |

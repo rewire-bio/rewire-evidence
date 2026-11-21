@@ -1,4 +1,4 @@
-"""The `rewire-evidence` command: `npm run records --` and `npm run locator --`, in Python.
+"""The `rewire-evidence` command: `npm run records --`, `locator --` and `checks --`, in Python.
 
     rewire-evidence records check [ROOT]
     rewire-evidence records descriptions [--json] [ROOT]
@@ -7,6 +7,8 @@
     rewire-evidence records change [--root ROOT] [--dry-run] REVIEW BATCH-DIR --changes CHANGES.jsonl
     rewire-evidence locator coverage [--root ROOT] [--out REPORT.tsv]
     rewire-evidence locator parse LOCATOR...
+    rewire-evidence checks report [--root ROOT] [--date YYYY-MM-DD] [--out REPORT.tsv]
+    rewire-evidence checks baseline [--root ROOT] [--date YYYY-MM-DD] [--commit SHA] [--out REPORT.tsv]
 
 `check` loads the store at ROOT, the working directory by default, through every check
 `loadRecords` makes, and prints the line the TypeScript prints: how many records match their
@@ -46,6 +48,18 @@ parse as JSON, the arguments joined by spaces. Both print what the TypeScript pr
 store that cannot be read is refused in a line with status 1, where the TypeScript leaves
 with a stack trace and the same status, and the table is not printed first.
 
+`checks report` runs the seven report-only checks over the store under ROOT, writes one row
+for each finding to `maintenance/reports/checks-<date>.tsv` under ROOT, or where `--out`
+says, prints each check's counts, and says how the counts stand against
+`data/omics/checks-baseline.json`: equal, below, or above it with the rules that rose.
+`checks baseline` writes the report and then the baseline file itself, with the date and the
+commit given. The date is today's in UTC unless `--date` gives one, and a date that is not
+written YYYY-MM-DD is a command line that cannot be read. Both print what the
+TypeScript prints and exit 0, as it does whatever the counts are. The baseline is the file
+`CHECKS_BASELINE` names in the environment, from ROOT, as in the TypeScript. A checkout that
+cannot be read is refused in a line with status 1, and a ROOT with no `data` folder is
+refused by name.
+
 Status 2 is for a store this library cannot judge, which is neither accepted nor refused:
 a URL whose host needs IDNA mapping (`weburl.UndecidedHost`). The TypeScript judges it. It
 is also what a command line that cannot be read exits with.
@@ -61,12 +75,15 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 import sys
+import time
 from collections import Counter
 from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import TextIO
 
+from rewire_evidence import ratchet
 from rewire_evidence.agreement import check_summary
 from rewire_evidence.attributes import said
 from rewire_evidence.canonical import js_indented, js_utf8, utf16_key
@@ -100,10 +117,23 @@ from rewire_evidence.writes import (
     write,
 )
 
+#: A date as the report is named by it, in ASCII digits.
+_DATE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")
 #: The store is refused, or the command could not read it.
 REFUSED = 1
 #: The store holds something this library does not judge.
 UNDECIDED = 2
+
+
+def _date(given: str) -> str:
+    """A date as `--date` takes it: four digits, two and two, and nothing else.
+
+    The date is written into the name of the report, so anything else could name a file
+    outside the folder of reports. The TypeScript takes whatever it is given.
+    """
+    if not _DATE.fullmatch(given):
+        raise argparse.ArgumentTypeError(f"{given!r} is not a date written YYYY-MM-DD")
+    return given
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -120,6 +150,16 @@ def _parser() -> argparse.ArgumentParser:
     coverage.add_argument("--out", type=Path, default=None, help="write the report here")
     parse = located.add_parser("parse", help="print one locator's parse")
     parse.add_argument("text", nargs="*", metavar="LOCATOR", help="the locator, in one argument or several")
+    checked = groups.add_parser("checks", help="the report-only checks").add_subparsers(
+        dest="action", required=True
+    )
+    reported = checked.add_parser("report", help="run every check and compare with the baseline")
+    pinned = checked.add_parser("baseline", help="run every check and write the baseline")
+    pinned.add_argument("--commit", default="", help="the commit the baseline records")
+    for run in (reported, pinned):
+        run.add_argument("--root", type=Path, default=Path(), help="a rewire-benchmark-data checkout")
+        run.add_argument("--date", type=_date, default=None, help="the date of the run, today's by default")
+        run.add_argument("--out", type=Path, default=None, help="write the report here")
     actions = commands.add_subparsers(dest="action", required=True)
     check = actions.add_parser("check", help="hold every record to every check loadRecords makes")
     check.add_argument("root", type=Path, nargs="?", default=Path(), help="a rewire-benchmark-data checkout")
@@ -292,6 +332,32 @@ def _parse(args: argparse.Namespace) -> str:
     )
 
 
+def _milliseconds() -> int:
+    """`Date.now()`."""
+    return time.time_ns() // 1_000_000
+
+
+def _checks(args: argparse.Namespace) -> ratchet.Command:
+    if not (args.root / "data").is_dir():
+        # Without this a folder that is no checkout is refused for the vocabulary it lacks.
+        raise StoreError(f"{args.root} holds no store: it has no folder named data")
+    return ratchet.Command(
+        args.root,
+        today() if args.date is None else args.date,
+        os.environ.get("CHECKS_BASELINE", ratchet.BASELINE_FILE),
+        args.out,
+        getattr(args, "commit", ""),
+    )
+
+
+def _report(args: argparse.Namespace) -> str:
+    return ratchet.report(_checks(args), _milliseconds)
+
+
+def _baseline(args: argparse.Namespace) -> str:
+    return ratchet.baseline(_checks(args), _milliseconds)
+
+
 _ACTIONS: dict[str, Callable[[argparse.Namespace], str]] = {
     "check": _check,
     "descriptions": _listed,
@@ -299,6 +365,8 @@ _ACTIONS: dict[str, Callable[[argparse.Namespace], str]] = {
     "change": _change,
     "coverage": _coverage,
     "parse": _parse,
+    "report": _report,
+    "baseline": _baseline,
 }
 #: What a write is called when it is refused, as the TypeScript calls it.
 _WRITTEN = {"add": "The batch", "change": "The changed records"}

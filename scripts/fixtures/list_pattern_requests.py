@@ -17,13 +17,16 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from rewire_evidence import jsregex, locator
+from rewire_evidence import cells, checks, jsregex, locator, tables
 
 HERE = Path(__file__).parent
 
 if __name__ == "__main__":
     cases = json.loads((HERE / "pattern_cases.json").read_text("utf-8"))["patterns"]
-    patterns = [(held.source, held.flags) for held in locator.PATTERNS]
+    patterns = [
+        (held.source, held.flags)
+        for held in (*locator.PATTERNS, *cells.PATTERNS, *checks.PATTERNS, *tables.PATTERNS)
+    ]
     patterns += [(case["source"], case["flags"]) for case in cases]
     (HERE / "pattern_requests.json").write_text(jsregex.requests(patterns), encoding="utf-8")
     print(f"Listed what {len(patterns)} patterns need.")

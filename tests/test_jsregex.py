@@ -16,7 +16,7 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
-from rewire_evidence import jsregex, locator
+from rewire_evidence import cells, checks, jsregex, locator, tables
 from rewire_evidence.js import paired, unit_text
 from rewire_evidence.jsregex import Found, JsPattern, Unsupported
 
@@ -56,7 +56,10 @@ REFUSED_INSIDE = named(split(refused=True))
 def every_pattern() -> list[tuple[str, str]]:
     """The patterns the library runs and the ones the cases test the translation with."""
     return [
-        *((held.source, held.flags) for held in locator.PATTERNS),
+        *(
+            (held.source, held.flags)
+            for held in (*locator.PATTERNS, *cells.PATTERNS, *checks.PATTERNS, *tables.PATTERNS)
+        ),
         *((case["source"], case["flags"]) for case in CASES["patterns"]),
     ]
 
@@ -87,7 +90,8 @@ def test_a_match_of_nothing_is_not_looked_for_where_v8_looks_inside_a_character(
 ) -> None:
     text = unit_text(case["text"])
     pattern = JsPattern(held["source"], held["flags"])
-    for run in (pattern.exec, pattern.test, lambda text: pattern.replace(text, "-")):
+    runs = [pattern.exec, pattern.test, lambda text: pattern.replace(text, "-")]
+    for run in [*runs, pattern.all] if "g" in held["flags"] else runs:
         with pytest.raises(Unsupported, match="inside a character beyond U\\+FFFF"):
             run(text)
     # The same pattern runs on the same text with the character taken out.
@@ -123,6 +127,42 @@ def test_node_finds_a_match_inside_a_character_where_the_specification_has_none(
 def test_a_pattern_replaces_what_node_replaces(held: dict[str, Any], case: dict[str, Any]) -> None:
     replaced = JsPattern(held["source"], held["flags"]).replace(unit_text(case["text"]), held["replacement"])
     assert paired(replaced) == case["replaced"]
+
+
+@pytest.mark.parametrize(("held", "case"), named([pair for pair in split(refused=False) if "all" in pair[1]]))
+def test_a_pattern_finds_every_match_node_finds(held: dict[str, Any], case: dict[str, Any]) -> None:
+    text = unit_text(case["text"])
+    found = JsPattern(held["source"], held["flags"]).all(text)
+    assert [as_recorded(each) for each in found] == case["all"]
+    # The first is what exec finds, and each is where it says it is, after the one before it.
+    assert (as_recorded(found[0]) if found else None) == case["found"]
+    ends = [each.index + len(each.text) for each in found]
+    assert all(text[each.index : end] == each.text for each, end in zip(found, ends, strict=True))
+    assert all(each.index >= end for each, end in zip(found[1:], ends, strict=False))
+
+
+def test_every_match_is_asked_only_of_a_pattern_that_looks_for_every_one() -> None:
+    with pytest.raises(Unsupported, match="has no g flag, and matchAll needs one"):
+        JsPattern("a").all("aaa")
+    assert [found.index for found in JsPattern("a", "g").all("aaa")] == [0, 1, 2]
+    # After a match of nothing the next search starts one character on, and ends with the text.
+    assert [(found.index, found.text) for found in JsPattern("x*", "g").all("axx")] == [
+        (0, ""),
+        (1, "xx"),
+        (3, ""),
+    ]
+    assert JsPattern("x", "g").all("") == []
+    # Without the u flag a match is in units, and with it a character is taken whole.
+    emoji = unit_text("\U0001f600")
+    assert [found.text for found in JsPattern("[^a]", "g").all(emoji)] == [emoji[0], emoji[1]]
+    whole = JsPattern("(?<c>[^a])", "gu").all(f"b{emoji}")
+    assert whole == [Found(0, "b", {"c": "b"}), Found(1, emoji, {"c": emoji})]
+    with pytest.raises(Unsupported, match="inside a character beyond U\\+FFFF"):
+        JsPattern("x*", "gu").all(emoji)
+    recorded = [pair for pair in PAIRS if "all" in pair[1]]
+    assert len(recorded) > 50
+    assert any(len(case["all"]) > 3 for _, case in recorded)
+    assert any(any(each["groups"] for each in case["all"]) for _, case in recorded)
 
 
 def test_the_recording_is_of_the_committed_cases_and_of_enough_of_them() -> None:
@@ -315,12 +355,15 @@ def test_the_node_the_fixtures_job_runs_is_the_one_the_sets_were_recorded_with()
     assert all(re.fullmatch(r"\d+\.\d+\.\d+", version) for version in pinned)
     held = json.loads((HERE.parent / "src/rewire_evidence" / jsregex.CLASSES_FILE).read_text("utf-8"))
     lowercase = json.loads((HERE.parent / "src/rewire_evidence/data/lowercase.json").read_text("utf-8"))
-    for recorded in (RECORDED, held, lowercase):
+    powers = json.loads((HERE.parent / "src/rewire_evidence/data/powers-of-ten.json").read_text("utf-8"))
+    checked = json.loads((HERE / "fixtures/checks.json").read_text("utf-8"))
+    tabled = json.loads((HERE / "fixtures/tables.json").read_text("utf-8"))
+    for recorded in (RECORDED, held, lowercase, powers, checked, tabled):
         assert recorded["recorded_from"]["node"] == f"v{pinned[1]}"
     assert RECORDED["recorded_from"]["unicode"] == held["recorded_from"]["unicode"] == "17.0"
     # Every action is named by a commit, which a tag is not.
     used = re.findall(r"uses: (\S+)", workflow)
-    assert len(used) == workflow.count("uses:") == 10
+    assert len(used) == workflow.count("uses:") == 11
     assert all(re.fullmatch(r"[\w./-]+@[0-9a-f]{40}", action) for action in used)
 
 

@@ -2,12 +2,13 @@
 
 `scripts/verify_store_digests.py`, `scripts/verify_store_layout.py`,
 `scripts/verify_store_schema.py`, `scripts/verify_store_validation.py`,
-`scripts/verify_store_writes.py` and `scripts/verify_store_locators.py` each call one
-function here and do nothing else, so
+`scripts/verify_store_writes.py`, `scripts/verify_store_locators.py`,
+`scripts/verify_store_checks.py` and `scripts/verify_store_tables.py` each call one function
+here and do nothing else, so
 everything a gate does is inside the library, where the tests and the coverage floor reach
 it.
 
-Exit status, for all six: 0 when everything reproduces, 1 on any disagreement, 2 when the run
+Exit status, for all eight: 0 when everything reproduces, 1 on any disagreement, 2 when the run
 could not be made. A disagreement never exits 2, and a run that could not be made never
 exits 1, so CI can tell a store that has drifted from a job that was set up wrongly.
 
@@ -25,7 +26,7 @@ import tempfile
 from collections.abc import Callable, Sequence
 from pathlib import Path
 
-from rewire_evidence import agreement, conformance, locators, replay
+from rewire_evidence import agreement, checkparity, conformance, locators, replay, tableparity
 from rewire_evidence.jsonl import StoreError
 from rewire_evidence.parity import (
     compare_content,
@@ -300,5 +301,93 @@ def _locators(root: Path, expected: Path, report_file: Path | None) -> int:
     sys.stdout.write(
         f"\nAll {report.read:,} locators are read as the TypeScript reads them, "
         "and the coverage report is the committed one byte for byte.\n"
+    )
+    return 0
+
+
+def checks_gate(arguments: Sequence[str], expected: Path, description: str | None = None) -> int:
+    """Run the checks gate and print what it found. Returns the status.
+
+    `expected` is what the TypeScript recorded of the pinned store, used when the command
+    line names no other. The files of lines it recorded are beside it.
+    """
+    parser = _parser(description)
+    parser.add_argument("first", type=Path, help="a checkout at the commit the committed baseline names")
+    parser.add_argument("--expected", type=Path, default=expected, help="what the TypeScript recorded")
+    parser.add_argument("--json", type=Path, default=None, help="write what was measured here")
+    args = parser.parse_args(arguments)
+    return _run(lambda: _checks(args.root, args.first, args.expected, args.json))
+
+
+def _checks(root: Path, first: Path, expected: Path, report_file: Path | None) -> int:
+    recorded = conformance.read_recorded(expected)
+    dumps = checkparity.read_dumps(expected, recorded)
+    sys.stdout.write(
+        f"expecting the committed report of the first run, and the run the TypeScript recorded at "
+        f"{conformance.recorded_ref(recorded)}\n"
+    )
+    report = checkparity.verify_checks(root, first, recorded, dumps)
+    sys.stdout.write(f"{checkparity.summary(report)}\n")
+    _write_report(report_file, checkparity.to_json(report))
+
+    for problem in report.problems[:PROBLEMS_SHOWN]:
+        sys.stderr.write(f"  {problem}\n")
+    if report.problems:
+        early, late = report.first, report.pinned
+        sys.stderr.write(
+            f"\n{len(report.problems):,} problems. {early.same:,} of {early.expected:,} rows of the first "
+            f"run and {late.same:,} of {late.expected:,} at the pinned commit reproduce.\n"
+        )
+        return 1
+    if not report.first.expected or not report.pinned.expected:
+        sys.stderr.write("Cannot verify: a report with no rows holds the checks to nothing\n")
+        return 2
+    sys.stdout.write(
+        f"\nAll {report.first.expected:,} rows of the committed report reproduce, the committed baseline is "
+        f"written byte for byte, and all {report.pinned.expected:,} rows at the pinned commit are the "
+        "TypeScript's.\n"
+    )
+    return 0
+
+
+def tables_gate(arguments: Sequence[str], expected: Path, description: str | None = None) -> int:
+    """Run the table gate and print what it found. Returns the status.
+
+    `expected` is what the TypeScript recorded of the pinned store, used when the command
+    line names no other. The lines it recorded are in the file that names, beside it.
+    """
+    parser = _parser(description)
+    parser.add_argument("--expected", type=Path, default=expected, help="what the TypeScript recorded")
+    parser.add_argument("--json", type=Path, default=None, help="write what was measured here")
+    args = parser.parse_args(arguments)
+    return _run(lambda: _tables(args.root, args.expected, args.json))
+
+
+def _tables(root: Path, expected: Path, report_file: Path | None) -> int:
+    recorded = conformance.read_recorded(expected)
+    dump = tableparity.read_tables_dump(expected, recorded)
+    sys.stdout.write(
+        f"expecting every committed artifact as the TypeScript read it at "
+        f"{conformance.recorded_ref(recorded)}\n"
+    )
+    report = tableparity.verify_tables(root, recorded, dump)
+    sys.stdout.write(f"{tableparity.summary(report)}\n")
+    _write_report(report_file, tableparity.to_json(report))
+
+    for problem in report.problems[:PROBLEMS_SHOWN]:
+        sys.stderr.write(f"  {problem}\n")
+    counts, lines = report.counts, report.lines
+    if report.problems:
+        sys.stderr.write(
+            f"\n{len(report.problems):,} problems. {lines.same:,} of {lines.expected:,} recorded lines "
+            "are reproduced.\n"
+        )
+        return 1
+    if not counts.tables:
+        sys.stderr.write("Cannot verify: a checkout with no table holds the reader to nothing\n")
+        return 2
+    sys.stdout.write(
+        f"\nAll {counts.tables:,} tables of {counts.artifacts:,} committed artifacts are read as the "
+        f"TypeScript reads them, {counts.cells:,} cells in all.\n"
     )
     return 0

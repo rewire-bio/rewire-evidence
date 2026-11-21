@@ -411,6 +411,31 @@ class JsPattern:
         """`pattern.test(text)` from the start of the text, which is in units."""
         return self.exec(text) is not None
 
+    def all(self, text: str) -> list[Found]:
+        """`[...text.matchAll(pattern)]`: every match in turn, for a pattern with the `g` flag.
+
+        The text is in units. Each search starts where the last match ended, and one
+        character further on when that match was of nothing, as `replace` does.
+        """
+        if "g" not in self.flags:
+            # JavaScript throws a TypeError here, so there is no answer to give.
+            raise Unsupported(f"/{self.source}/{self.flags} has no g flag, and matchAll needs one")
+        characters = self._characters(text)
+        pattern = self._translated[0]
+        found: list[Found] = []
+        at = 0
+        while at <= len(characters) and (match := pattern.search(characters, at)) is not None:
+            if characters is text:
+                found.append(Found(match.start(), match[0], match.groupdict()))
+            else:
+                groups = {
+                    name: None if held is None else unit_text(held)
+                    for name, held in match.groupdict().items()
+                }
+                found.append(Found(units(characters[: match.start()]), unit_text(match[0]), groups))
+            at = match.end() + (match.start() == match.end())
+        return found
+
     def replace(self, text: str, replacement: str) -> str:
         """`text.replace(pattern, replacement)`: every match with the `g` flag, or the first.
 

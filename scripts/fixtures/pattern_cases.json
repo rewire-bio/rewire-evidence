@@ -1,5 +1,5 @@
 {
- "about": "Patterns and texts for scripts/fixtures/record_pattern_fixture.mjs, which records what Node matches. Each pattern is run on each text with exec, and replaced where a replacement is given. Each number under fixed is written with toFixed to that many digits.",
+ "about": "Patterns and texts for scripts/fixtures/record_pattern_fixture.mjs, which records what Node matches. Each pattern is run on each text with exec, replaced where a replacement is given, and run with matchAll where it has the g flag. Each number under fixed is written with toFixed to that many digits.",
  "patterns": [
   {"source": "\\bs\\b", "flags": "", "texts": ["s", "a s b", "\u017fs", "s\u017f", "\u212as", "\u00e9s", "s\u00e9", "_s", "S"]},
   {"source": "\\bs\\b", "flags": "i", "texts": ["s", "S", "\u017fs", "s\u017f", "\u212as", "\u017f", "\u00e9s"]},
@@ -77,7 +77,13 @@
   {"source": "a??b", "flags": "g", "texts": ["abab", "bb"], "replacement": "<>"},
   {"source": "[^x]$", "flags": "u", "texts": ["\ud83d\ude00", "a\ud83d\ude00", "\ud83d\ude00b", "ab"]},
   {"source": "[\\p{L}]$", "flags": "u", "texts": ["\ud835\udc00", "a"]},
-  {"source": "(?![^,;])", "flags": "u", "texts": ["a\ud835\udc00", "a,"]}
+  {"source": "(?![^,;])", "flags": "u", "texts": ["a\ud835\udc00", "a,"]},
+  {"source": "\\bcolumn(?<group>\\s+group)?\\s*(?:\"(?<double>[^\"]*)\"|'(?<single>[^']*)'|\\((?<round>[^)]*)\\)|(?<bare>[^,;]+))", "flags": "gi", "texts": ["Table 1, column 'a', column group \"G\"; COLUMN (b), column c d", "column", "no such thing", "column \ud83d\ude00, column '\ud83d'", "\u212aolumn 'x' column\ufeff'y'"]},
+  {"source": "(?<a>[^x])(?<b>y)?", "flags": "gu", "texts": ["a\ud83d\ude00yb", "xx", "", "\ud83d\ude00", "y\ud83dy"]},
+  {"source": "(?<a>[^x])(?<b>y)?", "flags": "g", "texts": ["a\ud83d\ude00yb"]},
+  {"source": "table 4", "flags": "i", "texts": ["Table 4: Zero-shot proteingym", "TABLE 4", "table4", "tab\u017fe 4", "Tab\u013ce 4"]},
+  {"source": "^table", "flags": "i", "texts": ["TABLE", "Table 1", " table", "a\ntable", ""]},
+  {"source": "^END", "flags": "i", "texts": ["end", "End of it", "The end", "\u212and", "e\u0144d"]}
  ],
  "fixed": [
   ["0.25", 1], ["12.25", 1], ["0.35", 1], ["2.5", 0], ["3.5", 0], ["0.5", 0], ["1.005", 2], ["8.345", 2],
