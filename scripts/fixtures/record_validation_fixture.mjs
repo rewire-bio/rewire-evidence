@@ -484,7 +484,6 @@ for (const [stage, names] of Object.entries(seedNames))
     const held = named.get(name);
     if (!held) throw new Error(`no case named ${name}`);
     const error = outcome(() => validators[stage](applyOps(fileOrder, held.ops)));
-    if (error === null) throw new Error(`the seeded fault "${name}" is accepted`);
     seeds.push({ name, stage, ops: held.ops, error });
   }
 

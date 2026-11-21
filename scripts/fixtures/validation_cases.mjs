@@ -168,7 +168,7 @@ export function generator(seed) {
   };
 }
 
-const swaps = [null, true, 0, 1, -1, 1.5, "", " ", "x", [], ["x"], [""], {}, { x: 1 }];
+const swaps = [null, true, 0, 1, -1, 1.5, "", " ", "x", "2026-11-18", "2026-11-18T00:00:00Z", [], ["x"], [""], {}, { x: 1 }];
 
 function paths(value, at = [], found = []) {
   if (value && typeof value === "object")
@@ -713,7 +713,7 @@ export function examples({ records, roles }) {
       byId.get(roles.derived).attributes.review,
       { method: ["transcription"], reviewer: ["claude"], date: "2026-10-01", reviewed_at: "2026-10-01T10:00:00Z", scope: "s", note: "n", method_note: "m", reviewer_note: "r", evidence: "e", source_id: "a-source", receipt: "r", artifact_sha256: hex, retrieval_url: "https://example.org/a" },
       { method: ["rendered-source-visual-check"], date: "2026-11-17" },
-      { method: ["rendered-source-visual-check", "transcription"], reviewed_at: "2026-11-18T00:00:00Z" },
+      { method: ["rendered-source-visual-check", "transcription"], reviewed_at: "2026-11-17T23:59:59Z" },
     ],
     derivation: [attribute("derived", "derivation")],
     "reported-population": [attribute("populated", "reported_population"), { count: 5, unit: "cells", train_validation_test: [1, 2, 3], note: "n" }],
