@@ -1,5 +1,6 @@
 # Lint, types, tests at full coverage, and the gates that matter: reproducing data that
-# already exists.
+# already exists. A second job records the fixtures that need the data repository's own
+# TypeScript, and fails if a committed one is not what that code produces.
 #
 # The store is pinned to one commit rather than taken from main as it stands. A gate whose
 # input moves is a gate whose result cannot be compared with yesterday's: a run that goes red
@@ -71,8 +72,9 @@ jobs:
         run: |
           held=$(git -C store rev-parse HEAD)
           expected=$(jq -r .store_ref scripts/expected/store-layout.json)
-          if [ "$held" != "$STORE_REF" ] || [ "$expected" != "$STORE_REF" ]; then
-            echo "::error::STORE_REF is ${STORE_REF}, the checkout is ${held} and the pinned expectation was measured at ${expected}. All three must be one commit."
+          recorded=$(jq -r .recorded_from.store_ref scripts/expected/store-schema.json)
+          if [ "$held" != "$STORE_REF" ] || [ "$expected" != "$STORE_REF" ] || [ "$recorded" != "$STORE_REF" ]; then
+            echo "::error::STORE_REF is ${STORE_REF}, the checkout is ${held}, the pinned layout was measured at ${expected} and the TypeScript was recorded at ${recorded}. All four must be one commit."
             exit 1
           fi
 
@@ -105,6 +107,23 @@ jobs:
             exit 1
           fi
 
+      # Every record parsed by the schema and written back as its committed line, then again
+      # with its keys in another order; every link, source ID and controlled value checked;
+      # the vocabularies read as n3 reads them; the store loaded by load_records; and all of
+      # it held to what the TypeScript recorded of the same commit in
+      # scripts/expected/store-schema.json, which the fixtures job below records again.
+      - name: Hold the store to the record schema and the vocabularies
+        run: |
+          set -o pipefail
+          uv run --no-sync python scripts/verify_store_schema.py store --json schema.json 2>&1 | tee schema.log
+          for field in records_read records_reproduced records_restored records_loaded; do
+            measured=$(jq -r ".${field}" schema.json)
+            if [ "$measured" != "$STORE_RECORDS" ]; then
+              echo "::error::The schema gate measured ${field} as ${measured} against a pin of ${STORE_RECORDS}."
+              exit 1
+            fi
+          done
+
       - name: Summary
         if: always()
         run: |
@@ -115,4 +134,51 @@ jobs:
             if [ -f coverage.log ]; then echo; echo "### Coverage"; echo; echo '```'; sed -n '/^Name /,$p' coverage.log; echo '```'; fi
             if [ -f gate.log ]; then echo; echo "### Record digests"; echo; echo '```'; cat gate.log; echo '```'; fi
             if [ -f layout.log ]; then echo; echo "### Store layout"; echo; echo '```'; cat layout.log; echo '```'; fi
+            if [ -f schema.log ]; then echo; echo "### Schema and vocabularies"; echo; echo '```'; cat schema.log; echo '```'; fi
           } >> "$GITHUB_STEP_SUMMARY"
+
+  # The fixtures that need the data repository's own code: its zod schema, its vocabulary
+  # loader and the n3 it locks. They are recorded again here, inside the pinned checkout with its
+  # locked dependencies installed, and the job fails if a committed file is not what the
+  # TypeScript produces. Nothing is installed anywhere but this runner.
+  fixtures:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: rewire-bio/rewire-benchmark-data
+          ref: ${{ env.STORE_REF }}
+          path: store
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: store/package-lock.json
+      - name: Install the data repository's locked dependencies
+        working-directory: store
+        run: npm ci --no-audit --no-fund
+      - name: Record from the TypeScript
+        working-directory: store
+        run: node_modules/.bin/tsx ../scripts/fixtures/record_schema_fixture.mjs
+      - name: Keep what was recorded
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: schema-fixtures
+          path: |
+            tests/fixtures/record-schema.json
+            tests/fixtures/vocabularies.json
+            tests/fixtures/turtle.json
+            scripts/expected/store-schema.json
+          if-no-files-found: ignore
+      - name: Fixtures are what the TypeScript produces
+        run: |
+          changed=$(git status --porcelain -- tests/fixtures scripts/expected)
+          if [ -n "$changed" ]; then
+            echo "::error::The recorded fixtures differ from the committed ones. Download the schema-fixtures artifact and commit it."
+            echo "$changed"
+            git diff --stat -- tests/fixtures scripts/expected
+            exit 1
+          fi

@@ -1,0 +1,2174 @@
+{
+ "recorded_from": {
+  "script": "scripts/fixtures/record_schema_fixture.mjs",
+  "store_ref": "91f76cf8e61cba9d6037a01a19c9aa3051184900",
+  "zod": "4.6.5",
+  "n3": "1.17.4"
+ },
+ "records": 93216,
+ "records_by_kind": {
+  "baseline": 84,
+  "benchmark": 128,
+  "claim": 4166,
+  "configuration": 5564,
+  "dataset": 821,
+  "dataset_subset": 652,
+  "evaluation": 24726,
+  "evaluator": 9,
+  "method": 618,
+  "model": 389,
+  "pipeline": 133,
+  "protocol": 1562,
+  "result": 52278,
+  "service": 6,
+  "source": 1497,
+  "task": 552,
+  "use_case": 31
+ },
+ "source_ids": 118458,
+ "links": 138962,
+ "links_by_relation": {
+  "alias_of": 11,
+  "applicable_to": 151,
+  "assessed_by": 461,
+  "assessment": 24726,
+  "companion_of": 97,
+  "configuration_of": 2712,
+  "data": 24726,
+  "evaluates_task": 213,
+  "evaluation": 52278,
+  "family": 180,
+  "implemented_by": 72,
+  "measured_in": 53,
+  "parent": 36,
+  "part_of": 1479,
+  "same_data_as": 86,
+  "subject": 4979,
+  "supersedes": 17,
+  "system": 24726,
+  "used_in": 272,
+  "uses_data": 1205,
+  "uses_model": 476,
+  "variant_of": 6
+ },
+ "public_records": 92746,
+ "public_ids_sha256": "558560e20ccb796b66eaa3822070b0144f452ac7eab848ba5232a6bb5fbd6db9",
+ "controlled_values": 580242,
+ "controlled_values_by_field": {
+  "attributes.action discrepancy-action": 19,
+  "attributes.baseline_algorithm algorithm": 11,
+  "attributes.baseline_type baseline-type": 70,
+  "attributes.configuration_type configuration-type": 614,
+  "attributes.derivation.method derivation-method": 59,
+  "attributes.entity_level entity-level": 1089,
+  "attributes.metric metric": 53710,
+  "attributes.metric_direction direction": 53624,
+  "attributes.origin origin": 24726,
+  "attributes.publication_status publication-status": 830,
+  "attributes.relevance relevance": 462,
+  "attributes.review.method review-method": 167280,
+  "attributes.review.reviewer agent": 54897,
+  "attributes.unit unit": 53003,
+  "facets.areas area": 49088,
+  "facets.contexts context": 23429,
+  "facets.method_types method-type": 4115,
+  "status status": 93216
+ },
+ "blank_labels": {
+  "documents": 307,
+  "anonymous": 80
+ },
+ "schemes": {
+  "agent": {
+   "iri": "https://benchmarks.rewire.it/vocab/agent/",
+   "quads": 36,
+   "quads_sha256": "f3520eb136e7df94a7c4d24a31fb0b241d744995f851c4c11f28ac6b77f1bebe",
+   "quads_sorted_sha256": "03b5b0f8f03829761130d9302ba16ee68edd51f6d758124d77527e4a9c0ca6a4",
+   "blank_nodes": 0,
+   "concepts": [
+    [
+     "claude",
+     "Claude (model unspecified)"
+    ],
+    [
+     "claude-sonnet",
+     "Claude Sonnet"
+    ],
+    [
+     "codex",
+     "Codex"
+    ],
+    [
+     "rewire-benchmark-runner",
+     "Rewire benchmark runner"
+    ],
+    [
+     "rewire-deterministic-table-checker",
+     "Rewire deterministic table checker"
+    ],
+    [
+     "unidentified-automated-reviewer",
+     "Unidentified automated reviewer"
+    ]
+   ]
+  },
+  "algorithm": {
+   "iri": "https://benchmarks.rewire.it/vocab/algorithm/",
+   "quads": 21,
+   "quads_sha256": "267d45897df0be496a904c75f834c3a58380a2b90a20f4ee84b18364a90d27e0",
+   "quads_sorted_sha256": "6c4d178453ec130792ce14bc92650010e4d35552318280ca275d813b1d23206c",
+   "blank_nodes": 0,
+   "concepts": [
+    [
+     "gradient_boosted_trees",
+     "Gradient-boosted trees"
+    ],
+    [
+     "linear_regression",
+     "Linear regression"
+    ],
+    [
+     "random_forest",
+     "Random forest"
+    ],
+    [
+     "ridge_regression",
+     "Ridge regression"
+    ]
+   ]
+  },
+  "archive-tier": {
+   "iri": "https://benchmarks.rewire.it/vocab/archive-tier/",
+   "quads": 40,
+   "quads_sha256": "1a12986bd2c8697bf8a7094eb877229c46feb2220ef10f18cf3078d35eaa1af3",
+   "quads_sorted_sha256": "c50759934801ba26676af7caa5ec50d18565c985903015fb39f00eccea6fe479",
+   "blank_nodes": 0,
+   "concepts": [
+    [
+     "t0-public",
+     "Public"
+    ],
+    [
+     "t1-public-nc",
+     "Public, non-commercial"
+    ],
+    [
+     "t2-verbatim-nd",
+     "Verbatim only"
+    ],
+    [
+     "t3-verbatim-nd-nc",
+     "Verbatim only, non-commercial"
+    ],
+    [
+     "t4-private",
+     "Private"
+    ],
+    [
+     "t5-no-store",
+     "Not stored"
+    ]
+   ]
+  },
+  "area": {
+   "iri": "https://benchmarks.rewire.it/vocab/area/",
+   "quads": 99,
+   "quads_sha256": "3b0233512553f551b7f79822bf9af3756ffe06f2c1a3b1fddea50029902c6236",
+   "quads_sorted_sha256": "dcdeb7436ca99ca5293c7f106e726d5ea16d49d4f5d1b34cd2481229b1b75784",
+   "blank_nodes": 0,
+   "concepts": [
+    [
+     "biological-networks",
+     "Biological networks"
+    ],
+    [
+     "cells-tissues",
+     "Cells & tissues"
+    ],
+    [
+     "dna-genomes",
+     "DNA & genomes"
+    ],
+    [
+     "glycans",
+     "Glycans & glycomics"
+    ],
+    [
+     "lipidomics",
+     "Lipidomics"
+    ],
+    [
+     "mechanistic-biology",
+     "Mechanistic biology"
+    ],
+    [
+     "metabolomics",
+     "Metabolomics"
+    ],
+    [
+     "microbes-communities",
+     "Microbes & communities"
+    ],
+    [
+     "molecular-interactions",
+     "Molecular interactions"
+    ],
+    [
+     "protein-function",
+     "Protein function"
+    ],
+    [
+     "protein-structure",
+     "Protein structure"
+    ],
+    [
+     "proteins-complexes",
+     "Proteins & complexes"
+    ],
+    [
+     "rna-transcriptomes",
+     "RNA & transcriptomes"
+    ],
+    [
+     "single-cell",
+     "Single-cell"
+    ],
+    [
+     "spatial-omics",
+     "Spatial omics"
+    ]
+   ]
+  },
+  "baseline-type": {
+   "iri": "https://benchmarks.rewire.it/vocab/baseline-type/",
+   "quads": 50,
+   "quads_sha256": "82d93d6f5a30cb2ee6499e15c98c10c10341a0f489033c1db1c33e94ce7885f8",
+   "quads_sorted_sha256": "5827d0786978ede72d7c1859c4e7c1d304e8b680497f89cea58c07a54a62a0c5",
+   "blank_nodes": 0,
+   "concepts": [
+    [
+     "classical_procedure",
+     "Classical computational procedure"
+    ],
+    [
+     "conventional_workflow",
+     "Conventional workflow"
+    ],
+    [
+     "established_method",
+     "Established method"
+    ],
+    [
+     "evolutionary_model",
+     "Evolutionary model"
+    ],
+    [
+     "experimental_reference",
+     "Experimental reference"
+    ],
+    [
+     "learned_specialist",
+     "Learned specialist"
+    ],
+    [
+     "mechanistic",
+     "Mechanistic model"
+    ],
+    [
+     "null_control",
+     "Null control"
+    ],
+    [
+     "simple_statistical",
+     "Simple statistical or classical ML model"
+    ]
+   ]
+  },
+  "configuration-type": {
+   "iri": "https://benchmarks.rewire.it/vocab/configuration-type/",
+   "quads": 18,
+   "quads_sha256": "59eb797b2a6e68f428e0e229dcf096f3eb98374356a89bbe2447cecb998d5945",
+   "quads_sorted_sha256": "c5ca4f6ff1a77452769bd9d293bce0c3bfb4d8c70f6ce4741c8b3689c064f1f9",
+   "blank_nodes": 0,
+   "concepts": [
+    [
+     "paper_evaluation",
+     "Paper-evaluated configuration"
+    ],
+    [
+     "pipeline",
+     "Pipeline"
+    ],
+    [
+     "reported_configuration",
+     "Reported configuration"
+    ]
+   ]
+  },
+  "context": {
+   "iri": "https://benchmarks.rewire.it/vocab/context/",
+   "quads": 14,
+   "quads_sha256": "a9c84d676ee2b28adebd90c706de51903a9817ad8db3085d32402ce41b79a8c9",
+   "quads_sorted_sha256": "f5936df6658e59924a245eb699c9b854c5785ae506cf1450824a3553bae3beed",
+   "blank_nodes": 0,
+   "concepts": [
+    [
+     "clinical_research",
+     "Clinical research"
+    ],
+    [
+     "research",
+     "Research"
+    ]
+   ]
+  },
+  "derivation-method": {
+   "iri": "https://benchmarks.rewire.it/vocab/derivation-method/",
+   "quads": 7,
+   "quads_sha256": "5584626eaf9e4090d394b37d25cc75c689a8f77fb47249724c613b7cc2526ff9",
+   "quads_sorted_sha256": "d3048520bb34a7ea8f56413c20673bae4adec4de87182a10d98f442c09e28f18",
+   "blank_nodes": 0,
+   "concepts": [
+    [
+     "computed-from-source-data",
+     "Computed from the source's own data"
+    ]
+   ]
+  },
+  "direction": {
+   "iri": "https://benchmarks.rewire.it/vocab/direction/",
+   "quads": 18,
+   "quads_sha256": "13ee44c65515db51de2f83544fb42989257ea379ccb42911fed3260e9e9834d3",
+   "quads_sorted_sha256": "cdc4ef92b2c6af7997996aef0a3d9969d70a850d8037081a4f69176d1732ac39",
+   "blank_nodes": 0,
+   "concepts": [
+    [
+     "higher",
+     "Higher is better"
+    ],
+    [
+     "lower",
+     "Lower is better"
+    ],
+    [
+     "unknown",
+     "Direction unknown"
+    ]
+   ]
+  },
+  "discrepancy-action": {
+   "iri": "https://benchmarks.rewire.it/vocab/discrepancy-action/",
+   "quads": 32,
+   "quads_sha256": "e87d732900460363407d9094c485a22d70a0c21729c62e5929db9ad18677f34f",
+   "quads_sorted_sha256": "f4f58f728c8eaf12e69175406d1db577d655f4e923094fd4b1f0ddcf35e585ce",
+   "blank_nodes": 0,
+   "concepts": [
+    [
+     "investigated",
+     "Investigated"
+    ],
+    [
+     "contacted-authors",
+     "Contacted authors"
+    ],
+    [
+     "reported-upstream",
+     "Reported upstream"
+    ],
+    [
+     "awaiting-correction",
+     "Awaiting correction"
+    ],
+    [
+     "reran",
+     "Reran"
+    ],
+    [
+     "corrected-records",
+     "Corrected records"
+    ],
+    [
+     "closed",
+     "Closed"
+    ]
+   ]
+  },
+  "discrepancy-rule": {
+   "iri": "https://benchmarks.rewire.it/vocab/discrepancy-rule/",
+   "quads": 18,
+   "quads_sha256": "4c0aa610bfc2ffdf952b5ea7b90564c0f3a93917cee9f89a86ba28160dfdab62",
+   "quads_sorted_sha256": "c30573db152304e508e3dc9ff4440d486a7f76b52a7029f8f31ecfea0e6f3a5b",
+   "blank_nodes": 0,
+   "concepts": [
+    [
+     "ordering-reversal",
+     "Ordering reversal"
+    ],
+    [
+     "two-study-conflict",
+     "Two-study conflict"
+    ],
+    [
+     "gap-outlier",
+     "Gap outlier"
+    ]
+   ]
+  },
+  "discrepancy-state": {
+   "iri": "https://benchmarks.rewire.it/vocab/discrepancy-state/",
+   "quads": 32,
+   "quads_sha256": "e448c516af0e0bd540550c6821442b465f4b307fd4ba08aecfea1a1121ba6504",
+   "quads_sorted_sha256": "a485bd0c9d36ed435c585620cee262b1ae88421ff26d898969a70987665b3845",
+   "blank_nodes": 0,
+   "concepts": [
+    [
+     "open",
+     "Open"
+    ],
+    [
+     "investigating",
+     "Investigating"
+    ],
+    [
+     "reported-upstream",
+     "Reported upstream"
+    ],
+    [
+     "awaiting-correction",
+     "Awaiting correction"
+    ],
+    [
+     "explained",
+     "Explained"
+    ],
+    [
+     "confirmed-error",
+     "Confirmed error"
+    ],
+    [
+     "false-positive",
+     "False positive"
+    ]
+   ]
+  },
+  "entity-level": {
+   "iri": "https://benchmarks.rewire.it/vocab/entity-level/",
+   "quads": 45,
+   "quads_sha256": "9df29ea4dd84a2f866b327ed5ff655e91c5c43d3b8642ff3638e239d610eaa31",
+   "quads_sorted_sha256": "09669d7a09b4c76e514868d3a2bd4413dc2e142e6b1e4de4edda47500aec845d",
+   "blank_nodes": 0,
+   "concepts": [
+    [
+     "challenge",
+     "Challenge"
+    ],
+    [
+     "checkpoint",
+     "Checkpoint"
+    ],
+    [
+     "evaluation_subset",
+     "Evaluation subset"
+    ],
+    [
+     "evaluator",
+     "Evaluator"
+    ],
+    [
+     "family",
+     "Model family"
+    ],
+    [
+     "method",
+     "Method"
+    ],
+    [
+     "protocol",
+     "Protocol"
+    ],
+    [
+     "service",
+     "Hosted service"
+    ],
+    [
+     "suite",
+     "Benchmark suite"
+    ],
+    [
+     "task",
+     "Task"
+    ]
+   ]
+  },
+  "licence-basis": {
+   "iri": "https://benchmarks.rewire.it/vocab/licence-basis/",
+   "quads": 25,
+   "quads_sha256": "e7c51ab9ccde0bdb469036cf047cdc4f0cc40203ff8f6b882c32bf7c2f494780",
+   "quads_sorted_sha256": "a8c20c7d5508e38e636168bfb05d99372516fad7ccb63224874b44ec795239eb",
+   "blank_nodes": 0,
+   "concepts": [
+    [
+     "identifier",
+     "Licence identifier"
+    ],
+    [
+     "prose",
+     "Prose stating a licence"
+    ],
+    [
+     "conflicting",
+     "Conflicting statements"
+    ],
+    [
+     "unresolved",
+     "Unresolved"
+    ]
+   ]
+  },
+  "licence-family": {
+   "iri": "https://benchmarks.rewire.it/vocab/licence-family/",
+   "quads": 81,
+   "quads_sha256": "40e6a78abde2f847d1d2e17f499978f5c3ffbdff74bc28e700cf92ff2bb4d08b",
+   "quads_sorted_sha256": "6901b6adf0c7a96b86e88442c04a3607f5b8c99a6d38e178841061b35ed6bebf",
+   "blank_nodes": 0,
+   "concepts": [
+    [
+     "cc0",
+     "CC0"
+    ],
+    [
+     "cc-by",
+     "CC BY"
+    ],
+    [
+     "cc-by-sa",
+     "CC BY-SA"
+    ],
+    [
+     "cc-by-nc",
+     "CC BY-NC"
+    ],
+    [
+     "cc-by-nc-sa",
+     "CC BY-NC-SA"
+    ],
+    [
+     "cc-by-nd",
+     "CC BY-ND"
+    ],
+    [
+     "cc-by-nc-nd",
+     "CC BY-NC-ND"
+    ],
+    [
+     "permissive-code",
+     "Permissive code licence"
+    ],
+    [
+     "copyleft-code",
+     "Copyleft code licence"
+    ],
+    [
+     "other-open",
+     "Other open licence"
+    ],
+    [
+     "arxiv-nonexclusive",
+     "arXiv non-exclusive licence"
+    ],
+    [
+     "publisher-terms",
+     "Publisher terms"
+    ],
+    [
+     "bespoke-restricted",
+     "Bespoke restricted terms"
+    ],
+    [
+     "all-rights-reserved",
+     "All rights reserved"
+    ],
+    [
+     "not-stated",
+     "Not stated"
+    ]
+   ]
+  },
+  "method-type": {
+   "iri": "https://benchmarks.rewire.it/vocab/method-type/",
+   "quads": 25,
+   "quads_sha256": "e7c66447c082e59bd0d9eea0b52de729a1495c77eff2b1c21489f24d0602f806",
+   "quads_sorted_sha256": "fc3d5cdbf2869fe63e9e2b978ed9542af494a204c42d87f41410a7bc052d67bb",
+   "blank_nodes": 0,
+   "concepts": [
+    [
+     "conventional_pipeline",
+     "Conventional pipeline"
+    ],
+    [
+     "foundation_model",
+     "Foundation model"
+    ],
+    [
+     "specialist",
+     "Specialist model"
+    ],
+    [
+     "supervised_machine_learning",
+     "Supervised machine learning"
+    ]
+   ]
+  },
+  "metric": {
+   "iri": "https://benchmarks.rewire.it/vocab/metric/",
+   "quads": 2364,
+   "quads_sha256": "46033ad5cd002279473efec4ac6f0a5d60f1d555525524166902c478563aa94f",
+   "quads_sorted_sha256": "863a5ca5c207996f9395e03715dd3dbc8ffeaf599a64883c3a45276c8b2d4ca3",
+   "blank_nodes": 0,
+   "concepts": [
+    [
+     "absolute-spearman-correlation",
+     "Absolute Spearman rank correlation"
+    ],
+    [
+     "accelerator-time",
+     "Accelerator time"
+    ],
+    [
+     "accuracy",
+     "Accuracy"
+    ],
+    [
+     "adjusted-ndcg-at-100",
+     "Adjusted NDCG at 100"
+    ],
+    [
+     "adjusted-rand-index",
+     "Adjusted Rand index (ARI)"
+    ],
+    [
+     "adjusted-rand-index-bp",
+     "Base-pair-weighted adjusted Rand index"
+    ],
+    [
+     "amber-accuracy-bp",
+     "Binning accuracy (bp)"
+    ],
+    [
+     "amber-accuracy-seq",
+     "Binning accuracy (seq)"
+    ],
+    [
+     "amber-average-completeness-bp",
+     "Average completeness (bp)"
+    ],
+    [
+     "amber-average-completeness-seq",
+     "Average completeness (seq)"
+    ],
+    [
+     "amber-average-purity-bp",
+     "Average purity (bp)"
+    ],
+    [
+     "amber-average-purity-seq",
+     "Average purity (seq)"
+    ],
+    [
+     "amber-binned-bp-fraction",
+     "Percentage of binned bp"
+    ],
+    [
+     "amber-binned-sequence-fraction",
+     "Percentage of binned sequences"
+    ],
+    [
+     "amber-completeness-bp",
+     "Completeness (bp)"
+    ],
+    [
+     "amber-completeness-seq",
+     "Completeness (seq)"
+    ],
+    [
+     "amber-f1-bp",
+     "Binning F1 (bp)"
+    ],
+    [
+     "amber-f1-seq",
+     "Binning F1 (seq)"
+    ],
+    [
+     "amber-purity-bp",
+     "Purity (bp)"
+    ],
+    [
+     "amber-purity-seq",
+     "Purity (seq)"
+    ],
+    [
+     "annotation-overlap-ratio",
+     "Annotation overlap ratio"
+    ],
+    [
+     "antisymmetry-bias",
+     "Antisymmetry bias"
+    ],
+    [
+     "auprc",
+     "Area under the precision-recall curve (AUPRC)"
+    ],
+    [
+     "auprc-ratio",
+     "AUPRC ratio"
+    ],
+    [
+     "auprc-relative-difference",
+     "AUPRC relative difference"
+    ],
+    [
+     "auroc",
+     "Area under the ROC curve (AUROC)"
+    ],
+    [
+     "auroc-difference",
+     "AUROC difference"
+    ],
+    [
+     "auspc",
+     "Area under the SPECTRA performance curve (AUSPC)"
+    ],
+    [
+     "average-batch-score",
+     "Average batch score"
+    ],
+    [
+     "average-precision",
+     "Average precision"
+    ],
+    [
+     "avg-bio",
+     "AvgBIO"
+    ],
+    [
+     "balanced-accuracy",
+     "Balanced accuracy"
+    ],
+    [
+     "bedroc",
+     "Boltzmann-enhanced discrimination of ROC (BEDROC)"
+    ],
+    [
+     "beeline-stability",
+     "Stability across datasets"
+    ],
+    [
+     "benignity-likelihood-ratio",
+     "Likelihood ratio for benignity"
+    ],
+    [
+     "bond-angle-rmsd",
+     "Bond angle RMSD"
+    ],
+    [
+     "bond-length-rmsd",
+     "Bond length RMSD"
+    ],
+    [
+     "bray-curtis-dissimilarity",
+     "Bray-Curtis dissimilarity"
+    ],
+    [
+     "cache-challenge-activity-score",
+     "CACHE challenge activity score"
+    ],
+    [
+     "cache-challenge-normalized-hit-score",
+     "CACHE challenge normalised merged-library hit score"
+    ],
+    [
+     "cache-challenge-novelty-score",
+     "CACHE challenge chemical novelty score"
+    ],
+    [
+     "candidates-per-case",
+     "Candidates per case"
+    ],
+    [
+     "candidates-per-diagnosis",
+     "Candidates per diagnosis"
+    ],
+    [
+     "capri-acceptable-target-count",
+     "Targets with acceptable or better model"
+    ],
+    [
+     "capri-high-target-count",
+     "Targets with high-quality model"
+    ],
+    [
+     "capri-interface-rmsd",
+     "Interface RMSD (iRMSD)"
+    ],
+    [
+     "capri-ligand-rmsd",
+     "Ligand-chain RMSD (LRMSD)"
+    ],
+    [
+     "capri-medium-target-count",
+     "Targets with medium-accuracy model"
+    ],
+    [
+     "capri-top-10-success-rate",
+     "CAPRI acceptable top-10 success rate"
+    ],
+    [
+     "capri-top-30-success-rate",
+     "CAPRI acceptable top-30 success rate"
+    ],
+    [
+     "casf-docking-top-1-success",
+     "CASF docking power top-1 success rate"
+    ],
+    [
+     "casf-docking-top-2-success",
+     "CASF docking power top-2 success rate"
+    ],
+    [
+     "casf-docking-top-3-success",
+     "CASF docking power top-3 success rate"
+    ],
+    [
+     "casf-screening-success-rate",
+     "CASF forward screening success rate"
+    ],
+    [
+     "casp-sum-z-score",
+     "Sum of Z-scores for GDT-TS and TM-score"
+    ],
+    [
+     "chirality-consistency",
+     "Chirality consistency"
+    ],
+    [
+     "coefficient-of-determination",
+     "Coefficient of determination (R²)"
+    ],
+    [
+     "cohens-d",
+     "Cohen's d"
+    ],
+    [
+     "composition-l1-distance",
+     "L1 distance between compositions"
+    ],
+    [
+     "compute-cost",
+     "Compute cost"
+    ],
+    [
+     "concordance-index",
+     "Concordance index"
+    ],
+    [
+     "correlation",
+     "Correlation coefficient"
+    ],
+    [
+     "cosine-similarity",
+     "Cosine similarity"
+    ],
+    [
+     "cost-saving",
+     "Cost saving"
+    ],
+    [
+     "count",
+     "Count"
+    ],
+    [
+     "covariance-agreement",
+     "Covariance agreement"
+    ],
+    [
+     "cppc-mean-cell-state-l1",
+     "Mean summed cell-state L1 error"
+    ],
+    [
+     "cppc-topk-overlap-auc",
+     "Top-k overlap AUC"
+    ],
+    [
+     "cpu-time",
+     "CPU time"
+    ],
+    [
+     "data-io-volume",
+     "Data I/O volume"
+    ],
+    [
+     "designability",
+     "Designability"
+    ],
+    [
+     "diagnostic-yield",
+     "Diagnostic yield"
+    ],
+    [
+     "directional-false-discovery-rate-at-100",
+     "Directional false discovery rate at 100"
+    ],
+    [
+     "dissociation-constant",
+     "Dissociation constant"
+    ],
+    [
+     "dockq",
+     "DockQ"
+    ],
+    [
+     "early-precision-ratio",
+     "Early precision ratio (EPR)"
+    ],
+    [
+     "edit-count",
+     "Mean edits per sequence"
+    ],
+    [
+     "effective-number-of-groups",
+     "Effective number of groups"
+    ],
+    [
+     "energy-efficiency",
+     "Energy efficiency"
+    ],
+    [
+     "enrichment-factor",
+     "Enrichment factor (EF)"
+    ],
+    [
+     "entropy-delta",
+     "Entropy delta"
+    ],
+    [
+     "eta-squared",
+     "Eta squared"
+    ],
+    [
+     "evidence-strength-score-interval",
+     "Score interval for an evidence strength"
+    ],
+    [
+     "event-detected",
+     "Known event detected"
+    ],
+    [
+     "f-beta-score",
+     "F-beta score"
+    ],
+    [
+     "f1-max",
+     "Maximum F1 over thresholds (Fmax)"
+    ],
+    [
+     "f1-score",
+     "F1 score"
+    ],
+    [
+     "false-negative-count",
+     "Number of false negatives"
+    ],
+    [
+     "false-positive-count",
+     "Number of false positives"
+    ],
+    [
+     "false-positive-rate",
+     "False positive rate"
+    ],
+    [
+     "fingerprint-cosine-similarity",
+     "Fingerprint cosine similarity"
+    ],
+    [
+     "fingerprint-tanimoto-similarity",
+     "Fingerprint Tanimoto similarity"
+    ],
+    [
+     "fnat",
+     "Fraction of native contacts (Fnat)"
+    ],
+    [
+     "foldbench-success-rate",
+     "FoldBench success rate"
+    ],
+    [
+     "gdt-ts",
+     "GDT-TS"
+    ],
+    [
+     "genernib-regression-precision",
+     "GeneRNIB regression precision"
+    ],
+    [
+     "genernib-regression-recall",
+     "GeneRNIB regression recall"
+    ],
+    [
+     "genernib-virtual-cell-score",
+     "GeneRNIB virtual-cell score"
+    ],
+    [
+     "genie-diversity-tm-0-5",
+     "Diversity at TM-score 0.5"
+    ],
+    [
+     "genie-diversity-tm-0-6",
+     "Diversity at TM-score 0.6"
+    ],
+    [
+     "genie-novelty-afdb",
+     "Novelty against AFDB"
+    ],
+    [
+     "genie-novelty-pdb",
+     "Novelty against PDB"
+    ],
+    [
+     "hazard-ratio",
+     "Hazard ratio"
+    ],
+    [
+     "hit-enrichment-factor",
+     "Hit enrichment factor"
+    ],
+    [
+     "hit-rate",
+     "Experimental hit rate"
+    ],
+    [
+     "hits-at-100",
+     "Hits@100"
+    ],
+    [
+     "inference-throughput",
+     "Inference throughput"
+    ],
+    [
+     "interaction-network-fidelity",
+     "Interaction network fidelity (INF)"
+    ],
+    [
+     "jensen-shannon-divergence",
+     "Jensen-Shannon divergence"
+    ],
+    [
+     "jensen-shannon-similarity",
+     "Jensen-Shannon similarity"
+    ],
+    [
+     "kendall-tau",
+     "Kendall rank correlation coefficient"
+    ],
+    [
+     "known-gene-rank",
+     "Known disease gene rank"
+    ],
+    [
+     "kullback-leibler-divergence",
+     "Kullback-Leibler divergence"
+    ],
+    [
+     "l2-distance",
+     "L2 distance"
+    ],
+    [
+     "lddt",
+     "lDDT"
+    ],
+    [
+     "lddt-lp",
+     "lDDT-LP"
+    ],
+    [
+     "lddt-pli",
+     "lDDT-PLI"
+    ],
+    [
+     "leaderboard-percentile",
+     "Leaderboard percentile"
+    ],
+    [
+     "levenshtein-distance",
+     "Levenshtein distance"
+    ],
+    [
+     "ligand-pass-rate",
+     "Ligand pass rate"
+    ],
+    [
+     "ligand-rmsd",
+     "Ligand RMSD"
+    ],
+    [
+     "ligand-rmsd-1a-pb-valid-rate",
+     "Ligand RMSD ≤ 1 Å and PoseBusters-valid rate"
+    ],
+    [
+     "ligand-rmsd-under-2a-rate",
+     "Ligand RMSD < 2 Å success rate"
+    ],
+    [
+     "likelihood-ratio",
+     "Likelihood ratio"
+    ],
+    [
+     "limit-of-detection",
+     "Limit of detection"
+    ],
+    [
+     "log-likelihood",
+     "Log-likelihood"
+    ],
+    [
+     "log-loss",
+     "Log loss"
+    ],
+    [
+     "log2-likelihood-ratio",
+     "Log2 likelihood ratio"
+    ],
+    [
+     "macro-average-precision",
+     "Macro-averaged average precision"
+    ],
+    [
+     "macro-f1",
+     "Macro-averaged F1"
+    ],
+    [
+     "macro-mcc",
+     "Macro-averaged Matthews correlation coefficient"
+    ],
+    [
+     "magnitude-ratio",
+     "Magnitude ratio"
+    ],
+    [
+     "matthews-correlation-coefficient",
+     "Matthews correlation coefficient"
+    ],
+    [
+     "maximum-batch-size",
+     "Maximum batch size"
+    ],
+    [
+     "maximum-mean-discrepancy",
+     "Maximum mean discrepancy"
+    ],
+    [
+     "mean-absolute-error",
+     "Mean absolute error (MAE)"
+    ],
+    [
+     "mean-average-precision-at-5",
+     "Mean average precision at 5"
+    ],
+    [
+     "mean-columnwise-rmse",
+     "Mean columnwise RMSE (MCRMSE)"
+    ],
+    [
+     "mean-memory",
+     "Mean memory"
+    ],
+    [
+     "mean-squared-error",
+     "Mean squared error (MSE)"
+    ],
+    [
+     "median-absolute-error",
+     "Median absolute error"
+    ],
+    [
+     "median-f1",
+     "Median per-class F1"
+    ],
+    [
+     "micro-f1",
+     "Micro-averaged F1"
+    ],
+    [
+     "min-max-normalised-score",
+     "Min-max normalised score"
+    ],
+    [
+     "modified-squared-correlation",
+     "Modified squared correlation coefficient"
+    ],
+    [
+     "mutual-information-product-agreement",
+     "Mutual information product agreement"
+    ],
+    [
+     "ndcg",
+     "Normalised discounted cumulative gain (NDCG)"
+    ],
+    [
+     "ndcg-at-10-percent",
+     "NDCG at top 10%"
+    ],
+    [
+     "negative-log-likelihood",
+     "Negative log-likelihood"
+    ],
+    [
+     "negative-predictive-value",
+     "Negative predictive value"
+    ],
+    [
+     "new-candidates-per-1000-cases-per-cycle",
+     "New candidates per 1000 cases per reanalysis cycle"
+    ],
+    [
+     "normalized-cumulative-hits-auc",
+     "Normalised area under the cumulative-hits curve"
+    ],
+    [
+     "normalized-enrichment-factor",
+     "Normalised enrichment factor (NEF)"
+    ],
+    [
+     "normalized-mutual-information",
+     "Normalised mutual information (NMI)"
+    ],
+    [
+     "odds-ratio",
+     "Odds ratio"
+    ],
+    [
+     "one-minus-overlap-ratio",
+     "One minus overlap ratio (1 - OR)"
+    ],
+    [
+     "paired-accuracy",
+     "Paired accuracy"
+    ],
+    [
+     "pairwise-win-rate",
+     "Average pairwise win rate"
+    ],
+    [
+     "partial-label-accuracy",
+     "Partial-label accuracy"
+    ],
+    [
+     "passing-design-clusters-per-accelerator-hour",
+     "Passing design clusters per accelerator hour"
+    ],
+    [
+     "peak-memory",
+     "Peak memory"
+    ],
+    [
+     "pearson-correlation",
+     "Pearson correlation coefficient"
+    ],
+    [
+     "pearson-delta",
+     "Pearson correlation of expression change"
+    ],
+    [
+     "pearson-r-squared",
+     "Squared Pearson correlation"
+    ],
+    [
+     "percent-agreement",
+     "Percent agreement"
+    ],
+    [
+     "perplexity",
+     "Perplexity"
+    ],
+    [
+     "perturbench-cosine-logfc",
+     "Cosine similarity of log fold change"
+    ],
+    [
+     "perturbench-cosine-logfc-rank",
+     "Cosine log fold change rank"
+    ],
+    [
+     "perturbench-energy-mmd",
+     "Energy-distance MMD between predicted and observed cells"
+    ],
+    [
+     "perturbench-matrix-distance",
+     "Cosine similarity matrix distance"
+    ],
+    [
+     "perturbench-rmse-of-mean",
+     "RMSE of the mean expression profile"
+    ],
+    [
+     "perturbench-rmse-rank",
+     "RMSE mean rank"
+    ],
+    [
+     "perturbench-rmse-transposed-rank",
+     "RMSE mean transposed rank"
+    ],
+    [
+     "plddt",
+     "pLDDT"
+    ],
+    [
+     "power-draw",
+     "Power draw"
+    ],
+    [
+     "precision",
+     "Precision (positive predictive value)"
+    ],
+    [
+     "precision-at-10",
+     "Precision at 10"
+    ],
+    [
+     "precision-at-100",
+     "Precision at 100"
+    ],
+    [
+     "precision-at-50-percent-recall",
+     "Precision at 50% recall"
+    ],
+    [
+     "precision-at-70-percent-recall",
+     "Precision at 70% recall"
+    ],
+    [
+     "precision-at-l",
+     "Top-L contact precision"
+    ],
+    [
+     "precision-at-l-5",
+     "Top-L/5 contact precision"
+    ],
+    [
+     "predictive-index",
+     "Predictive index"
+    ],
+    [
+     "proportion",
+     "Proportion"
+    ],
+    [
+     "proteinbench-binding-energy",
+     "Binding energy"
+    ],
+    [
+     "proteinbench-ca-break",
+     "CA break rate"
+    ],
+    [
+     "proteinbench-ca-clash",
+     "CA clash rate"
+    ],
+    [
+     "proteinbench-clashes-inner",
+     "Inner clashes"
+    ],
+    [
+     "proteinbench-clashes-outer",
+     "Outer clashes"
+    ],
+    [
+     "proteinbench-cn-score",
+     "CN-score"
+    ],
+    [
+     "proteinbench-max-clust",
+     "Max Clust."
+    ],
+    [
+     "proteinbench-max-tm",
+     "Max TM-score to known structures"
+    ],
+    [
+     "proteinbench-pairwise-tm",
+     "Pairwise TM-score"
+    ],
+    [
+     "proteinbench-pepbond-break",
+     "Peptide bond break rate"
+    ],
+    [
+     "proteinbench-phr",
+     "Hydrophobic residue percentage (PHR)"
+    ],
+    [
+     "proteinbench-seqnat",
+     "Sequence naturalness (SeqNat)"
+    ],
+    [
+     "proteinbench-seqsim-inner",
+     "SeqSim-inner"
+    ],
+    [
+     "proteinbench-seqsim-outer",
+     "SeqSim-outer"
+    ],
+    [
+     "proteinbench-total-energy",
+     "Total energy"
+    ],
+    [
+     "rank",
+     "Rank"
+    ],
+    [
+     "r-precision",
+     "R-precision"
+    ],
+    [
+     "recall",
+     "Recall (sensitivity)"
+    ],
+    [
+     "recall-at-100",
+     "Recall at 100"
+    ],
+    [
+     "reference-storage-size",
+     "Reference storage size"
+    ],
+    [
+     "regression-intercept",
+     "Regression intercept"
+    ],
+    [
+     "regression-slope",
+     "Regression slope"
+    ],
+    [
+     "review-time-per-case",
+     "Review time per case"
+    ],
+    [
+     "rmsd",
+     "Root mean square deviation of atomic positions (RMSD)"
+    ],
+    [
+     "roc-distance",
+     "ROC distance to the error-free point"
+    ],
+    [
+     "root-mean-squared-error",
+     "Root mean squared error (RMSE)"
+    ],
+    [
+     "runtime",
+     "Runtime"
+    ],
+    [
+     "scib-asw-batch",
+     "Batch ASW"
+    ],
+    [
+     "scib-asw-label",
+     "Cell-type ASW"
+    ],
+    [
+     "scib-batch-correction-score",
+     "scIB batch-correction score"
+    ],
+    [
+     "scib-bio-conservation-score",
+     "scIB biological-conservation score"
+    ],
+    [
+     "scib-cell-cycle-conservation",
+     "Cell-cycle conservation"
+    ],
+    [
+     "scib-clisi",
+     "Cell-type LISI (cLISI)"
+    ],
+    [
+     "scib-graph-connectivity",
+     "Graph connectivity"
+    ],
+    [
+     "scib-hvg-overlap",
+     "HVG overlap"
+    ],
+    [
+     "scib-ilisi",
+     "Integration LISI (iLISI)"
+    ],
+    [
+     "scib-isolated-label-f1",
+     "Isolated label F1"
+    ],
+    [
+     "scib-isolated-label-silhouette",
+     "Isolated label silhouette"
+    ],
+    [
+     "scib-kbet",
+     "kBET acceptance rate"
+    ],
+    [
+     "scib-pcr-batch",
+     "Principal component regression (batch)"
+    ],
+    [
+     "scmbench-integration-accuracy",
+     "SCMBench integration accuracy score"
+    ],
+    [
+     "scrmsd",
+     "Self-consistency RMSD (scRMSD)"
+    ],
+    [
+     "sctm",
+     "Self-consistency TM-score (scTM)"
+    ],
+    [
+     "sctm-at-fixed-diversity",
+     "scTM at fixed sequence diversity"
+    ],
+    [
+     "sctm-at-fixed-diversity-difference",
+     "Difference in scTM at fixed sequence diversity"
+    ],
+    [
+     "sctm-difference",
+     "Paired difference in scTM"
+    ],
+    [
+     "sensitivity-at-85-percent-specificity",
+     "Sensitivity at 85% specificity"
+    ],
+    [
+     "sensitivity-at-95-percent-specificity",
+     "Sensitivity at 95% specificity"
+    ],
+    [
+     "sensitivity-at-97-9-percent-specificity",
+     "Sensitivity at 97.9% specificity"
+    ],
+    [
+     "sensitivity-at-98-percent-specificity",
+     "Sensitivity at 98% specificity"
+    ],
+    [
+     "sensitivity-at-99-percent-specificity",
+     "Sensitivity at 99% specificity"
+    ],
+    [
+     "sequence-diversity",
+     "Sequence diversity of a design set"
+    ],
+    [
+     "sequence-recovery",
+     "Sequence recovery"
+    ],
+    [
+     "silhouette-score",
+     "Silhouette score"
+    ],
+    [
+     "spearman-correlation",
+     "Spearman rank correlation coefficient"
+    ],
+    [
+     "spearman-correlation-difference",
+     "Paired difference in Spearman correlation"
+    ],
+    [
+     "specificity",
+     "Specificity"
+    ],
+    [
+     "spectral-angle",
+     "Spectral angle (SA)"
+    ],
+    [
+     "spectral-angle-similarity",
+     "Spectral angle similarity (SAS)"
+    ],
+    [
+     "spectrum-cosine-similarity",
+     "Spectrum cosine similarity"
+    ],
+    [
+     "speedup",
+     "Speedup"
+    ],
+    [
+     "splice-top-k-accuracy",
+     "Top-k accuracy (k = number of true sites)"
+    ],
+    [
+     "stratum-adjusted-correlation-coefficient",
+     "Stratum-adjusted correlation coefficient"
+    ],
+    [
+     "success-rate",
+     "Success rate"
+    ],
+    [
+     "throughput-change",
+     "Throughput change"
+    ],
+    [
+     "tm-score",
+     "TM-score"
+    ],
+    [
+     "top-1-accuracy",
+     "Top-1 accuracy"
+    ],
+    [
+     "top-1-mces",
+     "Top-1 MCES distance"
+    ],
+    [
+     "top-1-tanimoto",
+     "Top-1 Tanimoto similarity"
+    ],
+    [
+     "top-10-accuracy",
+     "Top-10 accuracy"
+    ],
+    [
+     "top-10-mces",
+     "Top-10 MCES distance"
+    ],
+    [
+     "top-10-percent-recall",
+     "Top 10% recall"
+    ],
+    [
+     "top-10-tanimoto",
+     "Top-10 Tanimoto similarity"
+    ],
+    [
+     "top-100-accuracy",
+     "Top-100 accuracy"
+    ],
+    [
+     "top-20-accuracy",
+     "Top-20 accuracy"
+    ],
+    [
+     "top-200-accuracy",
+     "Top-200 accuracy"
+    ],
+    [
+     "top-30-accuracy",
+     "Top-30 accuracy"
+    ],
+    [
+     "top-40-accuracy",
+     "Top-40 accuracy"
+    ],
+    [
+     "top-5-accuracy",
+     "Top-5 accuracy"
+    ],
+    [
+     "top-50-accuracy",
+     "Top-50 accuracy"
+    ],
+    [
+     "topsis-relative-closeness",
+     "TOPSIS relative closeness"
+    ],
+    [
+     "true-negative-count",
+     "Number of true negatives"
+    ],
+    [
+     "true-positive-count",
+     "Number of true positives"
+    ],
+    [
+     "unassigned-rate",
+     "Unassigned rate"
+    ],
+    [
+     "v-measure",
+     "V-measure"
+    ],
+    [
+     "vcc-score",
+     "Virtual Cell Challenge overall score"
+    ],
+    [
+     "vendi-ratio",
+     "Vendi ratio"
+    ],
+    [
+     "weighted-composite-score",
+     "Weighted composite score"
+    ],
+    [
+     "weighted-f1",
+     "Support-weighted F1"
+    ],
+    [
+     "youden-index",
+     "Youden's index"
+    ],
+    [
+     "z-score",
+     "Z-score"
+    ]
+   ]
+  },
+  "missingness": {
+   "iri": "https://benchmarks.rewire.it/vocab/missingness/",
+   "quads": 24,
+   "quads_sha256": "8522d6a5569824555253c8bc6f09aa6d7d43358a15d1bcc12fcb06c25f1f2177",
+   "quads_sorted_sha256": "6e84b829514d24f4b9545c80557eb3dd2216bfa70a2df1b773cf17876cd90ab0",
+   "blank_nodes": 0,
+   "concepts": [
+    [
+     "unreported",
+     "Unreported"
+    ],
+    [
+     "unextracted",
+     "Unextracted"
+    ],
+    [
+     "unavailable",
+     "Unavailable"
+    ],
+    [
+     "inapplicable",
+     "Inapplicable"
+    ],
+    [
+     "conflicting",
+     "Conflicting"
+    ]
+   ]
+  },
+  "origin": {
+   "iri": "https://benchmarks.rewire.it/vocab/origin/",
+   "quads": 28,
+   "quads_sha256": "32744f777dad3a37de31d5826782e61fc727cf0fc34f779b6bd52fdfa42907bf",
+   "quads_sorted_sha256": "e1c6a2ca8138c8ef19a3a246e6d471084d373e00a892c615c873a448967ec0cb",
+   "blank_nodes": 0,
+   "concepts": [
+    [
+     "author_reported",
+     "Author reported"
+    ],
+    [
+     "independent_paper",
+     "Independent paper"
+    ],
+    [
+     "paper_compilation",
+     "Paper compilation"
+    ],
+    [
+     "rewire_run",
+     "Rewire run"
+    ],
+    [
+     "unreported",
+     "Origin unreported"
+    ]
+   ]
+  },
+  "publication-status": {
+   "iri": "https://benchmarks.rewire.it/vocab/publication-status/",
+   "quads": 20,
+   "quads_sha256": "7f3006a6a6e6722f8530eae3060064259c103ac5940496fb96cdac9c84b2d579",
+   "quads_sorted_sha256": "91759252c328558cb770b3efa58d083ca8ce8611b63cdc25c27efb13f5f5423a",
+   "blank_nodes": 0,
+   "concepts": [
+    [
+     "official_project_source",
+     "Official project source"
+    ],
+    [
+     "peer_reviewed",
+     "Peer reviewed"
+    ],
+    [
+     "preprint",
+     "Preprint"
+    ]
+   ]
+  },
+  "relevance": {
+   "iri": "https://benchmarks.rewire.it/vocab/relevance/",
+   "quads": 19,
+   "quads_sha256": "7f5565660fcd0dbad7e1d20837194d6a73712e458c4f6694c045b0b66b19e63f",
+   "quads_sorted_sha256": "78467dad3ec403520937c0a4d1c31f6f75d00c9dd1fd8941b514595b88d0bce8",
+   "blank_nodes": 0,
+   "concepts": [
+    [
+     "direct",
+     "Direct"
+    ],
+    [
+     "proxy",
+     "Proxy"
+    ],
+    [
+     "outside_scope",
+     "Outside scope"
+    ]
+   ]
+  },
+  "review-method": {
+   "iri": "https://benchmarks.rewire.it/vocab/review-method/",
+   "quads": 67,
+   "quads_sha256": "4304a70933b77a1256e2dbec0e25eda88a7a3b4a1e74d4a97c500cfd44c9d7fc",
+   "quads_sorted_sha256": "24084c34b6c750b620b06719792e4cf04e86257825c9f287accb9284af930a14",
+   "blank_nodes": 0,
+   "concepts": [
+    [
+     "ai-assisted-source-review",
+     "AI-assisted source review"
+    ],
+    [
+     "automated-source-review",
+     "Automated source review"
+    ],
+    [
+     "deterministic-table-parse",
+     "Deterministic table parse"
+    ],
+    [
+     "execution-evidence-review",
+     "Execution evidence review"
+    ],
+    [
+     "existing-run-import",
+     "Existing run import"
+    ],
+    [
+     "independent-cell-check",
+     "Independent cell check"
+    ],
+    [
+     "pdf-text-parse",
+     "PDF text-layer parse"
+    ],
+    [
+     "rendered-source-visual-check",
+     "Rendered source visual check"
+    ],
+    [
+     "scope-review",
+     "Scope review"
+    ],
+    [
+     "source-hash-verification",
+     "Source hash verification"
+    ],
+    [
+     "source-data-recomputation",
+     "Source data recomputation"
+    ],
+    [
+     "transcription",
+     "Transcription"
+    ]
+   ]
+  },
+  "status": {
+   "iri": "https://benchmarks.rewire.it/vocab/status/",
+   "quads": 31,
+   "quads_sha256": "8d6820911dc036cdca8c0a5d670a27010d444383f901a807954c67c7ffa14f55",
+   "quads_sorted_sha256": "b987ba0ea2411d3d14fa5b31e1726075f96f64b95b9574f2368af157cef9bc98",
+   "blank_nodes": 0,
+   "concepts": [
+    [
+     "discovered",
+     "Discovered"
+    ],
+    [
+     "needs_review",
+     "Needs review"
+    ],
+    [
+     "source_checked",
+     "Source checked"
+    ],
+    [
+     "reproduced",
+     "Reproduced"
+    ],
+    [
+     "disputed",
+     "Disputed"
+    ],
+    [
+     "superseded",
+     "Superseded"
+    ],
+    [
+     "excluded",
+     "Excluded"
+    ]
+   ]
+  },
+  "uncertainty-type": {
+   "iri": "https://benchmarks.rewire.it/vocab/uncertainty-type/",
+   "quads": 23,
+   "quads_sha256": "50601110bba776bffa88dfd6851efb34c8c83db1d5b53ef2a0aee0804e9e8c30",
+   "quads_sorted_sha256": "9e66593e3d649db9e3e618354a812891d89e72c9c2831ba33a7323dadc392b5f",
+   "blank_nodes": 0,
+   "concepts": [
+    [
+     "standard_deviation",
+     "Standard deviation"
+    ],
+    [
+     "standard_error",
+     "Standard error"
+    ],
+    [
+     "confidence_interval",
+     "Confidence interval"
+    ],
+    [
+     "credible_interval",
+     "Credible interval"
+    ],
+    [
+     "unresolved_spread",
+     "Unresolved spread"
+    ]
+   ]
+  },
+  "unit": {
+   "iri": "https://benchmarks.rewire.it/vocab/unit/",
+   "quads": 178,
+   "quads_sha256": "6784ab3c205af59a98717e921fb8fbe943f1b000874792813d3f2f820c42fb48",
+   "quads_sorted_sha256": "7d7ba0ff37eaaef9edf2bd560d3dce576308145791052fa44afa0a6ddab6cf54",
+   "blank_nodes": 0,
+   "concepts": [
+    [
+     "angstrom",
+     "Angstrom"
+    ],
+    [
+     "count",
+     "Count"
+    ],
+    [
+     "count-per-hour",
+     "Count per hour"
+    ],
+    [
+     "day",
+     "Day"
+    ],
+    [
+     "degree",
+     "Degree"
+    ],
+    [
+     "electronvolt",
+     "Electronvolt"
+    ],
+    [
+     "fraction",
+     "Fraction"
+    ],
+    [
+     "gigabyte",
+     "Gigabyte"
+    ],
+    [
+     "hour",
+     "Hour"
+    ],
+    [
+     "kilocalorie-per-mole",
+     "Kilocalorie per mole"
+    ],
+    [
+     "megabyte",
+     "Megabyte"
+    ],
+    [
+     "micromolar",
+     "Micromolar"
+    ],
+    [
+     "millisecond",
+     "Millisecond"
+    ],
+    [
+     "minute",
+     "Minute"
+    ],
+    [
+     "nanometre",
+     "Nanometre"
+    ],
+    [
+     "nanomolar",
+     "Nanomolar"
+    ],
+    [
+     "percent",
+     "Percent"
+    ],
+    [
+     "sample-per-joule",
+     "Sample per joule"
+    ],
+    [
+     "sample-per-second",
+     "Sample per second"
+    ],
+    [
+     "second",
+     "Second"
+    ],
+    [
+     "unit-unreported",
+     "Unit not reported"
+    ],
+    [
+     "unitless",
+     "Unitless"
+    ],
+    [
+     "us-dollar",
+     "US dollar"
+    ],
+    [
+     "variants-per-1000-cases-per-cycle",
+     "Variants per 1000 cases per cycle"
+    ],
+    [
+     "variants-per-diagnosis",
+     "Variants per diagnosis"
+    ],
+    [
+     "variants-per-proband",
+     "Variants per proband"
+    ],
+    [
+     "watt",
+     "Watt"
+    ]
+   ]
+  }
+ },
+ "seeded": [
+  {
+   "field": "status",
+   "record": "{\"id\":\"seeded\",\"facets\":{},\"attributes\":{},\"status\":\"not-a-concept\"}",
+   "error": "Uncontrolled values:\n  seeded: status \"not-a-concept\" is not a concept in the status vocabulary"
+  },
+  {
+   "field": "facets.areas",
+   "record": "{\"id\":\"seeded\",\"facets\":{\"areas\":[\"not-a-concept\"]},\"attributes\":{}}",
+   "error": "Uncontrolled values:\n  seeded: facets.areas \"not-a-concept\" is not a concept in the area vocabulary"
+  },
+  {
+   "field": "facets.contexts",
+   "record": "{\"id\":\"seeded\",\"facets\":{\"contexts\":[\"not-a-concept\"]},\"attributes\":{}}",
+   "error": "Uncontrolled values:\n  seeded: facets.contexts \"not-a-concept\" is not a concept in the context vocabulary"
+  },
+  {
+   "field": "facets.method_types",
+   "record": "{\"id\":\"seeded\",\"facets\":{\"method_types\":[\"not-a-concept\"]},\"attributes\":{}}",
+   "error": "Uncontrolled values:\n  seeded: facets.method_types \"not-a-concept\" is not a concept in the method-type vocabulary"
+  },
+  {
+   "field": "attributes.entity_level",
+   "record": "{\"id\":\"seeded\",\"facets\":{},\"attributes\":{\"entity_level\":\"not-a-concept\"}}",
+   "error": "Uncontrolled values:\n  seeded: attributes.entity_level \"not-a-concept\" is not a concept in the entity-level vocabulary"
+  },
+  {
+   "field": "attributes.publication_status",
+   "record": "{\"id\":\"seeded\",\"facets\":{},\"attributes\":{\"publication_status\":\"not-a-concept\"}}",
+   "error": "Uncontrolled values:\n  seeded: attributes.publication_status \"not-a-concept\" is not a concept in the publication-status vocabulary"
+  },
+  {
+   "field": "attributes.origin",
+   "record": "{\"id\":\"seeded\",\"facets\":{},\"attributes\":{\"origin\":\"not-a-concept\"}}",
+   "error": "Uncontrolled values:\n  seeded: attributes.origin \"not-a-concept\" is not a concept in the origin vocabulary"
+  },
+  {
+   "field": "attributes.metric",
+   "record": "{\"id\":\"seeded\",\"facets\":{},\"attributes\":{\"metric\":\"not-a-concept\"}}",
+   "error": "Uncontrolled values:\n  seeded: attributes.metric \"not-a-concept\" is not a concept in the metric vocabulary"
+  },
+  {
+   "field": "attributes.metric_direction",
+   "record": "{\"id\":\"seeded\",\"facets\":{},\"attributes\":{\"metric_direction\":\"not-a-concept\"}}",
+   "error": "Uncontrolled values:\n  seeded: attributes.metric_direction \"not-a-concept\" is not a concept in the direction vocabulary"
+  },
+  {
+   "field": "attributes.unit",
+   "record": "{\"id\":\"seeded\",\"facets\":{},\"attributes\":{\"unit\":\"not-a-concept\"}}",
+   "error": "Uncontrolled values:\n  seeded: attributes.unit \"not-a-concept\" is not a concept in the unit vocabulary"
+  },
+  {
+   "field": "attributes.method_type",
+   "record": "{\"id\":\"seeded\",\"facets\":{},\"attributes\":{\"method_type\":\"not-a-concept\"}}",
+   "error": "Uncontrolled values:\n  seeded: attributes.method_type \"not-a-concept\" is not a concept in the method-type vocabulary"
+  },
+  {
+   "field": "attributes.baseline_type",
+   "record": "{\"id\":\"seeded\",\"facets\":{},\"attributes\":{\"baseline_type\":\"not-a-concept\"}}",
+   "error": "Uncontrolled values:\n  seeded: attributes.baseline_type \"not-a-concept\" is not a concept in the baseline-type vocabulary"
+  },
+  {
+   "field": "attributes.configuration_type",
+   "record": "{\"id\":\"seeded\",\"facets\":{},\"attributes\":{\"configuration_type\":\"not-a-concept\"}}",
+   "error": "Uncontrolled values:\n  seeded: attributes.configuration_type \"not-a-concept\" is not a concept in the configuration-type vocabulary"
+  },
+  {
+   "field": "attributes.baseline_algorithm",
+   "record": "{\"id\":\"seeded\",\"facets\":{},\"attributes\":{\"baseline_algorithm\":\"not-a-concept\"}}",
+   "error": "Uncontrolled values:\n  seeded: attributes.baseline_algorithm \"not-a-concept\" is not a concept in the algorithm vocabulary"
+  },
+  {
+   "field": "attributes.relevance",
+   "record": "{\"id\":\"seeded\",\"facets\":{},\"attributes\":{\"relevance\":\"not-a-concept\"}}",
+   "error": "Uncontrolled values:\n  seeded: attributes.relevance \"not-a-concept\" is not a concept in the relevance vocabulary"
+  },
+  {
+   "field": "attributes.action",
+   "record": "{\"id\":\"seeded\",\"facets\":{},\"attributes\":{\"action\":\"not-a-concept\"}}",
+   "error": "Uncontrolled values:\n  seeded: attributes.action \"not-a-concept\" is not a concept in the discrepancy-action vocabulary"
+  },
+  {
+   "field": "attributes.review.method",
+   "record": "{\"id\":\"seeded\",\"facets\":{},\"attributes\":{\"review\":{\"method\":\"not-a-concept\"}}}",
+   "error": "Uncontrolled values:\n  seeded: attributes.review.method \"not-a-concept\" is not a concept in the review-method vocabulary"
+  },
+  {
+   "field": "attributes.review.reviewer",
+   "record": "{\"id\":\"seeded\",\"facets\":{},\"attributes\":{\"review\":{\"reviewer\":\"not-a-concept\"}}}",
+   "error": "Uncontrolled values:\n  seeded: attributes.review.reviewer \"not-a-concept\" is not a concept in the agent vocabulary"
+  },
+  {
+   "field": "attributes.review.actor",
+   "record": "{\"id\":\"seeded\",\"facets\":{},\"attributes\":{\"review\":{\"actor\":\"not-a-concept\"}}}",
+   "error": "Uncontrolled values:\n  seeded: attributes.review.actor \"not-a-concept\" is not a concept in the agent vocabulary"
+  },
+  {
+   "field": "attributes.derivation.method",
+   "record": "{\"id\":\"seeded\",\"facets\":{},\"attributes\":{\"derivation\":{\"method\":\"not-a-concept\"}}}",
+   "error": "Uncontrolled values:\n  seeded: attributes.derivation.method \"not-a-concept\" is not a concept in the derivation-method vocabulary"
+  }
+ ]
+}

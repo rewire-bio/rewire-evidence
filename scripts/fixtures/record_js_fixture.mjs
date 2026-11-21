@@ -94,6 +94,22 @@ const refused = [
   "NaN", "Infinity", "-Infinity", "[NaN]", '{"a":Infinity}', "undefined", "", "{'a':1}", "[1,]", '{"a":1,}', "01", "+1",
   ".5", "1.", "0x10", '"tab\there"', '"line\nbreak"', "\ufeff{}", '{"a":1} x', "[1] [2]", "{a:1}",
 ];
+// Values as JavaScript joins them into text, which is what a template does with a scheme
+// that mapping.json gives as something other than text.
+const joined = [
+  '"text"', '""', "5", "-1", "1.5", "1.0", "-0", "1e21", "1e-7", "0.000001", "123456789012345678901", "1e400", "-1e400",
+  "true", "false", "null", "[]", "[[]]", "[null]", "[null,null]", '["metric"]', '[1,"a",null,[2,null,[3]],{},true]',
+  "[1e400,-1e400,1e21]", "{}", '{"a":1}', '{"valueOf":1}', '{"toString":1}', '[1,{"toString":null}]', '{"a":{"toString":1}}',
+];
+// An object with a member named toString has no text: JavaScript finds the member where
+// the function should be and throws. That is recorded as null.
+const asText = (value) => {
+  try {
+    return `${value}`;
+  } catch {
+    return null;
+  }
+};
 const refuses = (text) => {
   try {
     JSON.parse(text);
@@ -111,6 +127,7 @@ const semantics = {
   large_integers: integers.map((text) => [text, JSON.stringify(JSON.parse(text))]),
   overflow: overflowing.map((text) => [text, JSON.stringify(JSON.parse(text))]),
   strings: strings.map((text) => [text, JSON.stringify(text)]),
+  as_text: joined.map((text) => [text, asText(JSON.parse(text))]),
   sha256_of_text: hashed.map((text) => [text, sha256(text)]),
   sort: sortInputs.map((list) => [list, [...list].sort(byText)]),
   refused: refused.map((text) => [text, refuses(text)]),

@@ -30,8 +30,10 @@ from rewire_evidence.canonical import (
     js_number,
     js_parse,
     js_quote,
+    js_string,
     js_stringify,
     js_utf8,
+    js_value,
     object_shard,
     record_sha256,
     sha256_hex,
@@ -114,6 +116,15 @@ def test_lone_surrogates_and_boundary_characters_match_node(text: str, expected:
     assert js_quote(text) == expected
     # Whatever the input held, the output can always be hashed.
     assert sha256_hex(js_quote(text))
+
+
+@pytest.mark.parametrize(("text", "expected"), SEMANTICS["as_text"])
+def test_a_value_is_joined_into_text_as_javascript_joins_it(text: str, expected: str | None) -> None:
+    if expected is None:
+        with pytest.raises(TypeError, match=r"^Cannot convert object to primitive value$"):
+            js_string(js_parse(text))
+    else:
+        assert js_string(js_parse(text)) == expected
 
 
 @pytest.mark.parametrize(("unsorted", "expected"), SEMANTICS["sort"])
@@ -352,3 +363,63 @@ def test_a_pair_held_as_two_code_points_is_hashed_as_the_character(
     assert js_utf8(before + halves + after) == js_utf8(before + astral + after)
     assert shard_of(before + halves + after) == shard_of(before + astral + after)
     assert astral in js_utf8(before + astral + after).decode("utf-8")
+
+
+def test_a_value_is_held_in_one_form_as_javascript_holds_it() -> None:
+    assert js_value({"b": 1.0, "10": -0.0, "2": (1, 2.5), "a": {"z": None, "0": True}}) == {
+        "2": [1, 2.5],
+        "10": 0,
+        "b": 1,
+        "a": {"0": True, "z": None},
+    }
+    held = js_value({"b": 1.0, "10": -0.0, "2": [1.0]})
+    assert isinstance(held, dict)
+    assert list(held) == ["2", "10", "b"]
+    assert [type(held["b"]), type(held["10"])] == [int, int]
+    # An integer no double holds exactly becomes the double nearest to it, as JSON.parse reads it.
+    assert js_value(2**53) == 2**53
+    assert type(js_value(2**53)) is int
+    assert js_value(2**53 + 1) == float(2**53)
+    assert type(js_value(2**53 + 1)) is float
+    assert type(js_value(float(2**60))) is float
+    assert js_value(10**400) == math.inf
+    assert js_value(-(10**400)) == -math.inf
+    assert js_value(math.inf) == math.inf
+    assert js_value(MappingProxyType({"a": 1.0})) == {"a": 1}
+
+
+def test_a_value_json_cannot_hold_is_refused() -> None:
+    with pytest.raises(TypeError, match="NaN is not a value JSON can hold"):
+        js_value([math.nan])
+    with pytest.raises(TypeError, match="set has no JSON form"):
+        js_value({"a": {1}})
+    with pytest.raises(TypeError, match="an object key must be a string, not int"):
+        js_value({1: "a"})
+
+
+@given(json_values)
+def test_holding_a_value_as_javascript_does_never_changes_what_is_written(value: JsonValue) -> None:
+    held = js_value(value)
+    assert js_stringify(held) == js_stringify(value)
+    # It is the form JSON.parse gives back, so it is its own fixed point and shares nothing.
+    assert js_value(held) == held
+    assert js_value(js_parse(js_stringify(value))) == held
+
+
+@given(json_values)
+def test_two_spellings_of_one_value_are_equal_once_held(value: JsonValue) -> None:
+    # Every whole number written as a float: another Python value, the same JavaScript one.
+    def respelt(item: JsonValue) -> JsonValue:
+        if isinstance(item, bool) or item is None or isinstance(item, str):
+            return item
+        if isinstance(item, int):
+            return float(item)
+        if isinstance(item, list):
+            return [respelt(entry) for entry in item]
+        if isinstance(item, dict):
+            return {key: respelt(held) for key, held in item.items()}
+        return item
+
+    other = respelt(value)
+    assert js_stringify(other) == js_stringify(value)
+    assert js_value(other) == js_value(value)
