@@ -1,11 +1,12 @@
 """The gates as commands: arguments in, a report printed, an exit status out.
 
 `scripts/verify_store_digests.py`, `scripts/verify_store_layout.py`,
-`scripts/verify_store_schema.py` and `scripts/verify_store_validation.py` each call one
-function here and do nothing else, so everything a gate does is inside the library, where the
-tests and the coverage floor reach it.
+`scripts/verify_store_schema.py`, `scripts/verify_store_validation.py` and
+`scripts/verify_store_writes.py` each call one function here and do nothing else, so
+everything a gate does is inside the library, where the tests and the coverage floor reach
+it.
 
-Exit status, for all four: 0 when everything reproduces, 1 on any disagreement, 2 when the run
+Exit status, for all five: 0 when everything reproduces, 1 on any disagreement, 2 when the run
 could not be made. A disagreement never exits 2, and a run that could not be made never
 exits 1, so CI can tell a store that has drifted from a job that was set up wrongly.
 
@@ -23,7 +24,7 @@ import tempfile
 from collections.abc import Callable, Sequence
 from pathlib import Path
 
-from rewire_evidence import agreement, conformance
+from rewire_evidence import agreement, conformance, replay
 from rewire_evidence.jsonl import StoreError
 from rewire_evidence.parity import (
     compare_content,
@@ -212,4 +213,47 @@ def _validation(root: Path, expected: Path, report_file: Path | None) -> int:
         )
         return 1
     sys.stdout.write(f"\n{report.summary}\n")
+    return 0
+
+
+def writes_gate(arguments: Sequence[str], expected: Path, description: str | None = None) -> int:
+    """Run the write gate and print what it found. Returns the status.
+
+    `expected` is the cases to replay, used when the command line names no other. The root
+    is a clone of the data repository with its history, which a blobless clone has.
+    """
+    parser = _parser(description)
+    parser.add_argument("--expected", type=Path, default=expected, help="the merged pull requests to replay")
+    parser.add_argument("--json", type=Path, default=None, help="write what was measured here")
+    parser.add_argument("--scratch", type=Path, default=None, help="replay in this folder and keep it")
+    args = parser.parse_args(arguments)
+    return _run(lambda: _writes(args.root, args.expected, args.json, args.scratch))
+
+
+def _writes(root: Path, expected: Path, report_file: Path | None, scratch: Path | None) -> int:
+    expectation = replay.read_cases(expected)
+    repository = replay.Repository(root)
+    sys.stdout.write(f"replaying {len(expectation.cases)} merged pull requests from the history of {root}\n")
+    report = replay.ReplayReport()
+    with tempfile.TemporaryDirectory(prefix="rewire-evidence-writes-") as made:
+        folder = Path(made) if scratch is None else scratch
+        for case in expectation.cases:
+            done = replay.replay_case(repository, case, expectation.configuration, folder)
+            report.cases.append(done)
+            sys.stdout.write(f"{replay.case_line(done)}\n")
+            sys.stdout.flush()
+    _write_report(report_file, replay.to_json(report))
+
+    for problem in report.problems[:PROBLEMS_SHOWN]:
+        sys.stderr.write(f"  {problem}\n")
+    if report.problems:
+        sys.stderr.write(
+            f"\n{len(report.problems):,} problems. {report.reproduced} of {len(report.cases)} "
+            "merged pull requests reproduce.\n"
+        )
+        return 1
+    sys.stdout.write(
+        f"\nAll {len(report.cases)} merged pull requests reproduce: {report.total('added'):,} records added "
+        f"and {report.total('changed'):,} changes recorded, {report.total('files'):,} files byte for byte.\n"
+    )
     return 0
