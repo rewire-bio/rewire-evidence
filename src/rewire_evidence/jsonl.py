@@ -14,7 +14,7 @@ import secrets
 from collections.abc import Callable, Iterable, Mapping
 from pathlib import Path
 
-from rewire_evidence.canonical import JsonInput, JsonObject, js_parse
+from rewire_evidence.canonical import JsonInput, JsonObject, JsonValue, js_parse, js_value
 
 
 class StoreError(Exception):
@@ -37,14 +37,19 @@ def read_lines(path: Path) -> list[str]:
     return [line for line in text.split("\n") if line]
 
 
-def parse_row(line: str, where: str) -> JsonObject:
-    """One line as the object it holds. `where` names the line in the error."""
+def parse_line(line: str, where: str) -> JsonValue:
+    """One line as the value `JSON.parse` reads from it. `where` names the line in the error."""
     try:
-        value = js_parse(line)
+        return js_parse(line)
     except ValueError as error:
         raise StoreError(f"{where} is not JSON: {error}") from error
     except RecursionError as error:
         raise StoreError(f"{where} is nested too deeply to read") from error
+
+
+def parse_row(line: str, where: str) -> JsonObject:
+    """One line as the object it holds. `where` names the line in the error."""
+    value = parse_line(line, where)
     if not isinstance(value, dict):
         raise StoreError(f"{where} is not a JSON object")
     return value
@@ -53,6 +58,15 @@ def parse_row(line: str, where: str) -> JsonObject:
 def read_rows(path: Path) -> list[JsonObject]:
     """Every row of a file, in file order."""
     return [parse_row(line, f"{path}:{number}") for number, line in enumerate(read_lines(path), 1)]
+
+
+def read_values(path: Path) -> list[JsonValue]:
+    """Every line of a file as the value it holds, an object or not: `readJsonl`.
+
+    Each is in the one form JavaScript holds it in, so two numbers that are one number to
+    JavaScript are one here.
+    """
+    return [js_value(parse_line(line, f"{path}:{number}")) for number, line in enumerate(read_lines(path), 1)]
 
 
 def text_field(row: object, field: str, where: str) -> str:

@@ -55,6 +55,7 @@ from rewire_evidence.records import load_records
 from rewire_evidence.schema import (
     Record,
     RecordError,
+    SchemaError,
     check_record,
     public_records,
     validate_references,
@@ -331,7 +332,7 @@ def check_loader(root: Path, records: list[Record], report: SchemaReport) -> Non
     """
     try:
         loaded = load_records(root)
-    except (StoreError, VocabularyError, RecordError) as error:
+    except (StoreError, VocabularyError, RecordError, SchemaError) as error:
         report.problems.append(f"load_records refuses the store: {error}")
         return
     if loaded == sorted(records, key=lambda record: utf16_key(record.id)):

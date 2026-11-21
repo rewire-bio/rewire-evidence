@@ -1,17 +1,18 @@
 """The gates as commands: arguments in, a report printed, an exit status out.
 
-`scripts/verify_store_digests.py`, `scripts/verify_store_layout.py` and
-`scripts/verify_store_schema.py` each call one function here and do nothing else, so
-everything a gate does is inside the library, where the tests and the coverage floor reach
-it.
+`scripts/verify_store_digests.py`, `scripts/verify_store_layout.py`,
+`scripts/verify_store_schema.py` and `scripts/verify_store_validation.py` each call one
+function here and do nothing else, so everything a gate does is inside the library, where the
+tests and the coverage floor reach it.
 
-Exit status, for all three: 0 when everything reproduces, 1 on any disagreement, 2 when the run
+Exit status, for all four: 0 when everything reproduces, 1 on any disagreement, 2 when the run
 could not be made. A disagreement never exits 2, and a run that could not be made never
 exits 1, so CI can tell a store that has drifted from a job that was set up wrongly.
 
 A run cannot be made when the store, a vocabulary or an expectation cannot be read, when a
-report cannot be written, or when the operating system refuses anything else the gate
-asks of it. `_run` holds every gate to that: each of those is one line and exit 2.
+report cannot be written, when the operating system refuses anything else the gate asks of
+it, or when a record holds a URL this library does not judge (`weburl.UndecidedHost`).
+`_run` holds every gate to that: each of those is one line and exit 2.
 """
 
 from __future__ import annotations
@@ -22,7 +23,7 @@ import tempfile
 from collections.abc import Callable, Sequence
 from pathlib import Path
 
-from rewire_evidence import conformance
+from rewire_evidence import agreement, conformance
 from rewire_evidence.jsonl import StoreError
 from rewire_evidence.parity import (
     compare_content,
@@ -34,6 +35,7 @@ from rewire_evidence.parity import (
     verify_store,
 )
 from rewire_evidence.vocab import VocabularyError
+from rewire_evidence.weburl import UndecidedHost
 
 #: Printed in full up to here, so a failure names causes without burying the summary.
 PROBLEMS_SHOWN = 20
@@ -60,7 +62,7 @@ def _run(gate: Callable[[], int]) -> int:
     """
     try:
         return gate()
-    except (StoreError, VocabularyError, OSError) as error:
+    except (StoreError, VocabularyError, UndecidedHost, OSError) as error:
         notes = getattr(error, "__notes__", [])
         _say(f"Cannot verify: {error}{''.join(f' ({note})' for note in notes)}")
         return 2
@@ -177,4 +179,37 @@ def _schema(root: Path, expected: Path, report_file: Path | None) -> int:
     sys.stdout.write(
         f"\nAll {report.records:,} records are accepted by the schema and written back byte for byte.\n"
     )
+    return 0
+
+
+def validation_gate(arguments: Sequence[str], expected: Path, description: str | None = None) -> int:
+    """Run the validation gate and print what it found. Returns the status.
+
+    `expected` is what the TypeScript recorded of the pinned store, used when the command
+    line names no other.
+    """
+    parser = _parser(description)
+    parser.add_argument("--expected", type=Path, default=expected, help="what the TypeScript recorded")
+    parser.add_argument("--json", type=Path, default=None, help="write what was measured here")
+    args = parser.parse_args(arguments)
+    return _run(lambda: _validation(args.root, args.expected, args.json))
+
+
+def _validation(root: Path, expected: Path, report_file: Path | None) -> int:
+    recorded = conformance.read_recorded(expected)
+    store_ref = conformance.recorded_ref(recorded)
+    sys.stdout.write(f"expecting the store as the TypeScript validated it at {store_ref}\n")
+    report = agreement.verify_validation(root, recorded)
+    sys.stdout.write(f"{agreement.summary(report)}\n")
+    _write_report(report_file, agreement.to_json(report, store_ref))
+
+    for problem in report.problems[:PROBLEMS_SHOWN]:
+        sys.stderr.write(f"  {problem}\n")
+    if report.problems:
+        sys.stderr.write(
+            f"\n{len(report.problems):,} problems. "
+            "The store is not validated as the TypeScript validates it.\n"
+        )
+        return 1
+    sys.stdout.write(f"\n{report.summary}\n")
     return 0

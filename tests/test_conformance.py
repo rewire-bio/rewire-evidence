@@ -6,6 +6,7 @@ import json
 import subprocess
 import sys
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -33,6 +34,8 @@ from rewire_evidence.vocab import VOCAB_DIR, load_schemes, mapping_of, read_mapp
 from tests.test_records import RECORDS, build, link, provenance_of, record
 
 SCRIPTS = Path(__file__).parent.parent / "scripts"
+#: A URL Node reads and this library does not judge: its host needs IDNA mapping.
+IDNA = "https://b\u00fccher.example/"
 SEEDS: dict[str, JsonObject] = {
     "status": {"status": "nope"},
     "facets.areas": {"facets": {"areas": ["nope"]}},
@@ -97,7 +100,7 @@ def test_a_store_that_conforms_is_measured_in_full(tmp_path: Path) -> None:
         "result": 1,
         "source": 1,
     }
-    assert measured["source_ids"] == 1
+    assert measured["source_ids"] == 2
     assert measured["links"] == 6
     assert measured["links_by_relation"] == {
         "assessment": 1,
@@ -147,7 +150,7 @@ def test_what_the_typescript_recorded_differently_is_named(tmp_path: Path) -> No
     problems = verify_schema(tmp_path, changed).problems
     digest, counts = recorded["public_ids_sha256"], "1 items measured and 1 recorded by the TypeScript"
     assert problems == [
-        "source_ids: measured 1, the TypeScript recorded null",
+        "source_ids: measured 2, the TypeScript recorded null",
         "links: measured 6, the TypeScript recorded 7",
         f'public_ids_sha256: measured "{digest}", the TypeScript recorded "{"0" * 64}"',
         f"schemes.metric.concepts: {counts}, first differing at position 0",
@@ -451,6 +454,34 @@ def test_the_recorded_expectation_is_read_or_refused_by_name(tmp_path: Path) -> 
 # --- The gate as a command ---------------------------------------------------------------
 
 
+def test_a_store_a_later_validator_refuses_is_a_problem_and_not_a_traceback(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # The loader now runs every validator, and each kind of refusal has to come back as a line.
+    root = tmp_path / "store"
+    build(root)
+    expected = write_recorded(root, tmp_path)
+    profiled: list[Any] = [
+        row if row["id"] != "model-b" else {**row, "attributes": {"profile": {}}} for row in RECORDS
+    ]
+    build(root, profiled)
+    assert schema_gate([str(root)], expected) == 1
+    err = capsys.readouterr().err
+    assert "  load_records refuses the store: invalid_type:summary: Invalid input: expected string" in err
+    undeclared: list[Any] = [
+        row if row["id"] != "model-b" else {**row, "attributes": {"nope": 1}} for row in RECORDS
+    ]
+    build(root, undeclared)
+    assert schema_gate([str(root)], expected) == 1
+    assert "load_records refuses the store: 1 attribute problems:" in capsys.readouterr().err
+    source: dict[str, Any] = dict(RECORDS[0])
+    assert source["id"] == "source-a"
+    unjudged = [{**source, "attributes": {**source["attributes"], "url": IDNA}}, *RECORDS[1:]]
+    build(root, unjudged)
+    assert schema_gate([str(root)], expected) == 2
+    assert capsys.readouterr().err.startswith("Cannot verify: the host ")
+
+
 def test_the_schema_gate_passes_the_store_it_was_recorded_on(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -468,7 +499,7 @@ def test_the_schema_gate_passes_the_store_it_was_recorded_on(
         "  restored to the committed line with their keys moved: 8\n"
         "  returned by load_records, in ID order: 8\n"
         "links allowed by the relation rules: 6\n"
-        "source IDs naming a source: 1\n"
+        "source IDs naming a source: 2\n"
         "records a public release may hold: 7\n"
         "vocabularies: 5 schemes, 7 concepts\n"
         "controlled values, each a concept of its scheme: 11\n"

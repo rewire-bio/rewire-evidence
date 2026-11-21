@@ -1,6 +1,7 @@
 # Lint, types, tests at full coverage, and the gates that matter: reproducing data that
-# already exists. A second job records the fixtures that need the data repository's own
-# TypeScript, and fails if a committed one is not what that code produces.
+# already exists, and refusing what the TypeScript refuses. A second job records the fixtures
+# that need the data repository's own TypeScript, and fails if a committed one is not what
+# that code produces.
 #
 # The store is pinned to one commit rather than taken from main as it stands. A gate whose
 # input moves is a gate whose result cannot be compared with yesterday's: a run that goes red
@@ -27,7 +28,7 @@ env:
 jobs:
   checks:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
@@ -73,10 +74,14 @@ jobs:
           held=$(git -C store rev-parse HEAD)
           expected=$(jq -r .store_ref scripts/expected/store-layout.json)
           recorded=$(jq -r .recorded_from.store_ref scripts/expected/store-schema.json)
-          if [ "$held" != "$STORE_REF" ] || [ "$expected" != "$STORE_REF" ] || [ "$recorded" != "$STORE_REF" ]; then
-            echo "::error::STORE_REF is ${STORE_REF}, the checkout is ${held}, the pinned layout was measured at ${expected} and the TypeScript was recorded at ${recorded}. All four must be one commit."
-            exit 1
-          fi
+          validated=$(jq -r .recorded_from.store_ref scripts/expected/store-validation.json)
+          registry=$(jq -r .recorded_from.store_ref src/rewire_evidence/data/attribute-registry.json)
+          for named in "$held" "$expected" "$recorded" "$validated" "$registry"; do
+            if [ "$named" != "$STORE_REF" ]; then
+              echo "::error::STORE_REF is ${STORE_REF}, the checkout is ${held}, the pinned layout was measured at ${expected}, the TypeScript was recorded at ${recorded} and at ${validated}, and the attribute registry was read at ${registry}. All six must be one commit."
+              exit 1
+            fi
+          done
 
       - name: Reproduce every committed record digest
         run: |
@@ -124,6 +129,39 @@ jobs:
             fi
           done
 
+      # Every validator of `records -- check` over every record, held to what the TypeScript
+      # measured of the same commit in scripts/expected/store-validation.json: how much each
+      # validator looked at, every comparison panel as the catalogue query resolves it, and a
+      # fault seeded into the whole store for each family of rule, refused in the recorded words.
+      - name: Hold the store to every validator
+        run: |
+          set -o pipefail
+          uv run --no-sync python scripts/verify_store_validation.py store --json validation.json 2>&1 | tee validation.log
+          for field in records_read records_loaded; do
+            measured=$(jq -r ".${field}" validation.json)
+            if [ "$measured" != "$STORE_RECORDS" ]; then
+              echo "::error::The validation gate measured ${field} as ${measured} against a pin of ${STORE_RECORDS}."
+              exit 1
+            fi
+          done
+          refused=$(jq -r .seeded_refused validation.json)
+          seeded=$(jq -r '.seeded | length' scripts/expected/store-validation.json)
+          if [ "$refused" != "$seeded" ] || [ "$seeded" -lt 23 ]; then
+            echo "::error::${refused} of ${seeded} seeded faults were refused as recorded, and at least 23 are expected."
+            exit 1
+          fi
+
+      # The command itself, which is `npm run records -- check`: the line the TypeScript prints.
+      - name: Check the store with the command
+        run: |
+          said=$(uv run --no-sync rewire-evidence records check store)
+          recorded=$(jq -r .summary scripts/expected/store-validation.json)
+          echo "$said"
+          if [ "$said" != "$recorded" ] || [ "$said" != "${STORE_RECORDS} records match their provenance." ]; then
+            echo "::error::The command printed '${said}', and the TypeScript printed '${recorded}'."
+            exit 1
+          fi
+
       - name: Summary
         if: always()
         run: |
@@ -135,6 +173,7 @@ jobs:
             if [ -f gate.log ]; then echo; echo "### Record digests"; echo; echo '```'; cat gate.log; echo '```'; fi
             if [ -f layout.log ]; then echo; echo "### Store layout"; echo; echo '```'; cat layout.log; echo '```'; fi
             if [ -f schema.log ]; then echo; echo "### Schema and vocabularies"; echo; echo '```'; cat schema.log; echo '```'; fi
+            if [ -f validation.log ]; then echo; echo "### Validators"; echo; echo '```'; cat validation.log; echo '```'; fi
           } >> "$GITHUB_STEP_SUMMARY"
 
   # The fixtures that need the data repository's own code: its zod schema, its vocabulary
@@ -143,7 +182,7 @@ jobs:
   # TypeScript produces. Nothing is installed anywhere but this runner.
   fixtures:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/checkout@v4
@@ -162,6 +201,15 @@ jobs:
       - name: Record from the TypeScript
         working-directory: store
         run: node_modules/.bin/tsx ../scripts/fixtures/record_schema_fixture.mjs
+      # The validators, on cases written for them and on the pinned store itself. Each fault
+      # seeded into the whole store runs a validator over every record, which is most of the time.
+      - name: Record the validators
+        working-directory: store
+        run: node_modules/.bin/tsx ../scripts/fixtures/record_validation_fixture.mjs
+      # How Node writes text in lowercase, which follows the Unicode version it was built
+      # with. Built-ins only, on the Node the data repository's workflows run.
+      - name: Record the lowercase mapping
+        run: node scripts/fixtures/record_lowercase.mjs
       - name: Keep what was recorded
         if: always()
         uses: actions/upload-artifact@v4
@@ -171,14 +219,18 @@ jobs:
             tests/fixtures/record-schema.json
             tests/fixtures/vocabularies.json
             tests/fixtures/turtle.json
+            tests/fixtures/validation.json
             scripts/expected/store-schema.json
+            scripts/expected/store-validation.json
+            src/rewire_evidence/data/attribute-registry.json
+            src/rewire_evidence/data/lowercase.json
           if-no-files-found: ignore
       - name: Fixtures are what the TypeScript produces
         run: |
-          changed=$(git status --porcelain -- tests/fixtures scripts/expected)
+          changed=$(git status --porcelain -- tests/fixtures scripts/expected src/rewire_evidence/data)
           if [ -n "$changed" ]; then
             echo "::error::The recorded fixtures differ from the committed ones. Download the schema-fixtures artifact and commit it."
             echo "$changed"
-            git diff --stat -- tests/fixtures scripts/expected
+            git diff --stat -- tests/fixtures scripts/expected src/rewire_evidence/data
             exit 1
           fi

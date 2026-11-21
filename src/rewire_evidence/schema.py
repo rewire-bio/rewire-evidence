@@ -29,14 +29,13 @@ IDs, sources and links. The rest of `validateRecords` is a later stage.
 
 from __future__ import annotations
 
-import enum
-import math
 import re
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import cast
 
-from rewire_evidence.canonical import JsonObject, JsonValue, js_number, js_value
+from rewire_evidence.canonical import JsonObject, JsonValue, js_value
+from rewire_evidence.js import MISSING, Missing, number_of, received
 from rewire_evidence.jsonl import StoreError, text_field
 
 #: The top-level members of a record, in the order `recordSchema` declares and writes them.
@@ -260,97 +259,12 @@ class Checked:
     issues: tuple[Issue, ...]
 
 
-class _Missing(enum.Enum):
-    """A member that is not there, which JavaScript calls `undefined`."""
-
-    MISSING = enum.auto()
-
-
-_MISSING = _Missing.MISSING
-type _Held = JsonValue | _Missing
+type _Held = JsonValue | Missing
 type _Path = tuple[str | int, ...]
 
 
-def _received(value: _Held) -> str:
-    """The name zod gives the type of a value in an `invalid_type` message."""
-    if isinstance(value, _Missing):
-        return "undefined"
-    if value is None:
-        return "null"
-    if isinstance(value, bool):
-        return "boolean"
-    if isinstance(value, str):
-        return "string"
-    if isinstance(value, list):
-        return "array"
-    if isinstance(value, dict):
-        return "object"
-    if isinstance(value, float) and math.isinf(value):
-        # A number beyond every double, which JSON.parse reads as infinity and zod names.
-        return "Infinity" if value > 0 else "-Infinity"
-    return "number"
-
-
 def _wrong_type(expected: str, value: _Held, path: _Path) -> Issue:
-    return Issue("invalid_type", path, f"Invalid input: expected {expected}, received {_received(value)}")
-
-
-# What `String.prototype.trim` removes, which is what JavaScript skips around a number.
-_JS_SPACE = (
-    "\t\n\v\f\r "
-    "\u00a0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a"
-    "\u2028\u2029\u202f\u205f\u3000\ufeff"
-)
-_JS_DECIMAL = re.compile(r"[+-]?(?:Infinity|(?:[0-9]+\.?[0-9]*|\.[0-9]+)(?:[eE][+-]?[0-9]+)?)")
-_JS_RADIX = re.compile(r"0[xX][0-9a-fA-F]+|0[oO][0-7]+|0[bB][01]+")
-
-
-def _js_joined(items: list[JsonValue]) -> str:
-    """`String(items)` for a list `JSON.parse` returned, which is `items.join(",")`."""
-    return ",".join(_js_element(item) for item in items)
-
-
-def _js_element(item: JsonValue) -> str:
-    """One element as `Array.prototype.join` writes it: nothing for null, `String(item)` otherwise."""
-    if item is None:
-        return ""
-    if isinstance(item, bool):
-        return "true" if item else "false"
-    if isinstance(item, str):
-        return item
-    if isinstance(item, list):
-        return _js_joined(item)
-    if isinstance(item, dict):
-        return "[object Object]"
-    if math.isinf(item):
-        return "Infinity" if item > 0 else "-Infinity"
-    return js_number(item)
-
-
-def _js_number_of_text(text: str) -> float:
-    """`Number(text)`: the number JavaScript reads from text, or NaN."""
-    trimmed = text.strip(_JS_SPACE)
-    if not trimmed:
-        return 0.0
-    if _JS_RADIX.fullmatch(trimmed):
-        try:
-            return float(int(trimmed, 0))
-        except OverflowError:
-            return math.inf
-    if _JS_DECIMAL.fullmatch(trimmed):
-        return float(trimmed.replace("Infinity", "inf"))
-    return math.nan
-
-
-def _js_number_of(value: JsonValue) -> float:
-    """`Number(value)` for a value `JSON.parse` returned, as a comparison converts it."""
-    if value is None:
-        return 0.0
-    if isinstance(value, (bool, int, float)):
-        return float(value)
-    if isinstance(value, dict):
-        return math.nan
-    return _js_number_of_text(value if isinstance(value, str) else _js_joined(value))
+    return Issue("invalid_type", path, f"Invalid input: expected {expected}, received {received(value)}")
 
 
 def _at_least_one(value: _Held, path: _Path, issues: list[Issue]) -> None:
@@ -364,7 +278,7 @@ def _at_least_one(value: _Held, path: _Path, issues: list[Issue]) -> None:
     elif isinstance(value, list):
         enough, expected = bool(value), "array to have >=1 items"
     elif isinstance(value, dict) and "length" in value:
-        enough, expected = _js_number_of(value["length"]) >= 1, "unknown to be >=1"
+        enough, expected = number_of(value["length"]) >= 1, "unknown to be >=1"
     else:
         return
     if not enough:
@@ -410,13 +324,13 @@ def _link(value: JsonValue, path: _Path, issues: list[Issue]) -> Link:
         issues.append(_wrong_type("object", value, path))
         return Link("", "")
     relation_path = (*path, "relation")
-    held = value.get("relation", _MISSING)
+    held = value.get("relation", MISSING)
     relation = _text(held, relation_path, issues)
     # The refinement runs only on text.
     if isinstance(held, str) and held not in RELATION_RULES:
         issues.append(Issue("custom", relation_path, "Unknown catalogue relationship"))
     target_path = (*path, "target_id")
-    target = value.get("target_id", _MISSING)
+    target = value.get("target_id", MISSING)
     target_id = _text(target, target_path, issues)
     _at_least_one(target, target_path, issues)
     return Link(relation, target_id)
@@ -444,25 +358,25 @@ def check_record(value: object) -> Checked:
         return Checked(None, (_wrong_type("object", held, ()),))
 
     issues: list[Issue] = []
-    held_id = held.get("id", _MISSING)
+    held_id = held.get("id", MISSING)
     record_id = _text(held_id, ("id",), issues)
     if isinstance(held_id, str) and not _RECORD_ID.fullmatch(held_id):
         issues.append(
             Issue("invalid_format", ("id",), f"Invalid string: must match pattern /{RECORD_ID_PATTERN}/")
         )
-    kind = _one_of(KINDS, held.get("kind", _MISSING), ("kind",), issues)
-    held_name = held.get("name", _MISSING)
+    kind = _one_of(KINDS, held.get("kind", MISSING), ("kind",), issues)
+    held_name = held.get("name", MISSING)
     name = _text(held_name, ("name",), issues)
     _at_least_one(held_name, ("name",), issues)
-    description = _text(held.get("description", _MISSING), ("description",), issues)
-    status = _one_of(STATUSES, held.get("status", _MISSING), ("status",), issues)
+    description = _text(held.get("description", MISSING), ("description",), issues)
+    status = _one_of(STATUSES, held.get("status", MISSING), ("status",), issues)
     facets = {
         key: _texts(values, ("facets", key), issues)
-        for key, values in _members(held.get("facets", _MISSING), ("facets",), issues).items()
+        for key, values in _members(held.get("facets", MISSING), ("facets",), issues).items()
     }
-    source_ids = _texts(held.get("source_ids", _MISSING), ("source_ids",), issues)
-    links = _links(held.get("links", _MISSING), issues)
-    attributes = _members(held.get("attributes", _MISSING), ("attributes",), issues)
+    source_ids = _texts(held.get("source_ids", MISSING), ("source_ids",), issues)
+    links = _links(held.get("links", MISSING), issues)
+    attributes = _members(held.get("attributes", MISSING), ("attributes",), issues)
 
     unknown = [key for key in held if key not in SHAPE]
     if unknown:
@@ -593,32 +507,48 @@ def validate_dataset_reuse_link(record: Record, link: Link, target: Record) -> N
         raise RecordError(f"Invalid dataset reuse relationship on {record.id}")
 
 
-def validate_references(records: Iterable[Record]) -> None:
-    """The checks `validateRecords` makes of IDs, sources and links, in its order.
+def check_references(record: Record, by_id: Mapping[str, Record]) -> None:
+    """One record's source IDs and links, held to the records they name.
 
-    No two records share an ID. Every source ID names a source record. Every link points at
-    a record that exists, of a kind its relation may reach from this record's kind. Raises
+    Every source ID names a source record. Every link points at a record that exists, of a
+    kind its relation may reach from this record's kind. Raises `RecordError` for the first
+    fault, with the message the TypeScript throws.
+    """
+    for source_id in record.source_ids:
+        source = by_id.get(source_id)
+        if source is None or source.kind != "source":
+            raise RecordError(f"Missing source {source_id} for {record.id}")
+    for link in record.links:
+        target = by_id.get(link.target_id)
+        if target is None:
+            raise RecordError(f"Dangling {record.id} -> {link.target_id}")
+        validate_dataset_reuse_link(record, link, target)
+        if not relation_allows(link.relation, record.kind, target.kind):
+            raise RecordError(
+                f"Relationship {link.relation} cannot link {record.kind} {record.id} "
+                f"to {target.kind} {link.target_id}"
+            )
+
+
+def by_unique_id(records: Sequence[Record]) -> dict[str, Record]:
+    """The records by ID. Raises `RecordError` if two share one."""
+    by_id = {record.id: record for record in records}
+    if len(by_id) != len(records):
+        raise RecordError("Duplicate record ID")
+    return by_id
+
+
+def validate_references(records: Iterable[Record]) -> None:
+    """The checks `validateRecords` makes of IDs, sources and links, and no others.
+
+    No two records share an ID, and each record passes `check_references`. Raises
     `RecordError` for the first fault, with the message the TypeScript throws.
 
-    `validateRecords` checks more than this for each record, and one of its checks, that no
-    member has a private field's name, comes before these. Those are a later stage.
+    `validateRecords` makes these checks record by record, among its others, so a store
+    with two faults can be refused for another one first. `validation.validate_records` is
+    the whole of it, in its order.
     """
     held = list(records)
-    by_id = {record.id: record for record in held}
-    if len(by_id) != len(held):
-        raise RecordError("Duplicate record ID")
+    by_id = by_unique_id(held)
     for record in held:
-        for source_id in record.source_ids:
-            source = by_id.get(source_id)
-            if source is None or source.kind != "source":
-                raise RecordError(f"Missing source {source_id} for {record.id}")
-        for link in record.links:
-            target = by_id.get(link.target_id)
-            if target is None:
-                raise RecordError(f"Dangling {record.id} -> {link.target_id}")
-            validate_dataset_reuse_link(record, link, target)
-            if not relation_allows(link.relation, record.kind, target.kind):
-                raise RecordError(
-                    f"Relationship {link.relation} cannot link {record.kind} {record.id} "
-                    f"to {target.kind} {link.target_id}"
-                )
+        check_references(record, by_id)
