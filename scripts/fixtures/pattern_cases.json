@@ -80,7 +80,10 @@
   {"source": "(?![^,;])", "flags": "u", "texts": ["a\ud835\udc00", "a,"]},
   {"source": "\\bcolumn(?<group>\\s+group)?\\s*(?:\"(?<double>[^\"]*)\"|'(?<single>[^']*)'|\\((?<round>[^)]*)\\)|(?<bare>[^,;]+))", "flags": "gi", "texts": ["Table 1, column 'a', column group \"G\"; COLUMN (b), column c d", "column", "no such thing", "column \ud83d\ude00, column '\ud83d'", "\u212aolumn 'x' column\ufeff'y'"]},
   {"source": "(?<a>[^x])(?<b>y)?", "flags": "gu", "texts": ["a\ud83d\ude00yb", "xx", "", "\ud83d\ude00", "y\ud83dy"]},
-  {"source": "(?<a>[^x])(?<b>y)?", "flags": "g", "texts": ["a\ud83d\ude00yb"]}
+  {"source": "(?<a>[^x])(?<b>y)?", "flags": "g", "texts": ["a\ud83d\ude00yb"]},
+  {"source": "table 4", "flags": "i", "texts": ["Table 4: Zero-shot proteingym", "TABLE 4", "table4", "tab\u017fe 4", "Tab\u013ce 4"]},
+  {"source": "^table", "flags": "i", "texts": ["TABLE", "Table 1", " table", "a\ntable", ""]},
+  {"source": "^END", "flags": "i", "texts": ["end", "End of it", "The end", "\u212and", "e\u0144d"]}
  ],
  "fixed": [
   ["0.25", 1], ["12.25", 1], ["0.35", 1], ["2.5", 0], ["3.5", 0], ["0.5", 0], ["1.005", 2], ["8.345", 2],

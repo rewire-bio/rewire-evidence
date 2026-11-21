@@ -16,7 +16,7 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
-from rewire_evidence import cells, checks, jsregex, locator
+from rewire_evidence import cells, checks, jsregex, locator, tables
 from rewire_evidence.js import paired, unit_text
 from rewire_evidence.jsregex import Found, JsPattern, Unsupported
 
@@ -56,7 +56,10 @@ REFUSED_INSIDE = named(split(refused=True))
 def every_pattern() -> list[tuple[str, str]]:
     """The patterns the library runs and the ones the cases test the translation with."""
     return [
-        *((held.source, held.flags) for held in (*locator.PATTERNS, *cells.PATTERNS, *checks.PATTERNS)),
+        *(
+            (held.source, held.flags)
+            for held in (*locator.PATTERNS, *cells.PATTERNS, *checks.PATTERNS, *tables.PATTERNS)
+        ),
         *((case["source"], case["flags"]) for case in CASES["patterns"]),
     ]
 
@@ -354,7 +357,8 @@ def test_the_node_the_fixtures_job_runs_is_the_one_the_sets_were_recorded_with()
     lowercase = json.loads((HERE.parent / "src/rewire_evidence/data/lowercase.json").read_text("utf-8"))
     powers = json.loads((HERE.parent / "src/rewire_evidence/data/powers-of-ten.json").read_text("utf-8"))
     checked = json.loads((HERE / "fixtures/checks.json").read_text("utf-8"))
-    for recorded in (RECORDED, held, lowercase, powers, checked):
+    tabled = json.loads((HERE / "fixtures/tables.json").read_text("utf-8"))
+    for recorded in (RECORDED, held, lowercase, powers, checked, tabled):
         assert recorded["recorded_from"]["node"] == f"v{pinned[1]}"
     assert RECORDED["recorded_from"]["unicode"] == held["recorded_from"]["unicode"] == "17.0"
     # Every action is named by a commit, which a tag is not.

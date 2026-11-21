@@ -15,7 +15,8 @@ digit, U+1D7CE to U+1D7FF, to the digit it stands for. It is written here over w
 characters, with no pattern: half a character is not in the range under the `u` flag, and is
 left as it is.
 
-Only the cell half of `tables.ts` is here. Its reader of HTML and JATS tables is not ported.
+Only the cell half of `tables.ts` is here. Its reader of HTML and JATS tables is
+`rewire_evidence.tables`.
 """
 
 from __future__ import annotations
