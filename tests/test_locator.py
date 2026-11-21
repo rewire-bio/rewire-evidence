@@ -52,6 +52,16 @@ def test_the_patterns_are_the_typescripts_character_for_character() -> None:
     assert len(locator.PATTERNS) == len(locator.TOKENS) + 14
 
 
+def test_no_pattern_of_the_grammar_with_the_u_flag_can_match_nothing() -> None:
+    # Such a pattern is refused on text with a character beyond U+FFFF, which no test on
+    # ordinary text would show. The grammar has to run on any locator.
+    flagged = [held for held in locator.PATTERNS if "u" in held.flags]
+    assert len(flagged) == 11
+    assert all(held.least >= 1 for held in flagged)
+    emoji = unit_text("\U0001f600")
+    assert all(held.test(emoji) in {True, False} for held in locator.PATTERNS)
+
+
 def test_the_patterns_that_class_a_locator_are_the_ones_the_typescript_runs() -> None:
     # Most of them are written inside classifyLocator, so the recorder reads them off as it
     # runs: the flags and source of each pattern it tests, in the order it first tests them.

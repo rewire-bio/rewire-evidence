@@ -29,12 +29,14 @@ it and written out again as a Python pattern that says the same thing.
   therefore written here as JavaScript's own loop over `search`, and `re.sub` is not used.
 
 - With the `u` flag the specification looks for a match only where a character starts.
-  V8 also looks between the two units of a character beyond U+FFFF, where nothing that
-  takes a character can match and a match of nothing can: Node 24.22.3 gives
-  `/(?![^,;])/u.exec("a\u{1D400}")` the index 2, and the specification gives 3. What Node
+  Node 24.22.3 gives `/(?![^,;])/u.exec("a\u{1D400}")` the index 2, which is between the
+  two units of the character, and the specification gives 3. That one case is recorded.
+  The reading of it here, which is not recorded, is that V8 also looks between the units,
+  where nothing that takes a character can match and a match of nothing can. What Node
   does is what this library is held to, and Python cannot stand between the units of a
   character it holds whole. So a pattern with the `u` flag that can match nothing is refused
-  on text that holds such a character, and runs on any other text.
+  on text that holds such a character, and runs on any other text. A pattern that has to
+  take a character is run on such text, and is held there by the recorded cases alone.
 
 Every construct the port does not use is refused as well, and `Unsupported` names it. A
 pattern this module accepts, on text it accepts, means what Node means by it.
@@ -382,7 +384,7 @@ class JsPattern:
         """The text to match on: paired into whole characters under the `u` flag, or as it is.
 
         Raises `Unsupported` for a pattern with the `u` flag that can match nothing, on text
-        with a character beyond U+FFFF: V8 finds such a match inside the character.
+        with a character beyond U+FFFF: Node was seen to find such a match inside the character.
         """
         if "u" not in self.flags or _SURROGATE.search(text) is None:
             return text

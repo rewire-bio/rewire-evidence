@@ -92,7 +92,7 @@ def test_a_match_of_nothing_is_not_looked_for_where_v8_looks_inside_a_character(
             run(text)
     # The same pattern runs on the same text with the character taken out.
     plain = unit_text("".join(character for character in case["text"] if ord(character) <= 0xFFFF))
-    assert pattern.test(plain) is not None
+    assert pattern.test(plain) is (pattern.exec(plain) is not None)
 
 
 def test_node_finds_a_match_inside_a_character_where_the_specification_has_none() -> None:
@@ -102,8 +102,12 @@ def test_node_finds_a_match_inside_a_character_where_the_specification_has_none(
         (held["source"], held["flags"], case["text"]): case["found"] for held, case in split(refused=True)
     }
     assert found["(?![^,;])", "u", "a\U0001d400"] == {"index": 2, "text": "", "groups": {}}
-    assert re.search("(?![^,;])", "a\U0001d400").start() == 2  # type: ignore[union-attr]
-    assert len(unit_text("a\U0001d400")) == 3
+    # The specification's answer is the end of the text, which is 3 in units. Python holds
+    # the character whole, so it has the end and nothing between 1 and it.
+    whole = "a\U0001d400"
+    ends = re.search("(?![^,;])", whole)
+    assert ends is not None
+    assert len(unit_text(whole[: ends.start()])) == len(unit_text(whole)) == 3
     assert len(REFUSED_INSIDE) >= 5
     # A pattern that has to take a character runs on such text, and so does one with no u flag.
     emoji = unit_text("\U0001f600")
