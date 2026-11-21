@@ -74,7 +74,24 @@ def test_the_words_and_the_files_are_the_typescripts() -> None:
     assert CONSTANTS["report_dir"] == ratchet.REPORT_DIR
 
 
-@pytest.mark.parametrize("name", list(RATCHETS))
+#: The baselines this library refuses to read, which the TypeScript reads.
+MISSING_COUNTS = "a baseline with no count of a check's findings and no total"
+
+
+def test_a_baseline_with_a_count_missing_is_refused_where_the_typescript_leaves_the_count_out() -> None:
+    case = RATCHETS[MISSING_COUNTS]
+    assert "total_findings" not in case["baseline"]
+    assert "findings" not in case["baseline"]["checks"]["C1"]
+    # What it compares is the one rule the file does count, and neither the check nor the total.
+    assert case["baseline_counts"] == [["C1", None], ["C1.a", 0], ["total", None]]
+    assert case["above"] == ["C1.a: 1, baseline 0"]
+    with pytest.raises(
+        StoreError, match=re.escape("the findings of C1 in data/omics/checks-baseline.json is missing")
+    ):
+        baseline_of(case["baseline"])
+
+
+@pytest.mark.parametrize("name", [name for name in RATCHETS if name != MISSING_COUNTS])
 def test_a_run_is_held_to_a_baseline_as_the_typescript_holds_it(name: str) -> None:
     case = RATCHETS[name]
     pinned = baseline_of(case["baseline"])
@@ -103,6 +120,7 @@ def test_the_ratchet_cases_reach_every_way_a_count_is_named() -> None:
     assert "  C1 plain, rule a.b: " in dotted["failure"]
     assert [key for key, _ in dotted["counts"]][:2] == ["9", "10"]
     assert sum(not case["above"] for case in RATCHETS.values()) >= 5
+    assert len(RATCHETS) == 18
     assert all(
         case["failure"].endswith(ratchet.RATCHET_REMEDY) for case in RATCHETS.values() if case["failure"]
     )
@@ -142,6 +160,13 @@ def test_a_baseline_file_that_does_not_hold_counts_is_refused(tmp_path: Path) ->
     for path, value, said in refusals:
         with pytest.raises(StoreError, match=re.escape(said)):
             baseline_of(damaged(path, value), "a.json")
+    # A count that is not there is refused as missing. The TypeScript reads such a file and
+    # leaves the count out of what it compares.
+    no_findings: JsonObject = {"total_findings": 1, "checks": {"C1": {"title": "t", "rules": {"a": 1}}}}
+    with pytest.raises(StoreError, match=re.escape("the findings of C1 in a.json is missing")):
+        baseline_of(no_findings, "a.json")
+    with pytest.raises(StoreError, match=re.escape("the total findings in a.json is missing")):
+        baseline_of({"checks": good["checks"]}, "a.json")
     with pytest.raises(StoreError, match="is not a baseline"):
         baseline_of([])
     file = tmp_path / "baseline.json"
@@ -388,6 +413,34 @@ def test_the_report_goes_where_the_command_is_told_and_the_checkout_is_left_alon
     assert main(["checks", "report", "--root", str(root)]) == 0
     capsys.readouterr()
     assert list(written_under(root, SMALL)) == [f"maintenance/reports/checks-{today()}.tsv"]
+
+
+@pytest.mark.parametrize(
+    "date", ["../../escaped", "", "2026-1-01", "2026-01-011", "\uff12\uff10\uff12\uff16-01-01", "today"]
+)
+def test_a_date_that_is_not_one_is_a_command_line_that_cannot_be_read(
+    date: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = lay_out(tmp_path / "store", SMALL)
+    for command in ("report", "baseline"):
+        with pytest.raises(SystemExit) as left:
+            main(["checks", command, "--root", str(root), "--date", date])
+        assert left.value.code == 2
+        assert "is not a date written YYYY-MM-DD" in capsys.readouterr().err
+    # Nothing was read and nothing written, in the folder of reports or outside it.
+    assert written_under(tmp_path / "store", SMALL) == {}
+    assert sorted(path.name for path in tmp_path.iterdir()) == ["store"]
+
+
+def test_a_folder_that_is_no_checkout_is_refused_by_name(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    for root in (tmp_path / "missing", tmp_path):
+        for command in ("report", "baseline"):
+            assert main(["checks", command, "--root", str(root), "--date", "2026-01-02"]) == 1
+            said = capsys.readouterr()
+            assert (said.out, said.err) == ("", f"{root} holds no store: it has no folder named data\n")
+    assert list(tmp_path.iterdir()) == []
 
 
 def test_a_baseline_named_as_nothing_is_no_baseline_and_one_that_is_not_one_is_refused(

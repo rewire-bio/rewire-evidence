@@ -10,7 +10,9 @@ that bites, and it bites on growth: a run may leave the backlog alone and may no
 
 A baseline file is read more strictly here than by the TypeScript, which takes whatever JSON
 it holds. One whose counts are not numbers, or whose checks are not objects, is refused with
-`StoreError` before it is compared with anything.
+`StoreError` before it is compared with anything. So is one with no total or a check with no
+count of its findings, where the TypeScript reads the file and leaves that count out of the
+comparison: a ratchet that skips a count it was not given holds nothing on it.
 """
 
 from __future__ import annotations
@@ -132,7 +134,10 @@ class Rise:
     rise: Count
 
 
-def _count(value: JsonValue, where: str) -> Count:
+def _count(held: JsonObject, name: str, where: str) -> Count:
+    if name not in held:
+        raise StoreError(f"{where} is missing")
+    value = held[name]
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise StoreError(f"{where} is not a number")
     return value
@@ -153,13 +158,10 @@ def baseline_of(value: JsonValue, where: str = BASELINE_FILE) -> Baseline:
             raise StoreError(f"{where} gives the check {check_id} a title that is not text")
         held[check_id] = BaselineCheck(
             title,
-            _count(check.get("findings"), f"the findings of {check_id} in {where}"),
-            {
-                rule: _count(count, f"the count of {check_id}.{rule} in {where}")
-                for rule, count in rules.items()
-            },
+            _count(check, "findings", f"the findings of {check_id} in {where}"),
+            {rule: _count(rules, rule, f"the count of {check_id}.{rule} in {where}") for rule in rules},
         )
-    return Baseline(_count(value.get("total_findings"), f"the total findings in {where}"), held)
+    return Baseline(_count(value, "total_findings", f"the total findings in {where}"), held)
 
 
 def read_baseline(path: Path) -> Baseline:

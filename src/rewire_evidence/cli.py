@@ -53,10 +53,12 @@ for each finding to `maintenance/reports/checks-<date>.tsv` under ROOT, or where
 says, prints each check's counts, and says how the counts stand against
 `data/omics/checks-baseline.json`: equal, below, or above it with the rules that rose.
 `checks baseline` writes the report and then the baseline file itself, with the date and the
-commit given. The date is today's in UTC unless `--date` gives one. Both print what the
+commit given. The date is today's in UTC unless `--date` gives one, and a date that is not
+written YYYY-MM-DD is a command line that cannot be read. Both print what the
 TypeScript prints and exit 0, as it does whatever the counts are. The baseline is the file
 `CHECKS_BASELINE` names in the environment, from ROOT, as in the TypeScript. A checkout that
-cannot be read is refused in a line with status 1.
+cannot be read is refused in a line with status 1, and a ROOT with no `data` folder is
+refused by name.
 
 Status 2 is for a store this library cannot judge, which is neither accepted nor refused:
 a URL whose host needs IDNA mapping (`weburl.UndecidedHost`). The TypeScript judges it. It
@@ -73,6 +75,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import re
 import sys
 import time
 from collections import Counter
@@ -114,10 +117,23 @@ from rewire_evidence.writes import (
     write,
 )
 
+#: A date as the report is named by it, in ASCII digits.
+_DATE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")
 #: The store is refused, or the command could not read it.
 REFUSED = 1
 #: The store holds something this library does not judge.
 UNDECIDED = 2
+
+
+def _date(given: str) -> str:
+    """A date as `--date` takes it: four digits, two and two, and nothing else.
+
+    The date is written into the name of the report, so anything else could name a file
+    outside the folder of reports. The TypeScript takes whatever it is given.
+    """
+    if not _DATE.fullmatch(given):
+        raise argparse.ArgumentTypeError(f"{given!r} is not a date written YYYY-MM-DD")
+    return given
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -142,7 +158,7 @@ def _parser() -> argparse.ArgumentParser:
     pinned.add_argument("--commit", default="", help="the commit the baseline records")
     for run in (reported, pinned):
         run.add_argument("--root", type=Path, default=Path(), help="a rewire-benchmark-data checkout")
-        run.add_argument("--date", default=None, help="the date of the run, today's by default")
+        run.add_argument("--date", type=_date, default=None, help="the date of the run, today's by default")
         run.add_argument("--out", type=Path, default=None, help="write the report here")
     actions = commands.add_subparsers(dest="action", required=True)
     check = actions.add_parser("check", help="hold every record to every check loadRecords makes")
@@ -322,6 +338,9 @@ def _milliseconds() -> int:
 
 
 def _checks(args: argparse.Namespace) -> ratchet.Command:
+    if not (args.root / "data").is_dir():
+        # Without this a folder that is no checkout is refused for the vocabulary it lacks.
+        raise StoreError(f"{args.root} holds no store: it has no folder named data")
     return ratchet.Command(
         args.root,
         today() if args.date is None else args.date,

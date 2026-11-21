@@ -605,6 +605,58 @@ def test_every_result_is_in_one_column_or_counted_as_in_none(records: list[JsonO
     assert context["results_in_split_columns"] <= context["results_in_columns"]
 
 
+def test_sources_with_an_empty_hash_or_an_empty_url_are_no_group() -> None:
+    def source(record_id: str, **attributes: JsonValue) -> JsonObject:
+        return {"id": record_id, "kind": "source", "status": "s", "attributes": attributes}
+
+    only = (checks.DUPLICATE_ARTIFACT,)
+    empty = [
+        source("a", artifact_sha256="", url="https://a"),
+        source("b", artifact_sha256="", url="https://a"),
+        source("c", artifact_sha256="cc", url=""),
+        source("d", artifact_sha256="cc", url=""),
+    ]
+    run = over(empty, only)
+    assert run.findings == []
+    # An empty hash is no hash, and the two that share one are counted as holding it.
+    assert run.summaries[0].context == {
+        "sources": 4,
+        "sources_with_an_artifact_hash": 2,
+        "artifact_hashes_held_by_more_than_one_source": 1,
+    }
+    # The recorded store has such a pair of each kind, and the TypeScript reports neither.
+    recorded = RUNS["duplicate artifacts"]
+    shared = [
+        (record["attributes"].get("artifact_sha256"), record["attributes"].get("url"))
+        for record in recorded["records"]
+        if record["kind"] == "source"
+    ]
+    assert shared.count(("", "https://a")) == shared.count(("cc", "")) == 2
+    assert not [finding for finding in recorded["findings"] if finding["subject"] in {" https://a", "cc "}]
+    assert over(
+        [*empty, source("e", artifact_sha256="cc", url="u"), source("f", artifact_sha256="cc", url="u")], only
+    ).findings == [
+        Finding(
+            "C9",
+            "same-artifact-and-url",
+            "cc u",
+            "2 source records pin these bytes at this url: e (s), f (s)",
+        )
+    ]
+
+
+def test_every_rule_of_the_pack_is_raised_by_a_recorded_store() -> None:
+    # Three rules have no row in the store at either commit, so the recorded stores are all
+    # that hold them.
+    raised = {
+        (finding["check"], finding["rule"])
+        for case in [*CHECKED["runs"], *CHECKED["normalize"]]
+        for finding in case.get("findings", [])
+    }
+    assert raised == {(check.id, rule) for check in CHECKS for rule in check.rules}
+    assert len(raised) == 16
+
+
 def test_the_input_of_a_run_picks_out_the_results_and_the_sources() -> None:
     records: list[JsonObject] = [{"id": "a", "kind": "result"}, {"id": "b", "kind": "source"}, {"id": "c"}]
     read = gathered(records, {"m": MetricConcept("m", None)}, {"u": UnitConcept("u", "n")})

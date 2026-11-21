@@ -274,6 +274,8 @@ export const runs = [
       source("p-s", { artifact_sha256: "a b", url: "c" }, { status: true }), source("p-t", { artifact_sha256: "t\tab", url: "line\nbreak" }), source("p-u", { artifact_sha256: "t\tab", url: "line\nbreak" }, { status: "a\tb" }),
       source("P-B", { artifact_sha256: "dd", url: "u" }), source("p-10", { artifact_sha256: "dd", url: "u" }), source("p-9", { artifact_sha256: "dd", url: "u" }), source("\uff5a", { artifact_sha256: "dd", url: "u" }), source("\ud83d\ude00", { artifact_sha256: "dd", url: "u" }),
       source("p-v", { artifact_sha256: "ee", url: "u" }, { status: "" }), source("p-w", { artifact_sha256: "ee", url: "u" }, { status: 0 }), source("p-x", { artifact_sha256: "ee", url: "u" }, { status: false }),
+      // A second source with the empty hash of p-h, and a second with the empty url of p-i: an empty text is no hash and no url.
+      source("p-y", { artifact_sha256: "", url: "https://a" }), source("p-z", { artifact_sha256: "cc", url: "" }),
       result("p-result", { artifact_sha256: "aa", url: "https://a" }),
     ],
   },
@@ -408,6 +410,8 @@ export const ratchets = [
   { name: "a check named total", baseline: pinned({ total: { title: "a check", findings: 1, rules: { r: 1 } } }, 0), summaries: [summary("total", 2, { r: 2 })] },
   { name: "a check with no title in the baseline", baseline: pinned({ C1: { findings: 0, rules: { a: 0 } }, C2: { title: "", findings: 0, rules: { a: 0 } } }, 0), summaries: [summary("C1", 1, { a: 1 }), summary("C2", 1, { a: 1 })] },
   { name: "counts that are not whole", baseline: pinned({ C1: { title: "t", findings: 0.5, rules: { a: 1e-7, b: 1e21 } } }, 2.5), summaries: [summary("C1", 3, { a: 1, b: 2 })] },
+  // The baseline as written here has neither count, so it is not made by pinned().
+  { name: "a baseline with no count of a check's findings and no total", baseline: { note: "n", notes: [], commit: "c", run_date: "2026-01-01", store: {}, checks: { C1: { title: "t", rules: { a: 0 } } } }, summaries: [summary("C1", 1, { a: 1 })] },
   { name: "the seven checks against a first run", baseline: pinned({ C1: { title: "unit for metric", findings: 5391, rules: { "minority-unit": 5093, "unit-scope-note": 298 } }, C4: { title: "qualifier shape", findings: 338, rules: { "verdict-or-vendor-token": 338 } } }, 10754), summaries: [summary("C1", 5400, { "minority-unit": 5100, "unit-scope-note": 300 }, "unit for metric"), summary("C4", 337, { "verdict-or-vendor-token": 337 }, "qualifier shape")] },
 ];
 
