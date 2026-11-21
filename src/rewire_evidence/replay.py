@@ -25,6 +25,13 @@ the command to is the provenance rows and the rewrite of every store file, not t
 The SHACL check the command line makes after writing is not part of a replay: it reads the
 store and writes nothing.
 
+History holds no `records change --changes`, which arrived in the pinned commit. So a second
+expectation, `scripts/expected/store-recorded-writes.json`, holds a case the TypeScript ran
+itself in CI: the data repository's own reviewer fixture, a batch and a changes file, added
+and applied to the pinned store. Such a case names one commit, whose store is laid out and
+which holds the inputs, and lists the blob name of every store file the TypeScript left.
+It is replayed and compared in the same way, against those names in place of a tree.
+
 A case that does not reproduce is reported with the file, both blob IDs and the first line
 that differs. The counts of records added and changed and of files compared are held to the
 expectation, so a replay that did less cannot pass.
@@ -45,7 +52,7 @@ from rewire_evidence.jsonl import StoreError, join_lines, parse_row, read_lines,
 from rewire_evidence.schema import RecordError, SchemaError
 from rewire_evidence.store import record_files
 from rewire_evidence.vocab import VocabularyError
-from rewire_evidence.writes import Plan, plan_add, plan_change, write
+from rewire_evidence.writes import Plan, plan_add, plan_change, plan_changes_file, write
 
 #: The folders a write may alter, which are compared whole with the merge commit.
 STORE_PATHS = ("data/entities", "data/evidence", "data/provenance")
@@ -189,9 +196,9 @@ def lay_out(repository: Repository, root: Path, wanted: Mapping[str, str]) -> in
 
 @dataclass(frozen=True)
 class Step:
-    """One command a pull request ran: an `add`, or a `change` naming IDs."""
+    """One command that was run: an `add`, a `change` naming IDs, or a `change` from a changes file."""
 
-    #: The batch file, as a path in the merge commit, for an add. None for a change.
+    #: The batch file, as a path in the commit that holds the inputs, for an add.
     batch: str | None
     #: The batch folder as the command was given it: `added_in`, or a change's `inputs`.
     batch_dir: str
@@ -199,11 +206,18 @@ class Step:
     ids: tuple[str, ...] = ()
     review: str = ""
     date: str = ""
+    #: The changes file, as a path in the commit that holds the inputs, for a change from one.
+    changes: str | None = None
 
 
 @dataclass(frozen=True)
 class Case:
-    """One merged pull request to replay, and what replaying it has to amount to."""
+    """One write to replay, and what replaying it has to amount to.
+
+    For a merged pull request, `merge` holds the inputs and the files to arrive at, and
+    `parent` the store to start from. For a write the TypeScript recorded, both are the
+    one commit it was run on, and `left` is what to arrive at.
+    """
 
     name: str
     merge: str
@@ -213,6 +227,8 @@ class Case:
     added: int
     changed: int
     files: int
+    #: Every store file the TypeScript left, with its blob name, where it recorded them.
+    left: Mapping[str, str] | None = None
 
 
 @dataclass(frozen=True)
@@ -249,17 +265,24 @@ def _step(value: JsonValue, where: str) -> Step:
     batch_dir = _member(value, "batch_dir", str, where)
     if "add" in value:
         return Step(_member(value, "add", str, where), batch_dir)
-    return Step(
-        None,
-        batch_dir,
-        _texts(value.get("change"), f"{where}'s change"),
-        _member(value, "review", str, where),
-        _member(value, "date", str, where),
-    )
+    review, date = _member(value, "review", str, where), _member(value, "date", str, where)
+    if "changes" in value:
+        return Step(None, batch_dir, (), review, date, _member(value, "changes", str, where))
+    return Step(None, batch_dir, _texts(value.get("change"), f"{where}'s change"), review, date)
+
+
+def _blob_names(value: JsonValue, where: str) -> dict[str, str]:
+    if not isinstance(value, dict) or not all(isinstance(name, str) for name in value.values()):
+        raise StoreError(f"{where} is not an object of blob names by file")
+    return cast("dict[str, str]", value)
 
 
 def read_cases(path: Path) -> Expectation:
-    """The expectation file: which merges to replay, with what commands, to what counts."""
+    """An expectation file: what to replay, with what commands, to what counts.
+
+    A case that names a `merge` and its `parent` is a merged pull request. One that names
+    a `store` is a write the TypeScript recorded on that commit, with the files it `left`.
+    """
     try:
         held = parse_row(path.read_text("utf-8"), str(path))
     except (OSError, UnicodeDecodeError) as error:
@@ -270,15 +293,17 @@ def read_cases(path: Path) -> Expectation:
         if not isinstance(value, dict):
             raise StoreError(f"{where} is not an object")
         steps = _member(value, "steps", list, where)
+        recorded = "store" in value
         cases.append(
             Case(
                 _member(value, "name", str, where),
-                _commit_name(value, "merge", where),
-                _commit_name(value, "parent", where),
+                _commit_name(value, "store" if recorded else "merge", where),
+                _commit_name(value, "store" if recorded else "parent", where),
                 tuple(_step(step, f"step {at} of {where}") for at, step in enumerate(steps, 1)),
                 _member(value, "added", int, where),
                 _member(value, "changed", int, where),
                 _member(value, "files", int, where),
+                _blob_names(value.get("left"), f"what {where} left") if recorded else None,
             )
         )
     if not cases:
@@ -367,12 +392,15 @@ def _first_difference(got: bytes, wanted: bytes) -> str:
     return f"it has {len(ours)} lines and the merge commit's has {len(theirs)}"
 
 
-def compare(repository: Repository, merge: str, root: Path) -> tuple[int, list[str]]:
-    """Hold the store files under a folder to the merge commit's tree, blob for blob.
+def compare(
+    wanted: Mapping[str, str], root: Path, oracle: str, repository: Repository | None = None
+) -> tuple[int, list[str]]:
+    """Hold the store files under a folder to the blob names an oracle gives, file for file.
 
-    Returns the number of files the two have between them and what differs.
+    `oracle` is what to call it in a problem. Given the repository that holds the wanted
+    blobs, a file that differs is reported with the first line that does. Returns the number
+    of files the two have between them and what differs.
     """
-    wanted = repository.tree(merge, STORE_PATHS)
     got = {
         path: name
         for path, name in tree_names(root).items()
@@ -381,49 +409,61 @@ def compare(repository: Repository, merge: str, root: Path) -> tuple[int, list[s
     problems: list[str] = []
     for path in sorted(set(wanted) | set(got)):
         if path not in got:
-            problems.append(f"{path} is in the merge commit and was not written")
+            problems.append(f"{path} is in {oracle} and was not written")
         elif path not in wanted:
-            problems.append(f"{path} was written and is not in the merge commit")
+            problems.append(f"{path} was written and is not in {oracle}")
         elif got[path] != wanted[path]:
-            repository.fetch([wanted[path]])
-            difference = _first_difference((root / path).read_bytes(), repository.blob(wanted[path]))
-            problems.append(f"{path} is blob {got[path]}, not {wanted[path]}: {difference}")
+            differs = f"{path} is blob {got[path]}, not {wanted[path]}"
+            if repository is None:
+                problems.append(f"{differs} as in {oracle}")
+            else:
+                repository.fetch([wanted[path]])
+                held = repository.blob(wanted[path])
+                problems.append(f"{differs}: {_first_difference((root / path).read_bytes(), held)}")
     return len(set(wanted) | set(got)), problems
 
 
-def _planned(repository: Repository, case: Case, step: Step, scratch: Path) -> Plan:
-    """What one step would write: its inputs taken from the merge commit, then the command's plan.
+def _input(repository: Repository, commit: str, path: str, file: Path) -> Path:
+    """One input of a command, taken from the commit that holds it and written to a file."""
+    listed = repository.tree(commit, [path])
+    if path not in listed:
+        raise InputError(f"{commit} has no {path}")
+    file.write_bytes(repository.blob(listed[path]))
+    return file
 
-    Raises `StoreError` if the merge commit lacks an input, and whatever the command
-    refuses with.
+
+def _planned(repository: Repository, case: Case, step: Step, scratch: Path) -> Plan:
+    """What one step would write: its inputs taken from the commit that holds them, then the plan.
+
+    Raises `InputError` if the commit lacks an input, and whatever the command refuses with.
     """
     root = scratch / "tree"
-    if step.batch is None:
-        edit_in_place(repository, case.merge, root, step.ids)
-        return plan_change(step.ids, step.batch_dir, step.review, root, step.date)
-    listed = repository.tree(case.merge, [step.batch])
-    if step.batch not in listed:
-        raise InputError(f"{case.merge} has no {step.batch}")
-    batch_file = scratch / "batch.jsonl"
-    batch_file.write_bytes(repository.blob(listed[step.batch]))
-    return plan_add(batch_file, step.batch_dir, root)
+    if step.batch is not None:
+        batch_file = _input(repository, case.merge, step.batch, scratch / "batch.jsonl")
+        return plan_add(batch_file, step.batch_dir, root)
+    if step.changes is not None:
+        changes_file = _input(repository, case.merge, step.changes, scratch / "changes.jsonl")
+        return plan_changes_file(str(changes_file), step.batch_dir, step.review, root, step.date)
+    edit_in_place(repository, case.merge, root, step.ids)
+    return plan_change(step.ids, step.batch_dir, step.review, root, step.date)
 
 
 def replay_case(
     repository: Repository, case: Case, configuration: Sequence[str], scratch: Path
 ) -> CaseReport:
-    """Replay one merged pull request in a scratch folder and hold the result to the merge commit.
+    """Replay one case in a scratch folder and hold the result to its oracle.
 
     `scratch` may hold the tree of an earlier case, which is reused. A command that
-    refuses, or a result that is not the merge commit's, is a problem in the report. Raises
+    refuses, or a result that is not the oracle's, is a problem in the report. Raises
     `StoreError` where the replay could not be made: git cannot give what the case names,
-    or the merge commit lacks a batch or a record the case says it has.
+    or the commit lacks a batch, a changes file or a record the case says it has.
     """
     report = CaseReport(case.name)
-    parent = repository.commit(f"{case.merge}^1")
-    if parent != case.parent:
-        report.problems.append(f"the first parent of {case.merge} is {parent}, not {case.parent}")
-        return report
+    if case.left is None:
+        parent = repository.commit(f"{case.merge}^1")
+        if parent != case.parent:
+            report.problems.append(f"the first parent of {case.merge} is {parent}, not {case.parent}")
+            return report
     lay_out(
         repository,
         scratch / "tree",
@@ -442,7 +482,11 @@ def replay_case(
             report.changed += len(plan.ids)
         else:
             report.added += len(plan.ids)
-    report.files, differences = compare(repository, case.merge, scratch / "tree")
+    if case.left is None:
+        wanted = repository.tree(case.merge, STORE_PATHS)
+        report.files, differences = compare(wanted, scratch / "tree", "the merge commit", repository)
+    else:
+        report.files, differences = compare(case.left, scratch / "tree", "what the TypeScript left")
     report.problems.extend(differences)
     for name in ("added", "changed", "files"):
         if getattr(report, name) != getattr(case, name):

@@ -195,35 +195,36 @@ def test_the_write_gate_replays_a_history_and_fails_one_that_does_not_reproduce(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     history = build_history(tmp_path / "repository")
-    expected = history.written(tmp_path)
+    expected = [history.written(tmp_path), history.written(tmp_path, history.recorded, "recorded.json")]
     measured = tmp_path / "measured.json"
     arguments = [str(history.repository), "--json", str(measured)]
     assert writes_gate(arguments, expected) == 0
     out = capsys.readouterr()
     assert out.err == ""
     assert out.out == (
-        f"replaying 2 merged pull requests from the history of {history.repository}\n"
+        f"replaying 3 writes from the history of {history.repository}\n"
         "an add: 1 added, 0 changes recorded, 2 files written, 13 compared: reproduces\n"
         "a change: 0 added, 2 changes recorded, 2 files written, 13 compared: reproduces\n"
-        "\nAll 2 merged pull requests reproduce: 1 records added and 2 changes recorded, "
-        "26 files byte for byte.\n"
+        "a recorded write: 1 added, 1 changes recorded, 4 files written, 13 compared: reproduces\n"
+        "\nAll 3 writes reproduce: 2 records added and 3 changes recorded, 39 files byte for byte.\n"
     )
     report = json.loads(measured.read_text("utf-8"))
-    assert (report["cases"], report["reproduced"], report["problems"]) == (2, 2, [])
+    assert (report["cases"], report["reproduced"], report["problems"]) == (3, 3, [])
 
-    # The same again in a folder that is kept, with a batch folder the pull request did not name.
-    wrong = json.loads(expected.read_text("utf-8"))
+    # One expectation alone in a folder that is kept, with a batch folder the pull request did not name.
+    wrong = json.loads(expected[0].read_text("utf-8"))
     wrong["cases"][0]["steps"][0]["batch_dir"] = "another-folder"
     scratch = tmp_path / "scratch"
     altered = history.written(tmp_path / "altered", wrong)
     assert writes_gate([*arguments, "--expected", str(altered), "--scratch", str(scratch)], expected) == 1
     out = capsys.readouterr()
+    assert out.out.startswith(f"replaying 2 writes from the history of {history.repository}\n")
     assert (
         "an add: 1 added, 0 changes recorded, 2 files written, 13 compared: DOES NOT REPRODUCE\n" in out.out
     )
     assert "reproduce:" not in out.out
     assert out.err.startswith("  an add: data/provenance/records/0.jsonl is blob ")
-    assert out.err.endswith("\n1 problems. 1 of 2 merged pull requests reproduce.\n")
+    assert out.err.endswith("\n1 problems. 1 of 2 writes reproduce.\n")
     report = json.loads(measured.read_text("utf-8"))
     assert (report["cases"], report["reproduced"], len(report["problems"])) == (2, 1, 1)
     assert (scratch / "tree" / "data/entities/sources.jsonl").exists()
@@ -235,15 +236,15 @@ def test_the_write_gate_exits_2_when_the_replay_cannot_be_made(
 ) -> None:
     history = build_history(tmp_path / "repository")
     expected = history.written(tmp_path)
-    assert writes_gate([str(history.repository)], tmp_path / "missing.json") == 2
+    assert writes_gate([str(history.repository)], [expected, tmp_path / "missing.json"]) == 2
     assert capsys.readouterr().err.startswith(f"Cannot verify: {tmp_path / 'missing.json'} cannot be read: ")
-    assert writes_gate([str(tmp_path / "nowhere")], expected) == 2
+    assert writes_gate([str(tmp_path / "nowhere")], [expected]) == 2
     assert capsys.readouterr().err.startswith("Cannot verify: git rev-parse --verify failed in ")
     # A batch the merge commit does not hold: the case is wrong, which is not a disagreement.
     lacking = json.loads(expected.read_text("utf-8"))
     lacking["cases"][0]["steps"][0]["add"] = "data/omics/no-such-batch/batch.jsonl"
     altered = history.written(tmp_path / "altered", lacking)
-    assert writes_gate([str(history.repository)], altered) == 2
+    assert writes_gate([str(history.repository)], [altered]) == 2
     out = capsys.readouterr()
     assert out.err.startswith("Cannot verify: ")
     assert out.err.endswith(" has no data/omics/no-such-batch/batch.jsonl\n")
@@ -252,9 +253,17 @@ def test_the_write_gate_exits_2_when_the_replay_cannot_be_made(
 def test_the_write_gate_is_a_script(tmp_path: Path) -> None:
     history = build_history(tmp_path / "repository")
     expected = history.written(tmp_path)
-    done = run_script("verify_store_writes.py", str(history.repository), "--expected", str(expected))
+    recorded = history.written(tmp_path, history.recorded, "recorded.json")
+    done = run_script(
+        "verify_store_writes.py",
+        str(history.repository),
+        "--expected",
+        str(expected),
+        "--expected",
+        str(recorded),
+    )
     assert done.returncode == 0, done.stderr
-    assert done.stdout.endswith("26 files byte for byte.\n")
+    assert done.stdout.endswith("39 files byte for byte.\n")
     # With no --expected the script replays the data repository's own history, which this is not.
     assert run_script("verify_store_writes.py", str(history.repository)).returncode == 2
     assert "usage:" in run_script("verify_store_writes.py", "--help").stdout

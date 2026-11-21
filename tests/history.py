@@ -16,10 +16,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from rewire_evidence.replay import blob_name
 from tests.recorded import write_configuration
 from tests.written import CASES, DATE, WRITES, before, files_under, label, left
 
 BATCH = "data/omics/a-new-batch/batch.jsonl"
+CHANGES = "data/omics/a-new-batch/changes.jsonl"
 CONFIGURATION = ["data/vocab", "data/ontology/mapping.json", "scripts/omics/derive"]
 STORE = ("data/entities/", "data/evidence/", "data/provenance/")
 
@@ -77,22 +79,27 @@ def store_count(files: dict[str, str]) -> int:
 
 @dataclass(frozen=True)
 class History:
-    """A repository, its commits by what they hold, and the expectation that replays them."""
+    """A repository, its commits by what they hold, and the expectations that replay them."""
 
     repository: Path
     commits: dict[str, str]
+    #: Two merges: an add and a change.
     expectation: dict[str, Any]
+    #: One write on one commit, with the blob names of what it left: an add, then a changes file.
+    recorded: dict[str, Any]
 
-    def written(self, folder: Path, expectation: dict[str, Any] | None = None) -> Path:
-        """The expectation, or another, as a file."""
+    def written(
+        self, folder: Path, expectation: dict[str, Any] | None = None, name: str = "store-writes.json"
+    ) -> Path:
+        """The expectation of the two merges, or another, as a file."""
         folder.mkdir(parents=True, exist_ok=True)
-        path = folder / "store-writes.json"
+        path = folder / name
         path.write_text(json.dumps(self.expectation if expectation is None else expectation), "utf-8")
         return path
 
 
 def build(repository: Path) -> History:
-    """Six commits: an add and a change as the TypeScript made them, and two that are not replayable."""
+    """Seven commits: an add and a change as the TypeScript made them, and what the faults need."""
     added = case_named("add: a result, into a shard file that is not there yet")
     changed = case_named("change: an entity and a result edited in place, named in another order")
     whole: dict[str, str] = WRITES["stores"]["whole"]
@@ -149,4 +156,34 @@ def build(repository: Path) -> History:
             },
         ],
     }
-    return History(repository, commits, expectation)
+    # The batch and a changes file on the store before the add. The two touch different
+    # files, so what both leave is what the TypeScript left for each.
+    applied = case_named("changes: one changed record")
+    commits["the inputs"] = commit(
+        repository, {**settings, **before(added), BATCH: added["input"], CHANGES: applied["input"]}
+    )
+    both = {**left(added), **{file: left(applied)[file] for file in applied["after"]}}
+    recorded = {
+        "recorded_from": "a test",
+        "configuration": CONFIGURATION,
+        "cases": [
+            {
+                "name": "a recorded write",
+                "store": commits["the inputs"],
+                "steps": [
+                    {"add": BATCH, "batch_dir": added["batch_dir"]},
+                    {
+                        "changes": CHANGES,
+                        "batch_dir": applied["batch_dir"],
+                        "review": applied["review"],
+                        "date": DATE,
+                    },
+                ],
+                "added": 1,
+                "changed": 1,
+                "files": store_count(both),
+                "left": {file: blob_name(text.encode("utf-8")) for file, text in both.items()},
+            }
+        ],
+    }
+    return History(repository, commits, expectation, recorded)

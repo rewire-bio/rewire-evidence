@@ -34,7 +34,7 @@ from rewire_evidence.replay import (
     to_json,
     tree_names,
 )
-from tests.history import BATCH, CONFIGURATION, History, build, case_named, commit, git
+from tests.history import BATCH, CHANGES, CONFIGURATION, History, build, case_named, commit, git
 from tests.written import DATE, WRITES, left
 
 
@@ -93,6 +93,54 @@ def test_a_history_replays_to_the_bytes_the_typescript_left(history: History, tm
         "written": 2,
         "problems": [],
     }
+
+
+def test_a_write_the_typescript_recorded_replays_to_the_blob_names_it_left(
+    history: History, tmp_path: Path
+) -> None:
+    expectation = read_cases(history.written(tmp_path, history.recorded))
+    (case,) = expectation.cases
+    assert case.merge == case.parent == history.commits["the inputs"]
+    assert case.left is not None
+    assert len(case.left) == case.files == 13
+    assert [(step.batch, step.changes, step.ids) for step in case.steps] == [
+        (BATCH, None, ()),
+        (None, CHANGES, ()),
+    ]
+    repository = Repository(history.repository)
+    report = replay_case(repository, case, expectation.configuration, tmp_path / "scratch")
+    assert report.problems == []
+    assert (report.added, report.changed, report.files, report.written) == (1, 1, 13, 4)
+    # The changes file is given to the command by name, as the batch is.
+    assert (tmp_path / "scratch" / "changes.jsonl").read_text("utf-8") == case_named(
+        "changes: one changed record"
+    )["input"]
+
+    # A blob name that is not what was left is a problem, and so is a command that is refused.
+    def other_blob(recorded: dict[str, Any]) -> None:
+        recorded["cases"][0]["left"]["data/entities/methods.jsonl"] = "0" * 40
+
+    altered = copy.deepcopy(history.recorded)
+    other_blob(altered)
+    (case,) = read_cases(history.written(tmp_path / "altered", altered)).cases
+    (problem,) = replay_case(repository, case, CONFIGURATION, tmp_path / "scratch").problems
+    assert re.fullmatch(
+        r"data/entities/methods\.jsonl is blob [0-9a-f]{40}, not 0{40} as in what the TypeScript left",
+        problem,
+    )
+    stale = copy.deepcopy(history.recorded)
+    stale["cases"][0]["steps"] = [stale["cases"][0]["steps"][1]] * 2
+    (case,) = read_cases(history.written(tmp_path / "stale", stale)).cases
+    (problem,) = replay_case(repository, case, CONFIGURATION, tmp_path / "scratch").problems
+    assert problem.startswith(
+        f"step 2 was refused: RecordError: {tmp_path / 'scratch' / 'changes.jsonl'} line 1: "
+    )
+    assert " has provenance digest " in problem
+    lacking = copy.deepcopy(history.recorded)
+    lacking["cases"][0]["steps"][1]["changes"] = "no-such/changes.jsonl"
+    (case,) = read_cases(history.written(tmp_path / "lacking", lacking)).cases
+    with pytest.raises(InputError, match=r" has no no-such/changes\.jsonl"):
+        replay_case(repository, case, CONFIGURATION, tmp_path / "scratch")
 
 
 def test_a_blobless_clone_fetches_what_a_replay_needs(history: History, tmp_path: Path) -> None:
@@ -269,7 +317,9 @@ def test_a_comparison_names_what_is_missing_what_is_extra_and_where_a_file_diffe
     }.items():
         (root / file).parent.mkdir(parents=True, exist_ok=True)
         (root / file).write_text(text, "utf-8")
-    count, problems = compare(Repository(source), merge, root)
+    repository = Repository(source)
+    wanted = repository.tree(merge, STORE_PATHS)
+    count, problems = compare(wanted, root, "the merge commit", repository)
     assert count == 7
     assert problems == [
         (
@@ -290,6 +340,16 @@ def test_a_comparison_names_what_is_missing_what_is_extra_and_where_a_file_diffe
         ),
         "data/evidence/claims/0.jsonl is in the merge commit and was not written",
         "data/provenance/records/0.jsonl was written and is not in the merge commit",
+    ]
+    # With blob names alone there is no line to show, and the oracle is named as it is given.
+    count, named = compare(wanted, root, "what was recorded")
+    assert count == 7
+    assert [problem.split(": ")[0] for problem in problems[:4]] == [
+        problem.removesuffix(" as in what was recorded") for problem in named[:4]
+    ]
+    assert named[4:] == [
+        "data/evidence/claims/0.jsonl is in what was recorded and was not written",
+        "data/provenance/records/0.jsonl was written and is not in what was recorded",
     ]
 
 
@@ -383,6 +443,26 @@ def test_an_expectation_that_does_not_say_what_to_replay_is_refused(
 ) -> None:
     with pytest.raises(StoreError, match=refusal):
         cases_of(history, tmp_path, change)
+
+
+@pytest.mark.parametrize(
+    ("change", "refusal"),
+    [
+        (_set(["cases", 0, "store"], "HEAD"), "names its store as 'HEAD', which is not a full commit name"),
+        (_set(["cases", 0, "left"], ...), "what case 1 of .* left is not an object of blob names by file"),
+        (_set(["cases", 0, "left"], ["a"]), "left is not an object of blob names by file"),
+        (_set(["cases", 0, "left", "data/entities/methods.jsonl"], 5), "left is not an object of blob names"),
+        (_set(["cases", 0, "steps", 1, "changes"], ["a"]), "step 2 of case 1 of .* has no str 'changes'"),
+        (_set(["cases", 0, "steps", 1, "review"], ...), "has no str 'review'"),
+    ],
+)
+def test_a_recorded_write_that_does_not_say_what_was_left_is_refused(
+    history: History, tmp_path: Path, change: Callable[[dict[str, Any]], None], refusal: str
+) -> None:
+    recorded = copy.deepcopy(history.recorded)
+    change(recorded)
+    with pytest.raises(StoreError, match=refusal):
+        read_cases(history.written(tmp_path, recorded))
 
 
 def test_an_expectation_that_cannot_be_read_is_refused(tmp_path: Path) -> None:

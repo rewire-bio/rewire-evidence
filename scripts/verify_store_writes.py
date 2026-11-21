@@ -18,6 +18,12 @@ The commands are not recorded anywhere but in what they did, so
 changed. The counts of records added, changes recorded and files compared are in the
 expectation, and a replay that does less fails.
 
+No merged pull request has used `records change --changes`. For that there is
+`scripts/expected/store-recorded-writes.json`, which the TypeScript records in CI: the data
+repository's own reviewer fixture, a batch and a changes file, added and applied to the
+pinned store, with the blob name of every store file it left. That case is replayed from
+the pinned commit and held to those names.
+
 The work is in `rewire_evidence.replay`, `rewire_evidence.writes` and
 `rewire_evidence.gates`, where the tests cover it. This file is the command.
 
@@ -35,7 +41,10 @@ from pathlib import Path
 
 from rewire_evidence.gates import writes_gate
 
-EXPECTED = Path(__file__).parent / "expected" / "store-writes.json"
+EXPECTED = [
+    Path(__file__).parent / "expected" / "store-writes.json",
+    Path(__file__).parent / "expected" / "store-recorded-writes.json",
+]
 
 if __name__ == "__main__":
     sys.exit(writes_gate(sys.argv[1:], EXPECTED, __doc__))

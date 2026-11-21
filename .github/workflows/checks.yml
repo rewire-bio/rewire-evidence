@@ -209,15 +209,21 @@ jobs:
   # first parent holds it, the commands are run again by this library, and every store file
   # has to be the merge commit's, by git's own blob names. The clone has the history and no
   # file contents, and the gate fetches the blobs of the stores it lays out.
+  #
+  # History has no `records change --changes`, so one more case is a write the TypeScript made
+  # itself: the fixtures job below adds and applies the data repository's reviewer fixture to
+  # the pinned store and records the blob name of every file left, in
+  # scripts/expected/store-recorded-writes.json. The gate replays it from the pinned commit.
   writes:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
-      # What scripts/expected/store-writes.json amounts to. A replay that does less fails.
-      WRITE_CASES: "12"
-      WRITE_RECORDS_ADDED: "2600"
-      WRITE_CHANGES_RECORDED: "1217"
-      WRITE_FILES_COMPARED: "948"
+      # What the two expectations amount to: twelve merged pull requests and one recorded
+      # write. A replay that does less fails.
+      WRITE_CASES: "13"
+      WRITE_RECORDS_ADDED: "2601"
+      WRITE_CHANGES_RECORDED: "1218"
+      WRITE_FILES_COMPARED: "1027"
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
@@ -229,7 +235,8 @@ jobs:
       - name: Clone the history of the data repository, without file contents
         run: git clone --quiet --filter=blob:none --no-checkout https://github.com/rewire-bio/rewire-benchmark-data.git history
 
-      # Every case is part of the store the other gates are pinned to.
+      # Every case is part of the store the other gates are pinned to, and the recorded
+      # write was made on the pinned commit itself.
       - name: The cases are in the history of the pinned commit
         run: |
           for merge in $(jq -r '.cases[].merge' scripts/expected/store-writes.json); do
@@ -238,8 +245,14 @@ jobs:
               exit 1
             fi
           done
+          for named in $(jq -r '.recorded_from.store_ref, .cases[].store' scripts/expected/store-recorded-writes.json); do
+            if [ "$named" != "$STORE_REF" ]; then
+              echo "::error::The recorded write names ${named}, and STORE_REF is ${STORE_REF}."
+              exit 1
+            fi
+          done
 
-      - name: Replay merged batches and changes
+      - name: Replay merged batches and changes, and the recorded write
         run: |
           set -o pipefail
           uv run --no-sync python scripts/verify_store_writes.py history --json writes.json 2>&1 | tee writes.log
@@ -291,7 +304,8 @@ jobs:
         run: node_modules/.bin/tsx ../scripts/fixtures/record_validation_fixture.mjs
       # The write path, on small stores in a scratch folder: what addBatch, recordChanges and
       # applyChanges return or refuse, and every file they leave different. It reads the
-      # small store the step before wrote into tests/fixtures/validation.json.
+      # small store the step before wrote into tests/fixtures/validation.json. Then the
+      # reviewer fixture, added and applied to a copy of the pinned store.
       - name: Record the write path
         working-directory: store
         run: node_modules/.bin/tsx ../scripts/fixtures/record_write_fixture.mjs
@@ -312,6 +326,7 @@ jobs:
             tests/fixtures/write-path.json
             scripts/expected/store-schema.json
             scripts/expected/store-validation.json
+            scripts/expected/store-recorded-writes.json
             src/rewire_evidence/data/attribute-registry.json
             src/rewire_evidence/data/lowercase.json
           if-no-files-found: ignore
