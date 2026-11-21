@@ -18,9 +18,9 @@ from collections.abc import Iterable, Mapping
 from typing import Final, cast
 
 from rewire_evidence import zod
-from rewire_evidence.attributes import JsTypeError
+from rewire_evidence.attributes import said
 from rewire_evidence.canonical import JsonObject, JsonValue
-from rewire_evidence.js import MISSING, Held, text_of, truthy
+from rewire_evidence.js import MISSING, Held, truthy
 from rewire_evidence.schema import BENCHMARK_SUBJECT_KINDS, Issue, Record, RecordError, SchemaError
 
 #: Member names that must never enter a public release, wherever they appear in a record.
@@ -73,10 +73,7 @@ def parsed(schema: zod.Schema, value: Held) -> JsonValue:
 
 def pinned(source: Record) -> bool:
     """Whether a source's artifact hash is written down, as the TypeScript's pattern reads it."""
-    try:
-        return bool(_HASH.fullmatch(text_of(source.attributes.get("artifact_sha256", MISSING))))
-    except TypeError as error:
-        raise JsTypeError(str(error)) from error
+    return bool(_HASH.fullmatch(said(source.attributes.get("artifact_sha256", MISSING))))
 
 
 def _texts(value: JsonValue) -> list[str]:

@@ -27,6 +27,7 @@ every place, recorded from zod, and the tests hold this module to it.
 
 from __future__ import annotations
 
+import abc
 import math
 import re
 from collections.abc import Callable, Mapping, Sequence
@@ -88,7 +89,7 @@ def _wrong_type(expected: str, value: Held) -> Raised:
 
 
 @dataclass(frozen=True)
-class Schema:
+class Schema(abc.ABC):
     """A zod schema: a type, and the checks that follow it in the order they were added."""
 
     checks: tuple[Check, ...] = ()
@@ -96,8 +97,9 @@ class Schema:
     #: Whether an object may leave this member out, which zod calls `optin` and `optout`.
     optional: bool = field(default=False, init=False)
 
+    @abc.abstractmethod
     def _parse(self, payload: Payload) -> Payload:
-        raise NotImplementedError  # pragma: no cover - every schema below defines its own
+        """The value held to the type alone, with an issue added if it is not of it."""
 
     def run(self, value: Held) -> Payload:
         """The value parsed and then checked, as zod's `run` does going forward."""

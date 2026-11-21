@@ -337,6 +337,35 @@ def test_the_validation_gate_exits_2_for_what_cannot_be_read_or_run(
     assert "which is not a record" in refused([str(empty)])
 
 
+IDNA = "https://b\u00fccher.example/paper.pdf"
+
+
+def test_a_url_this_library_does_not_judge_stops_every_entry_point_in_one_line(
+    expected: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # Node reads this URL. The port has no table to say so, and says that, in a line, everywhere.
+    root = rewritten(tmp_path, [["set", ROLES["kind_source"], ["attributes", "url"], IDNA]])
+    assert validation_gate([str(root)], expected) == 2
+    assert capsys.readouterr().err.strip().splitlines()[-1].startswith("Cannot verify: the host ")
+    assert main(["records", "check", str(root)]) == 1
+    said = capsys.readouterr()
+    assert (said.out, said.err.count("\n")) == ("", 1)
+    assert "needs IDNA mapping" in said.err
+
+
+def test_a_block_zod_refuses_stops_the_command_in_one_line(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = rewritten(tmp_path, CASES["a literature audit with two faults"]["ops"])
+    assert main(["records", "check", str(root)]) == 1
+    said = capsys.readouterr()
+    assert said.out == ""
+    assert said.err == (
+        "invalid_format:review_date: Invalid string: must match pattern /^\\d{4}-\\d{2}-\\d{2}$/; "
+        "too_small:gaps.0: Too small: expected string to have >=1 characters\n"
+    )
+
+
 def test_the_script_is_the_gate(base: Path, expected: Path) -> None:
     script = SCRIPTS / "verify_store_validation.py"
     command = [sys.executable, str(script), str(base), "--expected", str(expected)]

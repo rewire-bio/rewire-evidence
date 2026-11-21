@@ -6,6 +6,7 @@ import json
 import subprocess
 import sys
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -33,6 +34,8 @@ from rewire_evidence.vocab import VOCAB_DIR, load_schemes, mapping_of, read_mapp
 from tests.test_records import RECORDS, build, link, provenance_of, record
 
 SCRIPTS = Path(__file__).parent.parent / "scripts"
+#: A URL Node reads and this library does not judge: its host needs IDNA mapping.
+IDNA = "https://b\u00fccher.example/"
 SEEDS: dict[str, JsonObject] = {
     "status": {"status": "nope"},
     "facets.areas": {"facets": {"areas": ["nope"]}},
@@ -449,6 +452,34 @@ def test_the_recorded_expectation_is_read_or_refused_by_name(tmp_path: Path) -> 
 
 
 # --- The gate as a command ---------------------------------------------------------------
+
+
+def test_a_store_a_later_validator_refuses_is_a_problem_and_not_a_traceback(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # The loader now runs every validator, and each kind of refusal has to come back as a line.
+    root = tmp_path / "store"
+    build(root)
+    expected = write_recorded(root, tmp_path)
+    profiled: list[Any] = [
+        row if row["id"] != "model-b" else {**row, "attributes": {"profile": {}}} for row in RECORDS
+    ]
+    build(root, profiled)
+    assert schema_gate([str(root)], expected) == 1
+    err = capsys.readouterr().err
+    assert "  load_records refuses the store: invalid_type:summary: Invalid input: expected string" in err
+    undeclared: list[Any] = [
+        row if row["id"] != "model-b" else {**row, "attributes": {"nope": 1}} for row in RECORDS
+    ]
+    build(root, undeclared)
+    assert schema_gate([str(root)], expected) == 1
+    assert "load_records refuses the store: 1 attribute problems:" in capsys.readouterr().err
+    source: dict[str, Any] = dict(RECORDS[0])
+    assert source["id"] == "source-a"
+    unjudged = [{**source, "attributes": {**source["attributes"], "url": IDNA}}, *RECORDS[1:]]
+    build(root, unjudged)
+    assert schema_gate([str(root)], expected) == 2
+    assert capsys.readouterr().err.startswith("Cannot verify: the host ")
 
 
 def test_the_schema_gate_passes_the_store_it_was_recorded_on(

@@ -17,9 +17,9 @@ import os
 from collections.abc import Sequence
 from pathlib import Path
 
-from rewire_evidence.attributes import JsTypeError
+from rewire_evidence.attributes import JsTypeError, said
 from rewire_evidence.canonical import JsonValue, sha256_hex
-from rewire_evidence.js import MISSING, Held, strictly_equal, text_of, truthy
+from rewire_evidence.js import MISSING, Held, strictly_equal, truthy
 from rewire_evidence.schema import Record, RecordError
 
 #: Origins whose evaluation was run by the source's authors or by another paper's authors.
@@ -33,13 +33,6 @@ def _member(value: JsonValue, name: str) -> Held:
     if value is None:
         raise JsTypeError(f"a derivation reads {name} of null")
     return value.get(name, MISSING) if isinstance(value, dict) else MISSING
-
-
-def _said(value: Held) -> str:
-    try:
-        return text_of(value)
-    except TypeError as error:
-        raise JsTypeError(str(error)) from error
 
 
 class _Scripts:
@@ -81,9 +74,9 @@ def derivation_issues(records: Sequence[Record], root: Path) -> list[str]:  # no
         pinned = _member(derivation, "script_sha256")
         actual = scripts.hash_of(script)
         if actual is None:
-            fail(f"script {_said(script)} does not exist")
+            fail(f"script {said(script)} does not exist")
         elif not strictly_equal(actual, pinned):
-            fail(f"script {_said(script)} has sha256 {actual}, not {_said(pinned)}")
+            fail(f"script {said(script)} has sha256 {actual}, not {said(pinned)}")
         if record.attributes.get("numeric_value") is None:
             fail("needs a numeric_value")
         aggregation = _member(derivation, "aggregation_source_id")
@@ -91,38 +84,38 @@ def derivation_issues(records: Sequence[Record], root: Path) -> list[str]:  # no
         if aggregation_source is not None and aggregation_source.kind != "source":
             aggregation_source = None
         if aggregation_source is None:
-            fail(f"aggregation source {_said(aggregation)} is not a source record")
+            fail(f"aggregation source {said(aggregation)} is not a source record")
         inputs = _member(derivation, "inputs")
         if not isinstance(inputs, list):
             raise JsTypeError("a derivation's inputs are not a list")
         for cited in (aggregation, *(_member(each, "source_id") for each in inputs)):
             if not isinstance(cited, str) or cited not in record.source_ids:
-                fail(f"source {_said(cited)} is not in the result's source_ids")
+                fail(f"source {said(cited)} is not in the result's source_ids")
         doi = MISSING if aggregation_source is None else aggregation_source.attributes.get("doi", MISSING)
         for each in inputs:
             source_id = _member(each, "source_id")
             source = by_id.get(source_id) if isinstance(source_id, str) else None
             if source is None or source.kind != "source":
-                fail(f"input {_said(source_id)} is not a source record")
+                fail(f"input {said(source_id)} is not a source record")
                 continue
             held = source.attributes.get("artifact_sha256", MISSING)
             wanted = _member(each, "artifact_sha256")
             if not strictly_equal(held, wanted):
-                has = "none" if held is None or held is MISSING else _said(held)
-                fail(f"input {_said(source_id)} pins sha256 {_said(wanted)}, but the source record has {has}")
+                has = "none" if held is None or held is MISSING else said(held)
+                fail(f"input {said(source_id)} pins sha256 {said(wanted)}, but the source record has {has}")
             # Only the source's own supplementary data counts: the input and the quoted
             # aggregation must come from the same publication.
             if not truthy(doi) or not strictly_equal(source.attributes.get("doi", MISSING), doi):
                 fail(
-                    f"input {_said(source_id)} must be supplementary data of the publication that states "
+                    f"input {said(source_id)} must be supplementary data of the publication that states "
                     "the aggregation (same doi)"
                 )
         target = next((link.target_id for link in record.links if link.relation == "evaluation"), "")
         evaluation = by_id.get(target)
         if evaluation is not None:
             origin = evaluation.attributes.get("origin", MISSING)
-            if _said(origin) not in DERIVABLE_ORIGINS:
-                fail(f"cannot be used on an evaluation with origin {_said(origin)}")
+            if said(origin) not in DERIVABLE_ORIGINS:
+                fail(f"cannot be used on an evaluation with origin {said(origin)}")
     return issues
 
 

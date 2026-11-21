@@ -21,6 +21,7 @@ from hypothesis import strategies as st
 
 from rewire_evidence import blocks, concerns, descriptions
 from rewire_evidence.agreement import agrees, apply_ops, outcome, stage_runners
+from rewire_evidence.attributes import JsTypeError
 from rewire_evidence.canonical import JsonObject, JsonValue, js_value
 from rewire_evidence.derivations import derivation_issues
 from rewire_evidence.descriptions import DESCRIPTION_RULES, description_problems, normalise_description
@@ -297,6 +298,8 @@ def test_a_concern_covers_the_whole_source_unless_it_names_what_it_covers() -> N
     assert not concerns.source_wide_concern(None)
     assert concerns.scope({"applies_to": ["r", 5]}) == ["r", "5"]
     assert concerns.scope({"applies_to": []}) is None
+    with pytest.raises(JsTypeError):
+        concerns.scope({"applies_to": [{"toString": 1}]})
     assert concerns.scope(["x"]) is None
     assert concerns.concern_targets([whole, scoped, described("x")]) == {"r", "5", "e"}
     assert concerns.concern_problems([whole, scoped]) == [

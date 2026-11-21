@@ -34,11 +34,11 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import cast
 
-from rewire_evidence.attributes import JsTypeError, normalize_attributes
+from rewire_evidence.attributes import normalize_attributes, said
 from rewire_evidence.blocks import pinned
 from rewire_evidence.canonical import JsonObject, JsonValue, canonical_json, js_stringify, utf16_key
 from rewire_evidence.concerns import concern_targets, evidence_path, source_wide_concern
-from rewire_evidence.js import MISSING, Held, strictly_equal, text_of, trim, truthy
+from rewire_evidence.js import MISSING, Held, strictly_equal, trim, truthy
 from rewire_evidence.schema import (
     BENCHMARK_SUBJECT_KINDS,
     DATASET_SUBJECT_KINDS,
@@ -72,13 +72,6 @@ class Resolved:
     def result_ids(self) -> list[str]:
         """The results the panel shows."""
         return cast("list[str]", self.panel["result_ids"])
-
-
-def _said(value: Held) -> str:
-    try:
-        return text_of(value)
-    except TypeError as error:
-        raise JsTypeError(str(error)) from error
 
 
 def _record(row: JsonObject) -> Record:
@@ -161,7 +154,7 @@ def panels_of(record: Record) -> list[JsonObject]:  # noqa: C901 - one refusal f
         method = review.get("method") if isinstance(review, dict) else None
         if method != "automated_source_review" or not isinstance(review, dict):
             raise refusal
-        if not _DATE.fullmatch(_said(review.get("date", MISSING))):
+        if not _DATE.fullmatch(said(review.get("date", MISSING))):
             raise refusal
         panels.append(raw)
     return panels
@@ -187,7 +180,7 @@ class Query:
             field = record.attributes.get("field", MISSING)
             for link in record.links:
                 if link.relation == "subject":
-                    self._claimed_text.add((link.target_id, _said(field)))
+                    self._claimed_text.add((link.target_id, said(field)))
                     if isinstance(field, str):
                         self._claimed_exact.add((link.target_id, field))
         self._concerned = concern_targets(held)
@@ -275,7 +268,7 @@ class Query:
         """One result of a panel, with its evaluation and the systems tested, or the refusal."""
 
         def fail(reason: str) -> RecordError:
-            return RecordError(f"Comparison {_said(panel['id'])}: {reason}")
+            return RecordError(f"Comparison {said(panel['id'])}: {reason}")
 
         result = self.by_id.get(result_id)
         if result is None or result.kind != "result" or result.status not in _CHECKED:
@@ -315,7 +308,7 @@ class Query:
 
     def _resolve(self, owner: Record, panel: JsonObject) -> Resolved:  # noqa: C901 - as `_row`
         def fail(reason: str) -> RecordError:
-            return RecordError(f"Comparison {_said(panel['id'])}: {reason}")
+            return RecordError(f"Comparison {said(panel['id'])}: {reason}")
 
         protocol = self.by_id.get(cast("str", panel["protocol_id"]))
         dataset = self.by_id.get(cast("str", panel["dataset_id"]))

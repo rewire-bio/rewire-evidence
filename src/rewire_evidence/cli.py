@@ -30,6 +30,7 @@ from rewire_evidence.records import load_records, parsed
 from rewire_evidence.schema import RecordError, SchemaError
 from rewire_evidence.store import record_files
 from rewire_evidence.vocab import VocabularyError
+from rewire_evidence.weburl import UndecidedHost
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -75,7 +76,7 @@ def main(arguments: Sequence[str] | None = None) -> int:
             said = check_summary(len(load_records(args.root)))
         else:
             said = _descriptions(args.root, as_json=args.json)
-    except (StoreError, VocabularyError, RecordError, SchemaError, OSError) as error:
+    except (StoreError, VocabularyError, RecordError, SchemaError, UndecidedHost, OSError) as error:
         sys.stderr.write(f"{error}\n")
         return 1
     sys.stdout.write(f"{said}\n")

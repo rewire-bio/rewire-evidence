@@ -183,6 +183,11 @@ def test_a_union_reports_the_one_option_that_got_as_far_as_its_checks() -> None:
     assert either.issues(5) == either.issues("x") == ()
 
 
+def test_a_schema_is_always_of_some_type() -> None:
+    with pytest.raises(TypeError, match="abstract"):
+        zod.Schema()  # type: ignore[abstract]
+
+
 def test_a_member_that_must_be_there_and_accepts_anything_is_reported_when_it_is_not() -> None:
     # No schema of the validators has such a member, so this is zod's rule and not a recording.
     schema = zod.strict({"anything": zod.Unknown(), "maybe": zod.optional(zod.Unknown())})

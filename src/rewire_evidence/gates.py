@@ -10,8 +10,9 @@ could not be made. A disagreement never exits 2, and a run that could not be mad
 exits 1, so CI can tell a store that has drifted from a job that was set up wrongly.
 
 A run cannot be made when the store, a vocabulary or an expectation cannot be read, when a
-report cannot be written, or when the operating system refuses anything else the gate
-asks of it. `_run` holds every gate to that: each of those is one line and exit 2.
+report cannot be written, when the operating system refuses anything else the gate asks of
+it, or when a record holds a URL this library does not judge (`weburl.UndecidedHost`).
+`_run` holds every gate to that: each of those is one line and exit 2.
 """
 
 from __future__ import annotations
@@ -34,6 +35,7 @@ from rewire_evidence.parity import (
     verify_store,
 )
 from rewire_evidence.vocab import VocabularyError
+from rewire_evidence.weburl import UndecidedHost
 
 #: Printed in full up to here, so a failure names causes without burying the summary.
 PROBLEMS_SHOWN = 20
@@ -60,7 +62,7 @@ def _run(gate: Callable[[], int]) -> int:
     """
     try:
         return gate()
-    except (StoreError, VocabularyError, OSError) as error:
+    except (StoreError, VocabularyError, UndecidedHost, OSError) as error:
         notes = getattr(error, "__notes__", [])
         _say(f"Cannot verify: {error}{''.join(f' ({note})' for note in notes)}")
         return 2

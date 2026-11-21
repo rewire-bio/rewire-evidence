@@ -84,6 +84,18 @@ class JsTypeError(RecordError):
     """
 
 
+def said(value: object) -> str:
+    """`String(value)` for a JSON value or its absence, as a message or a comparison takes it.
+
+    Raises `JsTypeError` where JavaScript throws a `TypeError`: an object with a member
+    named `toString` has no text.
+    """
+    try:
+        return text_of(value)
+    except TypeError as error:
+        raise JsTypeError(str(error)) from error
+
+
 # ---- the schemas ----------------------------------------------------------------------
 
 _DECIMAL = re.compile(r"[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]+)?")
@@ -606,7 +618,7 @@ def convert_uncertainty(raw: object) -> tuple[object, object]:  # noqa: C901, PL
         return _unreported(get("note", MISSING))
     if UNCERTAINTY.accepts(raw):
         return dict(raw), MISSING
-    kind = text_of(_first(get("type", MISSING), get("kind", MISSING), ""))
+    kind = said(_first(get("type", MISSING), get("kind", MISSING), ""))
     out = _typed_uncertainty(raw, kind)
     for key in ("value", "lower", "upper", "half_width", "center"):
         out[key] = _decimal_text(out.get(key, MISSING))
@@ -719,19 +731,19 @@ def _source_review(attributes: _Loose) -> None:
     review: _Loose = held if isinstance(held, dict) else {}
     method_given = attributes.get("review_method", MISSING)
     if not isinstance(method_given, Missing):
-        said = text_of(method_given)
-        if said == "automated_source_review":
+        given = said(method_given)
+        if given == "automated_source_review":
             method, method_note = "automated-source-review", ""
         else:
             method = (
-                "ai-assisted-source-review" if said.startswith("AI-assisted") else "automated-source-review"
+                "ai-assisted-source-review" if given.startswith("AI-assisted") else "automated-source-review"
             )
-            method_note = said
+            method_note = given
         before = review.get("method", MISSING)
         review["method"] = _distinct([*(before if isinstance(before, list) else []), method])
         if method_note:
             earlier = review.get("method_note", MISSING)
-            review["method_note"] = f"{text_of(earlier)}\n\n{method_note}" if truthy(earlier) else method_note
+            review["method_note"] = f"{said(earlier)}\n\n{method_note}" if truthy(earlier) else method_note
     scope = attributes.get("review_scope", MISSING)
     if not isinstance(scope, Missing):
         review["scope"] = scope
@@ -772,9 +784,9 @@ def _protocol(a: _Loose, missing: _Loose) -> None:
         "mechanism": a.get("uncertainty_mechanism", MISSING),
         "note": a.get("uncertainty_note", MISSING),
     }
-    said = {key: value for key, value in notes.items() if not isinstance(value, Missing)}
-    if said:
-        a["uncertainty_reporting"] = said
+    stated = {key: value for key, value in notes.items() if not isinstance(value, Missing)}
+    if stated:
+        a["uncertainty_reporting"] = stated
     for key in ("uncertainty_definition", "uncertainty_mechanism", "uncertainty_note"):
         a.pop(key, None)
     if isinstance(a.get("uncertainty"), str):
@@ -866,7 +878,7 @@ def _convert(  # noqa: C901, PLR0912, PLR0915 - one branch for each older shape,
     for old, new in (_RENAMED.get(kind, {}) if isinstance(kind, str) else {}).items():
         if old in a:
             if new in a and not same_json(a[new], a[old]):
-                raise RecordError(f"{text_of(row.get('id', MISSING))}: {old} and {new} differ")
+                raise RecordError(f"{said(row.get('id', MISSING))}: {old} and {new} differ")
             if new not in a:
                 a[new] = a[old]
             del a[old]
@@ -886,7 +898,8 @@ def _convert(  # noqa: C901, PLR0912, PLR0915 - one branch for each older shape,
     if kind == "evaluation":
         _evaluation(a, row, by_id)
     if kind == "configuration" and "execution" in a:
-        tested = evaluations.get(text_of(row.get("id", MISSING)), [])
+        record_id = row.get("id")
+        tested = evaluations.get(record_id, []) if isinstance(record_id, str) else []
         if tested and all(
             same_json(_attributes_of(each).get("execution", MISSING), a["execution"]) for each in tested
         ):
@@ -941,21 +954,26 @@ def normalize_attributes(rows: list[JsonObject], lookup: MissingLookup | None = 
     schema's validators accept. A row whose attributes come out as they went in is returned
     as it is, the same object. A changed row is a new row and the one given is not touched.
     The rows must list their keys as JavaScript would, as `js_value` and `Record.row` do.
+    A row is found by its ID as it is written, so an ID that is not text finds nothing.
 
     Raises `RecordError`, as the TypeScript throws, for a record holding one attribute
-    under its older and its current name with different values.
+    under its older and its current name with different values, and `JsTypeError` where the
+    TypeScript fails making text of an object with a member named `toString`.
     """
     by_id: dict[str, JsonObject] = {}
     evaluations: dict[str, list[JsonObject]] = {}
     for row in rows:
-        by_id[text_of(row.get("id", MISSING))] = row
+        record_id = row.get("id")
+        if isinstance(record_id, str):
+            by_id[record_id] = row
     for row in rows:
         if row.get("kind") != "evaluation":
             continue
         links = row.get("links")
         for link in links if isinstance(links, list) else []:
-            if isinstance(link, dict) and link.get("relation") == "system":
-                evaluations.setdefault(text_of(link.get("target_id", MISSING)), []).append(row)
+            target = link.get("target_id") if isinstance(link, dict) else None
+            if isinstance(link, dict) and link.get("relation") == "system" and isinstance(target, str):
+                evaluations.setdefault(target, []).append(row)
     out: list[JsonObject] = []
     for row in rows:
         original = _attributes_of(row)

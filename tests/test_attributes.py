@@ -148,6 +148,51 @@ def test_no_uncertainty_at_all_converts_to_nothing() -> None:
     assert convert_uncertainty(MISSING) == (MISSING, MISSING)
 
 
+def test_a_value_javascript_cannot_make_text_of_is_a_type_error_here_too() -> None:
+    odd = {"toString": 1}
+    refused: list[Any] = [
+        {"id": odd, "kind": "source", "links": [], "attributes": {"license": "MIT", "licence": "BSD"}},
+        {
+            "id": "r",
+            "kind": "result",
+            "links": [],
+            "attributes": {"uncertainty": {"type": odd, "value": "1"}},
+        },
+        {"id": "s", "kind": "source", "links": [], "attributes": {"review_method": odd}},
+        {
+            "id": "s",
+            "kind": "source",
+            "links": [],
+            "attributes": {"review_method": "m", "review": {"method_note": odd}},
+        },
+    ]
+    for row in refused:
+        with pytest.raises(JsTypeError, match="Cannot convert object to primitive value"):
+            normalize_attributes([row])
+    assert attributes.said("x") == "x"
+    assert attributes.said(None) == "null"
+
+
+def test_a_record_is_found_by_its_id_as_it_is_written() -> None:
+    # The TypeScript keys its map by the ID itself, so a link to "5" does not find a record whose ID is 5.
+    rows: list[Any] = [
+        {"id": 5, "kind": "configuration", "links": [], "attributes": {"configuration": 1, "execution": 1}},
+        {
+            "id": "f",
+            "kind": "evaluation",
+            "links": [{"relation": "system", "target_id": 5}],
+            "attributes": {},
+        },
+        {
+            "id": "e",
+            "kind": "evaluation",
+            "links": [{"relation": "system", "target_id": "5"}],
+            "attributes": {"model_configuration": 1, "execution": 1},
+        },
+    ]
+    assert all(now is row for now, row in zip(normalize_attributes(rows), rows, strict=True))
+
+
 def test_a_row_with_no_attributes_or_links_is_left_alone() -> None:
     rows: list[JsonObject] = [
         {"id": "r", "kind": "evaluation"},

@@ -31,12 +31,12 @@ from pathlib import Path
 from typing import cast
 
 from rewire_evidence import blocks
-from rewire_evidence.attributes import JsTypeError, validate_attributes
+from rewire_evidence.attributes import JsTypeError, said, validate_attributes
 from rewire_evidence.canonical import JsonObject, utf16_key
 from rewire_evidence.concerns import validate_concerns
 from rewire_evidence.derivations import validate_derivations
 from rewire_evidence.descriptions import validate_descriptions
-from rewire_evidence.js import MISSING, Held, number_of_text, text_of, trim, truthy
+from rewire_evidence.js import MISSING, Held, number_of_text, trim, truthy
 from rewire_evidence.panels import Resolved, resolve_panels
 from rewire_evidence.schema import Record, RecordError, by_unique_id, check_references
 from rewire_evidence.weburl import protocol_of
@@ -62,10 +62,7 @@ def numeric_value_ok(attributes: JsonObject) -> bool:
 
 def _check_source(record: Record) -> None:
     attributes = record.attributes
-    try:
-        protocol = protocol_of(text_of(attributes.get("url", MISSING)))
-    except TypeError as error:
-        raise JsTypeError(str(error)) from error
+    protocol = protocol_of(said(attributes.get("url", MISSING)))
     if protocol is None:
         raise JsTypeError("Invalid URL")
     if protocol not in {"https:", "http:"}:

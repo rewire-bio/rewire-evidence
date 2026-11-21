@@ -14,9 +14,11 @@ name, and which records a result's value rests on.
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
+from typing import cast
 
+from rewire_evidence.attributes import said
 from rewire_evidence.canonical import JsonValue
-from rewire_evidence.js import MISSING, Held, text_of, trim
+from rewire_evidence.js import MISSING, Held, trim
 from rewire_evidence.schema import Record, RecordError
 
 CONCERN_TARGET_KINDS = (
@@ -60,7 +62,7 @@ def _applies_to(entry: JsonValue) -> Held:
 def scope(entry: JsonValue) -> list[str] | None:
     """The records an entry is limited to, or None if it covers the whole source."""
     named = _applies_to(entry)
-    return [text_of(each) for each in named] if isinstance(named, list) and named else None
+    return [said(each) for each in named] if isinstance(named, list) and named else None
 
 
 def source_wide_concern(source: Record | None) -> bool:
@@ -107,10 +109,10 @@ def concern_problems(records: Sequence[Record]) -> list[str]:
             if not isinstance(named, list) or not named or any(not isinstance(each, str) for each in named):
                 problems.append(f"{record.id}: applies_to must be a non-empty list of record IDs")
                 continue
-            for each in named:
-                target = by_id.get(text_of(each))
+            for each in cast("list[str]", named):
+                target = by_id.get(each)
                 if target is None:
-                    problems.append(f"{record.id}: applies_to names {text_of(each)}, which does not exist")
+                    problems.append(f"{record.id}: applies_to names {each}, which does not exist")
                 elif target.kind not in CONCERN_TARGET_KINDS:
                     problems.append(
                         f"{record.id}: applies_to names {target.kind} {target.id}; "
