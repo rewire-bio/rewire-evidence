@@ -265,7 +265,7 @@ def test_a_small_store_gets_the_findings_the_typescript_gives_it(name: str) -> N
     assert report_tsv(run.findings) == case["tsv"]
 
 
-def test_the_small_stores_raise_every_rule_but_two() -> None:
+def test_the_small_stores_raise_every_rule_the_pack_declares() -> None:
     raised = {
         f"{finding['check']}.{finding['rule']}"
         for case in [*RUNS.values(), *NORMALIZE.values()]
