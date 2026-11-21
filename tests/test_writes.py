@@ -95,7 +95,7 @@ def test_the_cases_are_the_ones_recorded() -> None:
         for case in CASES
         if case["error"] is not None
     )
-    assert kinds == {"Error": 49, "zod": 14, "TypeError": 6, "SyntaxError": 4, "ENOENT": 2}
+    assert kinds == {"Error": 50, "zod": 13, "TypeError": 6, "SyntaxError": 4, "ENOENT": 2}
 
 
 @pytest.mark.parametrize("case", cases())
