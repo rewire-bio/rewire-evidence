@@ -158,7 +158,7 @@ add("two links the same", withField("links", [base.links[0], base.links[0]]));
 add("no links, no sources, no facets, no attributes", text({ ...base, facets: {}, source_ids: [], links: [], attributes: {} }));
 add("an empty description", withField("description", ""));
 add("a name that is one space", withField("name", " "));
-add("text outside ASCII", text({ ...base, name: "Modèle \u{1f9ec}  ", description: "\u0000\u001f\"\\" }));
+add("text outside ASCII", text({ ...base, name: "Mod\u00e8le \u{1f9ec} \u2028", description: "\u0000\u001f\"\\" }));
 add("a lone surrogate in the name", rawField("name", '"a\\ud800b"'));
 for (const id of ["a", "0", "a-0-b", "0-0", "abc123-456def"]) add(`the ID ${id}`, withField("id", id));
 for (const kind of entityKinds) add(`the kind ${kind}`, withField("kind", kind));
@@ -197,7 +197,7 @@ const right = {
 for (const key of keys)
   for (const [name, value] of Object.entries(wrong))
     if (!right[key].includes(name)) add(`${key} is ${name}`, withField(key, value));
-for (const id of ["", "A", "a-", "-a", "a--b", "a b", "a\n", "a_b", "é", "a-B", "１", "a.b", " a", "a\r"])
+for (const id of ["", "A", "a-", "-a", "a--b", "a b", "a\n", "a_b", "\u00e9", "a-B", "\uff11", "a.b", " a", "a\r"])
   add(`the ID ${JSON.stringify(id)}`, withField("id", id));
 for (const kind of ["Model", "unknown", "", "models", "toString", "model "]) add(`the kind ${JSON.stringify(kind)}`, withField("kind", kind));
 add("an empty name", withField("name", ""));
@@ -248,7 +248,7 @@ for (const raw of lengths) add(`name has the length ${raw}`, rawField("name", `{
 for (const raw of ['["x"]', '[1,2]', '[[]]']) add(`name is the list ${raw}`, rawField("name", raw));
 for (const raw of ['[]', '["x"]', '{"length":0}', '{"length":3}', '{}']) add(`a link target is ${raw}`, rawField("links", `[{"relation":"source","target_id":${raw}}]`));
 for (const raw of ['[]', '{"length":0}']) add(`a link relation is ${raw}`, rawField("links", `[{"relation":${raw},"target_id":"x"}]`));
-for (const raw of ['{"length":0}', '1e400', '1.5', '-0']) add(`id is ${raw}`, rawField("id", raw));
+for (const raw of ['{"length":0}', '1e400', '-1e400', '1.5', '-0']) add(`id is ${raw}`, rawField("id", raw));
 add("source_ids is an object with a length", rawField("source_ids", '{"length":0}'));
 add("kind is a number beyond any double", rawField("kind", "1e400"));
 add("the record is a number beyond any double", "1e400");
@@ -530,7 +530,7 @@ const loadCases = [
   loadCase("keys with digits, hyphens and underscores", metric(concept("metric", "source_checked") + concept("metric", "f1-score") + concept("metric", "0") + concept("metric", "a-b_c-9"))),
   loadCase("the first label in the file is the one kept", metric(`:a a skos:Concept ; skos:inScheme <${schemeIri("metric")}> ; skos:prefLabel "premier"@fr , "first"@en , "plain" .\n`)),
   loadCase("a label given before the concept is declared", metric(`:a skos:prefLabel "early" .\n:a skos:inScheme <${schemeIri("metric")}> .\n:a skos:prefLabel "late"@en .\n`)),
-  loadCase("labels with quotes, escapes, line breaks and other scripts", metric(`:a skos:inScheme <${schemeIri("metric")}> ; skos:prefLabel "a \\"quoted\\" \\\\ label\\twith\\ttabs \\u00e9 α \u{1f9ec}"@en .\n:b skos:inScheme <${schemeIri("metric")}> ; skos:prefLabel """two\nlines""" .\n:c skos:inScheme <${schemeIri("metric")}> ; skos:prefLabel 7 .\n:d skos:inScheme <${schemeIri("metric")}> ; skos:prefLabel <https://example.org/label> .\n`)),
+  loadCase("labels with quotes, escapes, line breaks and other scripts", metric(`:a skos:inScheme <${schemeIri("metric")}> ; skos:prefLabel "a \\"quoted\\" \\\\ label\\twith\\ttabs \\u00e9 \u03b1 \u{1f9ec}"@en .\n:b skos:inScheme <${schemeIri("metric")}> ; skos:prefLabel """two\nlines""" .\n:c skos:inScheme <${schemeIri("metric")}> ; skos:prefLabel 7 .\n:d skos:inScheme <${schemeIri("metric")}> ; skos:prefLabel <https://example.org/label> .\n`)),
   loadCase("a file that declares no scheme", { "metric.ttl": `@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n<${schemeIri("metric")}a> skos:prefLabel "a" .\n` }),
   loadCase("an empty file", { "metric.ttl": "" }),
   loadCase("a file that declares another scheme", { "metric.ttl": scheme("direction", concept("direction", "higher")) }),
@@ -597,6 +597,8 @@ const controlledCase = (name, records, mapping = smallMapping, raw = null) => {
   return {
     name,
     input,
+    // The mapping the case is held to, where it is not the one recorded below as `mapping`.
+    mapping: mapping === smallMapping ? null : mapping,
     values: JSON.parse(input).map((record) => controlledValues(mapping, record).map((found) => [found.field, found.scheme, JSON.stringify(found.value)])),
     error: thrown(() => validateVocabularies(mapping, JSON.parse(input), smallSchemes)),
   };
@@ -631,7 +633,7 @@ const controlledCases = [
     held("z", { attributes: { metric: false } }),
     held("zero", { attributes: { metric: 0 } }),
     held("o", { attributes: { metric: { b: 1, a: [2] } } }),
-    held("u", { attributes: { metric: "é \"quoted\"  " } }),
+    held("u", { attributes: { metric: "\u00e9 \"quoted\" \u2028" } }),
   ]),
   controlledCase("a key that is a name on Object.prototype is only a concept if the scheme has it", [held("r", { attributes: { metric: "constructor", unit: "constructor" } })]),
   controlledCase("the number 1 is not the concept 1", [held("r", { attributes: { metric: 1 } }), held("s", { attributes: { metric: "1" } })]),
