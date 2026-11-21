@@ -7164,6 +7164,297 @@
     "concerns": null,
     "records": {"name":"Error","message":"Private field cannot enter a public catalogue release."}
    }
+  },
+  {
+   "name": "one panel result whose evaluation has the comparison \"x\"",
+   "ops": [
+    ["set","agront-2024-fig3e-evaluation-agront-promoter-strength-maize-protoplasts-maize-protoplasts-a-thaliana",["attributes","comparison"],"x"]
+   ],
+   "stages": {
+    "vocabulary": null,
+    "attributes": {"name":"Error","message":"1 attribute problems:\nevaluation agront-2024-fig3e-evaluation-agront-promoter-strength-maize-protoplasts-maize-protoplasts-a-thaliana: comparison is not json: Invalid input"},
+    "derivations": null,
+    "descriptions": null,
+    "concerns": null,
+    "records": {"name":"Error","message":"Comparison agront-2024-fig3e-panel-maize-protoplasts-a-thaliana: mixed split"}
+   }
+  },
+  {
+   "name": "one panel result whose evaluation has the comparison \"\"",
+   "ops": [
+    ["set","agront-2024-fig3e-evaluation-agront-promoter-strength-maize-protoplasts-maize-protoplasts-a-thaliana",["attributes","comparison"],""]
+   ],
+   "stages": {
+    "vocabulary": null,
+    "attributes": {"name":"Error","message":"1 attribute problems:\nevaluation agront-2024-fig3e-evaluation-agront-promoter-strength-maize-protoplasts-maize-protoplasts-a-thaliana: comparison is not json: Invalid input"},
+    "derivations": null,
+    "descriptions": null,
+    "concerns": null,
+    "records": {"name":"Error","message":"Comparison agront-2024-fig3e-panel-maize-protoplasts-a-thaliana: mixed split"}
+   }
+  },
+  {
+   "name": "panel results whose evaluations all have the comparison \"x\"",
+   "ops": [
+    ["set","agront-2024-fig3e-evaluation-agront-promoter-strength-maize-protoplasts-maize-protoplasts-a-thaliana",["attributes","comparison"],"x"],
+    ["set","agront-2024-fig3e-evaluation-cnn-jores-et-al-promoter-strength-maize-protoplasts-maize-protoplasts-a-thaliana",["attributes","comparison"],"x"]
+   ],
+   "stages": {
+    "vocabulary": null,
+    "attributes": {"name":"Error","message":"2 attribute problems:\nevaluation agront-2024-fig3e-evaluation-agront-promoter-strength-maize-protoplasts-maize-protoplasts-a-thaliana: comparison is not json: Invalid input\nevaluation agront-2024-fig3e-evaluation-cnn-jores-et-al-promoter-strength-maize-protoplasts-maize-protoplasts-a-thaliana: comparison is not json: Invalid input"},
+    "derivations": null,
+    "descriptions": null,
+    "concerns": null,
+    "records": null
+   }
+  },
+  {
+   "name": "panel results whose comparisons are text, but for one that is a number",
+   "ops": [
+    ["set","agront-2024-fig3e-evaluation-agront-promoter-strength-maize-protoplasts-maize-protoplasts-a-thaliana",["attributes","comparison"],5],
+    ["set","agront-2024-fig3e-evaluation-cnn-jores-et-al-promoter-strength-maize-protoplasts-maize-protoplasts-a-thaliana",["attributes","comparison"],"x"]
+   ],
+   "stages": {
+    "vocabulary": null,
+    "attributes": {"name":"Error","message":"2 attribute problems:\nevaluation agront-2024-fig3e-evaluation-agront-promoter-strength-maize-protoplasts-maize-protoplasts-a-thaliana: comparison is not json: Invalid input\nevaluation agront-2024-fig3e-evaluation-cnn-jores-et-al-promoter-strength-maize-protoplasts-maize-protoplasts-a-thaliana: comparison is not json: Invalid input"},
+    "derivations": null,
+    "descriptions": null,
+    "concerns": null,
+    "records": {"name":"Error","message":"Comparison agront-2024-fig3e-panel-maize-protoplasts-a-thaliana: mixed split"}
+   }
+  },
+  {
+   "name": "panel results whose comparisons are text, but for one that is a list",
+   "ops": [
+    ["set","agront-2024-fig3e-evaluation-agront-promoter-strength-maize-protoplasts-maize-protoplasts-a-thaliana",["attributes","comparison"],["x"]],
+    ["set","agront-2024-fig3e-evaluation-cnn-jores-et-al-promoter-strength-maize-protoplasts-maize-protoplasts-a-thaliana",["attributes","comparison"],"x"]
+   ],
+   "stages": {
+    "vocabulary": null,
+    "attributes": {"name":"Error","message":"1 attribute problems:\nevaluation agront-2024-fig3e-evaluation-cnn-jores-et-al-promoter-strength-maize-protoplasts-maize-protoplasts-a-thaliana: comparison is not json: Invalid input"},
+    "derivations": null,
+    "descriptions": null,
+    "concerns": null,
+    "records": {"name":"Error","message":"Comparison agront-2024-fig3e-panel-maize-protoplasts-a-thaliana: mixed split"}
+   }
+  },
+  {
+   "name": "a derivation whose aggregation source is its evaluation, which has the input's DOI",
+   "ops": [
+    ["set","perturbation-ahlmann-20261011-result-ed8a-replogle-rpe1-geneformer",["attributes","derivation","aggregation_source_id"],"perturbation-ahlmann-20261011-eval-replogle-rpe1-geneformer"],
+    ["set","perturbation-ahlmann-20261011-eval-replogle-rpe1-geneformer",["attributes","doi"],"10.1038/s41592-025-02772-6"]
+   ],
+   "stages": {
+    "vocabulary": null,
+    "attributes": {"name":"Error","message":"1 attribute problems:\nevaluation perturbation-ahlmann-20261011-eval-replogle-rpe1-geneformer: undeclared attribute doi"},
+    "derivations": {"name":"Error","message":"2 derivation problems:\nresult perturbation-ahlmann-20261011-result-ed8a-replogle-rpe1-geneformer: derivation aggregation source perturbation-ahlmann-20261011-eval-replogle-rpe1-geneformer is not a source record\nresult perturbation-ahlmann-20261011-result-ed8a-replogle-rpe1-geneformer: derivation source perturbation-ahlmann-20261011-eval-replogle-rpe1-geneformer is not in the result's source_ids"},
+    "descriptions": null,
+    "concerns": null,
+    "records": null
+   }
+  },
+  {
+   "name": "a derivation whose aggregation source is its evaluation, with the input's DOI, among the result's sources",
+   "ops": [
+    ["set","perturbation-ahlmann-20261011-result-ed8a-replogle-rpe1-geneformer",["attributes","derivation","aggregation_source_id"],"perturbation-ahlmann-20261011-eval-replogle-rpe1-geneformer"],
+    ["set","perturbation-ahlmann-20261011-eval-replogle-rpe1-geneformer",["attributes","doi"],"10.1038/s41592-025-02772-6"],
+    ["set","perturbation-ahlmann-20261011-result-ed8a-replogle-rpe1-geneformer",["source_ids"],["perturbation-ahlmann-20261011-source-article","perturbation-ahlmann-20261011-source-data-ed-fig8","perturbation-ahlmann-20261011-eval-replogle-rpe1-geneformer"]]
+   ],
+   "stages": {
+    "vocabulary": null,
+    "attributes": {"name":"Error","message":"1 attribute problems:\nevaluation perturbation-ahlmann-20261011-eval-replogle-rpe1-geneformer: undeclared attribute doi"},
+    "derivations": {"name":"Error","message":"1 derivation problems:\nresult perturbation-ahlmann-20261011-result-ed8a-replogle-rpe1-geneformer: derivation aggregation source perturbation-ahlmann-20261011-eval-replogle-rpe1-geneformer is not a source record"},
+    "descriptions": null,
+    "concerns": null,
+    "records": {"name":"Error","message":"Missing source perturbation-ahlmann-20261011-eval-replogle-rpe1-geneformer for perturbation-ahlmann-20261011-result-ed8a-replogle-rpe1-geneformer"}
+   }
+  },
+  {
+   "name": "a derivation whose aggregation source is a model with another DOI",
+   "ops": [
+    ["set","perturbation-ahlmann-20261011-result-ed8a-replogle-rpe1-geneformer",["attributes","derivation","aggregation_source_id"],"benchbench-cloning-20261106-model-claude-mythos-5-1"],
+    ["set","benchbench-cloning-20261106-model-claude-mythos-5-1",["attributes","doi"],"10.1000/other"]
+   ],
+   "stages": {
+    "vocabulary": null,
+    "attributes": {"name":"Error","message":"1 attribute problems:\nmodel benchbench-cloning-20261106-model-claude-mythos-5-1: undeclared attribute doi"},
+    "derivations": {"name":"Error","message":"3 derivation problems:\nresult perturbation-ahlmann-20261011-result-ed8a-replogle-rpe1-geneformer: derivation aggregation source benchbench-cloning-20261106-model-claude-mythos-5-1 is not a source record\nresult perturbation-ahlmann-20261011-result-ed8a-replogle-rpe1-geneformer: derivation source benchbench-cloning-20261106-model-claude-mythos-5-1 is not in the result's source_ids\nresult perturbation-ahlmann-20261011-result-ed8a-replogle-rpe1-geneformer: derivation input perturbation-ahlmann-20261011-source-data-ed-fig8 must be supplementary data of the publication that states the aggregation (same doi)"},
+    "descriptions": null,
+    "concerns": null,
+    "records": null
+   }
+  },
+  {
+   "name": "a derivation whose aggregation source is a model with an empty DOI",
+   "ops": [
+    ["set","perturbation-ahlmann-20261011-result-ed8a-replogle-rpe1-geneformer",["attributes","derivation","aggregation_source_id"],"benchbench-cloning-20261106-model-claude-mythos-5-1"],
+    ["set","benchbench-cloning-20261106-model-claude-mythos-5-1",["attributes","doi"],""]
+   ],
+   "stages": {
+    "vocabulary": null,
+    "attributes": {"name":"Error","message":"1 attribute problems:\nmodel benchbench-cloning-20261106-model-claude-mythos-5-1: undeclared attribute doi"},
+    "derivations": {"name":"Error","message":"3 derivation problems:\nresult perturbation-ahlmann-20261011-result-ed8a-replogle-rpe1-geneformer: derivation aggregation source benchbench-cloning-20261106-model-claude-mythos-5-1 is not a source record\nresult perturbation-ahlmann-20261011-result-ed8a-replogle-rpe1-geneformer: derivation source benchbench-cloning-20261106-model-claude-mythos-5-1 is not in the result's source_ids\nresult perturbation-ahlmann-20261011-result-ed8a-replogle-rpe1-geneformer: derivation input perturbation-ahlmann-20261011-source-data-ed-fig8 must be supplementary data of the publication that states the aggregation (same doi)"},
+    "descriptions": null,
+    "concerns": null,
+    "records": null
+   }
+  },
+  {
+   "name": "a derivation whose script has a name too long for a file",
+   "ops": [
+    ["set","perturbation-ahlmann-20261011-result-ed8a-replogle-rpe1-geneformer",["attributes","derivation","script"],"scripts/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.py"]
+   ],
+   "stages": {
+    "vocabulary": null,
+    "attributes": null,
+    "derivations": {"name":"Error","message":"1 derivation problems:\nresult perturbation-ahlmann-20261011-result-ed8a-replogle-rpe1-geneformer: derivation script scripts/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.py does not exist"},
+    "descriptions": null,
+    "concerns": null,
+    "records": null
+   }
+  },
+  {
+   "name": "a derivation whose script has a path too long for a file",
+   "ops": [
+    ["set","perturbation-ahlmann-20261011-result-ed8a-replogle-rpe1-geneformer",["attributes","derivation","script"],"scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/a.py"]
+   ],
+   "stages": {
+    "vocabulary": null,
+    "attributes": null,
+    "derivations": {"name":"Error","message":"1 derivation problems:\nresult perturbation-ahlmann-20261011-result-ed8a-replogle-rpe1-geneformer: derivation script scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/scripts/a.py does not exist"},
+    "descriptions": null,
+    "concerns": null,
+    "records": null
+   }
+  },
+  {
+   "name": "a derivation whose script name holds a null character",
+   "ops": [
+    ["set","perturbation-ahlmann-20261011-result-ed8a-replogle-rpe1-geneformer",["attributes","derivation","script"],"scripts/a\u0000b.py"]
+   ],
+   "stages": {
+    "vocabulary": null,
+    "attributes": {"name":"Error","message":"1 attribute problems:\nresult perturbation-ahlmann-20261011-result-ed8a-replogle-rpe1-geneformer: derivation is not derivation: Expected a repository-relative path"},
+    "derivations": {"name":"Error","message":"1 derivation problems:\nresult perturbation-ahlmann-20261011-result-ed8a-replogle-rpe1-geneformer: derivation script scripts/a\u0000b.py does not exist"},
+    "descriptions": null,
+    "concerns": null,
+    "records": null
+   }
+  },
+  {
+   "name": "a derivation whose script name holds half a character",
+   "ops": [
+    ["set","perturbation-ahlmann-20261011-result-ed8a-replogle-rpe1-geneformer",["attributes","derivation","script"],"scripts/a\ud800b.py"]
+   ],
+   "stages": {
+    "vocabulary": null,
+    "attributes": {"name":"Error","message":"1 attribute problems:\nresult perturbation-ahlmann-20261011-result-ed8a-replogle-rpe1-geneformer: derivation is not derivation: Expected a repository-relative path"},
+    "derivations": {"name":"Error","message":"1 derivation problems:\nresult perturbation-ahlmann-20261011-result-ed8a-replogle-rpe1-geneformer: derivation script scripts/a\ud800b.py does not exist"},
+    "descriptions": null,
+    "concerns": null,
+    "records": null
+   }
+  },
+  {
+   "name": "a source whose URL has a port of 4,400 zeros and 80",
+   "ops": [
+    ["set","ag-atlas-20261019-source-preprint",["attributes","url"],"http://example.org:0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000080/"]
+   ],
+   "stages": {
+    "vocabulary": null,
+    "attributes": null,
+    "derivations": null,
+    "descriptions": null,
+    "concerns": null,
+    "records": null
+   }
+  },
+  {
+   "name": "a source whose URL has a port of 4,400 ones",
+   "ops": [
+    ["set","ag-atlas-20261019-source-preprint",["attributes","url"],"http://example.org:11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111/"]
+   ],
+   "stages": {
+    "vocabulary": null,
+    "attributes": {"name":"Error","message":"1 attribute problems:\nsource ag-atlas-20261019-source-preprint: url is not url: Invalid URL"},
+    "derivations": null,
+    "descriptions": null,
+    "concerns": null,
+    "records": {"name":"TypeError","message":"Invalid URL"}
+   }
+  },
+  {
+   "name": "a source whose URL has an address that ends in 4,400 ones",
+   "ops": [
+    ["set","ag-atlas-20261019-source-preprint",["attributes","url"],"http://1.2.3.11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111/"]
+   ],
+   "stages": {
+    "vocabulary": null,
+    "attributes": {"name":"Error","message":"1 attribute problems:\nsource ag-atlas-20261019-source-preprint: url is not url: Invalid URL"},
+    "derivations": null,
+    "descriptions": null,
+    "concerns": null,
+    "records": {"name":"TypeError","message":"Invalid URL"}
+   }
+  },
+  {
+   "name": "a source whose URL has an address that ends in 4,400 zeros and 4",
+   "ops": [
+    ["set","ag-atlas-20261019-source-preprint",["attributes","url"],"http://1.2.3.000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000004/"]
+   ],
+   "stages": {
+    "vocabulary": null,
+    "attributes": null,
+    "derivations": null,
+    "descriptions": null,
+    "concerns": null,
+    "records": null
+   }
+  },
+  {
+   "name": "two descriptions that differ in the case of a letter Unicode 16 added",
+   "ops": [
+    ["set","benchbench-cloning-20261106-model-claude-mythos-5-1",["description"],"Scores a sequence Ᲊ."],
+    ["set","benchbench-cloning-20261106-method-claude-code",["description"],"Scores a sequence ᲊ."]
+   ],
+   "stages": {
+    "vocabulary": null,
+    "attributes": null,
+    "derivations": null,
+    "descriptions": {"name":"Error","message":"2 descriptions are not functional. Say what the model, method, pipeline, service, configuration does in one sentence and put provenance in attributes.provenance_note:\nbenchbench-cloning-20261106-method-claude-code: shares its description with a differently named entity (benchbench-cloning-20261106-model-claude-mythos-5-1)\nbenchbench-cloning-20261106-model-claude-mythos-5-1: shares its description with a differently named entity (benchbench-cloning-20261106-method-claude-code)"},
+    "concerns": null,
+    "records": null
+   }
+  },
+  {
+   "name": "two descriptions that differ in the form of a sigma",
+   "ops": [
+    ["set","benchbench-cloning-20261106-model-claude-mythos-5-1",["description"],"ΑΣ scores."],
+    ["set","benchbench-cloning-20261106-method-claude-code",["description"],"ας scores."]
+   ],
+   "stages": {
+    "vocabulary": null,
+    "attributes": null,
+    "derivations": null,
+    "descriptions": {"name":"Error","message":"2 descriptions are not functional. Say what the model, method, pipeline, service, configuration does in one sentence and put provenance in attributes.provenance_note:\nbenchbench-cloning-20261106-method-claude-code: shares its description with a differently named entity (benchbench-cloning-20261106-model-claude-mythos-5-1)\nbenchbench-cloning-20261106-model-claude-mythos-5-1: shares its description with a differently named entity (benchbench-cloning-20261106-method-claude-code)"},
+    "concerns": null,
+    "records": null
+   }
+  },
+  {
+   "name": "two descriptions with a sigma that is final in one and not in the other",
+   "ops": [
+    ["set","benchbench-cloning-20261106-model-claude-mythos-5-1",["description"],"ΑΣ scores."],
+    ["set","benchbench-cloning-20261106-method-claude-code",["description"],"ασ scores."]
+   ],
+   "stages": {
+    "vocabulary": null,
+    "attributes": null,
+    "derivations": null,
+    "descriptions": null,
+    "concerns": null,
+    "records": null
+   }
   }
  ],
  "attribute_types": {
@@ -14885,6 +15176,56 @@
    " ",
    [],
    ""
+  ],
+  [
+   "Ᲊ",
+   [],
+   "ᲊ"
+  ],
+  [
+   "Ɤ Ꟍ Ꟛ Ƛ",
+   [],
+   "ɤ ꟍ ꟛ ƛ"
+  ],
+  [
+   "𐵐𐵥",
+   [],
+   "𐵰𐶅"
+  ],
+  [
+   "ΑΣ",
+   [],
+   "ας"
+  ],
+  [
+   "ΑΣ.Α",
+   [],
+   "ασ.α"
+  ],
+  [
+   "ΑΣʰ",
+   [],
+   "αςʰ"
+  ],
+  [
+   "ΑΣ́ Σ",
+   [],
+   "ας́ σ"
+  ],
+  [
+   "İstanbul",
+   [],
+   "i̇stanbul"
+  ],
+  [
+   "𐐀 𞤀",
+   [],
+   "𐐨 𞤢"
+  ],
+  [
+   "ẞ K Ω",
+   [],
+   "ß k ω"
   ]
  ],
  "private": [
@@ -15290,6 +15631,305 @@
    "files": {},
    "count": 0,
    "error": null
+  }
+ ],
+ "descriptions_command": [
+  {
+   "name": "no files",
+   "files": {},
+   "text": {
+    "status": 0,
+    "stdout": "\n0 records, 0 problems\n",
+    "sha256": "753e6aa3d96c557e8fc319560fba952b8dff6cf3c61ad26a4fb1aab7d9c1c570",
+    "error": null
+   },
+   "json": {
+    "status": 0,
+    "stdout": "[]\n",
+    "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "error": null
+   }
+  },
+  {
+   "name": "nothing to report",
+   "files": {
+    "data/entities/models.jsonl": "{\"id\":\"m1\",\"kind\":\"model\",\"name\":\"Name of m1\",\"description\":\"Predicts the effect of a variant on splicing.\",\"status\":\"needs_review\"}\n"
+   },
+   "text": {
+    "status": 0,
+    "stdout": "\n0 records, 0 problems\n",
+    "sha256": "753e6aa3d96c557e8fc319560fba952b8dff6cf3c61ad26a4fb1aab7d9c1c570",
+    "error": null
+   },
+   "json": {
+    "status": 0,
+    "stdout": "[]\n",
+    "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "error": null
+   }
+  },
+  {
+   "name": "problems of several rules in several kinds",
+   "files": {
+    "data/entities/configurations.jsonl": "{\"id\":\"c1\",\"kind\":\"configuration\",\"name\":\"Name of c1\",\"description\":\"source-reported configuration\",\"status\":\"needs_review\"}\n{\"id\":\"c2\",\"kind\":\"configuration\",\"name\":\"Name of c2\",\"description\":\"Shared text.\",\"status\":\"needs_review\"}\n{\"id\":\"c3\",\"kind\":\"configuration\",\"name\":\"Name of c3\",\"description\":\"Shared text.\",\"status\":\"needs_review\"}\n",
+    "data/entities/methods.jsonl": "{\"id\":\"t1\",\"kind\":\"method\",\"name\":\"Name of t1\",\"description\":\"Shared  TEXT.\",\"status\":\"needs_review\"}\n{\"id\":\"t2\",\"kind\":\"method\",\"name\":\"Name of t2\",\"description\":\"As run in the paper (Table 2).\",\"status\":\"needs_review\"}\n",
+    "data/entities/models.jsonl": "{\"id\":\"m1\",\"kind\":\"model\",\"name\":\"Name of m1\",\"description\":\"candidate catalogue entry\",\"status\":\"needs_review\"}\n{\"id\":\"m2\",\"kind\":\"model\",\"name\":\"Name of m2\",\"description\":\"Shared text.\",\"status\":\"needs_review\"}\n{\"id\":\"m3\",\"kind\":\"model\",\"name\":\"name of M2\",\"description\":\"  shared text.  \",\"status\":\"needs_review\"}\n{\"id\":\"m4\",\"kind\":\"model\",\"name\":\"Name of m4\",\"description\":\"candidate catalogue entry\",\"status\":\"excluded\"}\n",
+    "data/entities/notes.txt": "not a store file\n",
+    "data/entities/pipelines.jsonl": "{\"id\":\"p1\",\"kind\":\"pipeline\",\"name\":\"Name of p1\",\"description\":\"A model (Smith et al. 2020), quoted in the paper.\",\"status\":\"needs_review\"}\n",
+    "data/entities/services.jsonl": "{\"id\":\"s1\",\"kind\":\"service\",\"name\":\"Name of s1\",\"description\":\"not a new execution\",\"status\":\"needs_review\"}\n",
+    "data/entities/sources.jsonl": "{\"id\":\"x1\",\"kind\":\"source\",\"name\":\"Name of x1\",\"description\":\"candidate catalogue entry\",\"status\":\"needs_review\"}\n",
+    "data/evidence/results/0.jsonl": "{\"id\":\"r1\",\"kind\":\"result\",\"name\":\"Name of r1\",\"description\":\"candidate catalogue entry\",\"status\":\"needs_review\"}\n",
+    "data/evidence/results/1.jsonl": "{\"id\":\"m9\",\"kind\":\"model\",\"name\":\"Name of m9\",\"description\":\"identity as reported\",\"status\":\"needs_review\"}\n",
+    "data/evidence/results/notes.txt": "not a store file\n",
+    "data/provenance/records/0.jsonl": "{\"id\":\"m8\",\"kind\":\"model\",\"name\":\"Name of m8\",\"description\":\"candidate catalogue entry\",\"status\":\"needs_review\"}\n"
+   },
+   "text": {
+    "status": 0,
+    "stdout": "c1\tsource-label-placeholder\tsource-reported configuration\nc1\tsource-reported\tsource-reported configuration\nt1\tshared-description\tShared  TEXT.\nt2\tas-run-in\tAs run in the paper (Table 2).\nt2\tlocator-in-parentheses\tAs run in the paper (Table 2).\nm1\tcatalogue-placeholder\tcandidate catalogue entry\nm2\tshared-description\tShared text.\nm3\tshared-description\t  shared text.  \np1\tquoted-in\tA model (Smith et al. 2020), quoted in the paper.\np1\tcitation-in-parentheses\tA model (Smith et al. 2020), quoted in the paper.\ns1\tnot-new-execution\tnot a new execution\nm9\tidentity-as-reported\tidentity as reported\n\n9 records, 12 problems\n  kind configuration: 2\n  kind method: 3\n  kind model: 4\n  kind pipeline: 2\n  kind service: 1\n  rule as-run-in: 1\n  rule catalogue-placeholder: 1\n  rule citation-in-parentheses: 1\n  rule identity-as-reported: 1\n  rule locator-in-parentheses: 1\n  rule not-new-execution: 1\n  rule quoted-in: 1\n  rule shared-description: 3\n  rule source-label-placeholder: 1\n  rule source-reported: 1\n",
+    "sha256": "47dff6caf2a6241fe6273cd12a26b9efb6ea1b37b019939f75132ef225129e91",
+    "error": null
+   },
+   "json": {
+    "status": 0,
+    "stdout": "[\n  {\n    \"id\": \"c1\",\n    \"kind\": \"configuration\",\n    \"description\": \"source-reported configuration\",\n    \"rule\": \"source-label-placeholder\",\n    \"message\": \"placeholder: says only that the configuration label comes from the source\"\n  },\n  {\n    \"id\": \"c1\",\n    \"kind\": \"configuration\",\n    \"description\": \"source-reported configuration\",\n    \"rule\": \"source-reported\",\n    \"message\": \"provenance: source-reported label\"\n  },\n  {\n    \"id\": \"t1\",\n    \"kind\": \"method\",\n    \"description\": \"Shared  TEXT.\",\n    \"rule\": \"shared-description\",\n    \"message\": \"shares its description with a differently named entity\",\n    \"shared_with\": [\n      \"m2\",\n      \"m3\"\n    ]\n  },\n  {\n    \"id\": \"t2\",\n    \"kind\": \"method\",\n    \"description\": \"As run in the paper (Table 2).\",\n    \"rule\": \"as-run-in\",\n    \"message\": \"provenance: says where the record was run, listed or reported\"\n  },\n  {\n    \"id\": \"t2\",\n    \"kind\": \"method\",\n    \"description\": \"As run in the paper (Table 2).\",\n    \"rule\": \"locator-in-parentheses\",\n    \"message\": \"provenance: a source locator in parentheses\"\n  },\n  {\n    \"id\": \"m1\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry\",\n    \"rule\": \"catalogue-placeholder\",\n    \"message\": \"placeholder: catalogue candidate text\"\n  },\n  {\n    \"id\": \"m2\",\n    \"kind\": \"model\",\n    \"description\": \"Shared text.\",\n    \"rule\": \"shared-description\",\n    \"message\": \"shares its description with a differently named entity\",\n    \"shared_with\": [\n      \"t1\"\n    ]\n  },\n  {\n    \"id\": \"m3\",\n    \"kind\": \"model\",\n    \"description\": \"  shared text.  \",\n    \"rule\": \"shared-description\",\n    \"message\": \"shares its description with a differently named entity\",\n    \"shared_with\": [\n      \"t1\"\n    ]\n  },\n  {\n    \"id\": \"p1\",\n    \"kind\": \"pipeline\",\n    \"description\": \"A model (Smith et al. 2020), quoted in the paper.\",\n    \"rule\": \"quoted-in\",\n    \"message\": \"provenance: says where scores were quoted\"\n  },\n  {\n    \"id\": \"p1\",\n    \"kind\": \"pipeline\",\n    \"description\": \"A model (Smith et al. 2020), quoted in the paper.\",\n    \"rule\": \"citation-in-parentheses\",\n    \"message\": \"provenance: a citation in parentheses; sources belong in source_ids\"\n  },\n  {\n    \"id\": \"s1\",\n    \"kind\": \"service\",\n    \"description\": \"not a new execution\",\n    \"rule\": \"not-new-execution\",\n    \"message\": \"provenance: says the scores are not a new execution\"\n  },\n  {\n    \"id\": \"m9\",\n    \"kind\": \"model\",\n    \"description\": \"identity as reported\",\n    \"rule\": \"identity-as-reported\",\n    \"message\": \"placeholder: says only that the identity is as the source reported it\"\n  }\n]\n",
+    "sha256": "f25e26b238f86dc38fe72c084cdbce009d0a38ee3a4dd8899baa630bb4452960",
+    "error": null
+   }
+  },
+  {
+   "name": "half a character in a description",
+   "files": {
+    "data/entities/models.jsonl": "{\"id\":\"m1\",\"kind\":\"model\",\"name\":\"Name of m1\",\"description\":\"candidate catalogue entry \\ud800\",\"status\":\"needs_review\"}\n{\"id\":\"m2\",\"kind\":\"model\",\"name\":\"Name of m2\",\"description\":\"\\udc00 candidate catalogue entry 🧬\",\"status\":\"needs_review\"}\n"
+   },
+   "text": {
+    "status": 0,
+    "stdout": "m1\tcatalogue-placeholder\tcandidate catalogue entry �\nm2\tcatalogue-placeholder\t� candidate catalogue entry 🧬\n\n2 records, 2 problems\n  kind model: 2\n  rule catalogue-placeholder: 2\n",
+    "sha256": "05e32567ebfc301a3dc09cb1a7be7ddfbf869b71b0180bb6985411cab7050ed6",
+    "error": null
+   },
+   "json": {
+    "status": 0,
+    "stdout": "[\n  {\n    \"id\": \"m1\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry \\ud800\",\n    \"rule\": \"catalogue-placeholder\",\n    \"message\": \"placeholder: catalogue candidate text\"\n  },\n  {\n    \"id\": \"m2\",\n    \"kind\": \"model\",\n    \"description\": \"\\udc00 candidate catalogue entry 🧬\",\n    \"rule\": \"catalogue-placeholder\",\n    \"message\": \"placeholder: catalogue candidate text\"\n  }\n]\n",
+    "sha256": "e43446bf7e19eb1e61cddb947054f6dc329a9973c617afce180703e8b6083b4f",
+    "error": null
+   }
+  },
+  {
+   "name": "rows the record schema refuses",
+   "files": {
+    "data/entities/models.jsonl": "{\"id\":\"m1\",\"kind\":\"model\",\"name\":\"Name of m1\",\"description\":\"candidate catalogue entry\",\"status\":\"nonsense\",\"extra\":1}\n{\"id\":\"m2\",\"kind\":\"model\",\"name\":\"Name of m2\",\"description\":5,\"status\":\"needs_review\"}\n{\"id\":\"m3\",\"kind\":\"model\"}\n{\"id\":\"m4\",\"kind\":5,\"name\":\"Name of m4\",\"description\":\"candidate catalogue entry\",\"status\":\"needs_review\"}\n{\"id\":\"m5\",\"kind\":[\"model\"],\"name\":\"Name of m5\",\"description\":\"candidate catalogue entry\",\"status\":\"needs_review\"}\n{\"id\":\"m6\",\"kind\":\"model\",\"name\":\"Name of m6\",\"description\":\"candidate catalogue entry\",\"status\":5}\n{\"id\":\"m7\",\"kind\":\"model\",\"description\":\"candidate catalogue entry\"}\n{\"id\":\"m8\",\"kind\":\"model\",\"name\":5,\"description\":\"candidate catalogue entry\",\"status\":\"needs_review\"}\n{\"id\":\"m9\",\"kind\":\"model\",\"name\":\"Name of m9\",\"description\":\"\",\"status\":\"needs_review\"}\n{\"id\":\"m10\",\"kind\":\"model\",\"name\":\"Name of m10\",\"description\":\"   \",\"status\":\"needs_review\"}\n"
+   },
+   "text": {
+    "status": 1,
+    "stdout": "",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "error": "TypeError"
+   },
+   "json": {
+    "status": 1,
+    "stdout": "",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "error": "TypeError"
+   }
+  },
+  {
+   "name": "rows whose IDs are not text",
+   "files": {
+    "data/entities/models.jsonl": "{\"id\":7,\"kind\":\"model\",\"name\":\"Name of 7\",\"description\":\"candidate catalogue entry\",\"status\":\"needs_review\"}\n{\"id\":\"7\",\"kind\":\"model\",\"name\":\"Name of 7\",\"description\":\"identity as reported\",\"status\":\"needs_review\"}\n{\"id\":7,\"kind\":\"model\",\"name\":\"Name of 7\",\"description\":\"quoted in\",\"status\":\"needs_review\"}\n{\"id\":null,\"kind\":\"model\",\"name\":\"Name of null\",\"description\":\"candidate catalogue entry\",\"status\":\"needs_review\"}\n{\"id\":true,\"kind\":\"model\",\"name\":\"Name of true\",\"description\":\"candidate catalogue entry\",\"status\":\"needs_review\"}\n{\"id\":1,\"kind\":\"model\",\"name\":\"Name of 1\",\"description\":\"candidate catalogue entry\",\"status\":\"needs_review\"}\n{\"id\":[\"a\",\"b\"],\"kind\":\"model\",\"name\":\"Name of a,b\",\"description\":\"candidate catalogue entry\",\"status\":\"needs_review\"}\n{\"id\":[\"a\",\"b\"],\"kind\":\"model\",\"name\":\"Name of a,b\",\"description\":\"candidate catalogue entry\",\"status\":\"needs_review\"}\n{\"id\":{\"a\":1},\"kind\":\"model\",\"name\":\"Name of [object Object]\",\"description\":\"candidate catalogue entry\",\"status\":\"needs_review\"}\n{\"id\":[],\"kind\":\"model\",\"name\":\"Name of \",\"description\":\"candidate catalogue entry\",\"status\":\"needs_review\"}\n{\"id\":1.5e+21,\"kind\":\"model\",\"name\":\"Name of 1.5e+21\",\"description\":\"candidate catalogue entry\",\"status\":\"needs_review\"}\n{\"id\":\"a\\tb\\nc\",\"kind\":\"model\",\"name\":\"Name of a\\tb\\nc\",\"description\":\"candidate catalogue entry\",\"status\":\"needs_review\"}\n{\"kind\":\"model\",\"name\":\"No ID\",\"description\":\"candidate catalogue entry\"}\n"
+   },
+   "text": {
+    "status": 0,
+    "stdout": "7\tcatalogue-placeholder\tcandidate catalogue entry\n7\tshared-description\tcandidate catalogue entry\n7\tidentity-as-reported\tidentity as reported\n7\tquoted-in\tquoted in\nnull\tcatalogue-placeholder\tcandidate catalogue entry\nnull\tshared-description\tcandidate catalogue entry\ntrue\tcatalogue-placeholder\tcandidate catalogue entry\ntrue\tshared-description\tcandidate catalogue entry\n1\tcatalogue-placeholder\tcandidate catalogue entry\n1\tshared-description\tcandidate catalogue entry\na,b\tcatalogue-placeholder\tcandidate catalogue entry\na,b\tshared-description\tcandidate catalogue entry\na,b\tcatalogue-placeholder\tcandidate catalogue entry\na,b\tshared-description\tcandidate catalogue entry\n[object Object]\tcatalogue-placeholder\tcandidate catalogue entry\n[object Object]\tshared-description\tcandidate catalogue entry\n\tcatalogue-placeholder\tcandidate catalogue entry\n\tshared-description\tcandidate catalogue entry\n1.5e+21\tcatalogue-placeholder\tcandidate catalogue entry\n1.5e+21\tshared-description\tcandidate catalogue entry\na\tb\nc\tcatalogue-placeholder\tcandidate catalogue entry\na\tb\nc\tshared-description\tcandidate catalogue entry\nundefined\tcatalogue-placeholder\tcandidate catalogue entry\nundefined\tshared-description\tcandidate catalogue entry\n\n12 records, 24 problems\n  kind model: 24\n  rule catalogue-placeholder: 11\n  rule identity-as-reported: 1\n  rule quoted-in: 1\n  rule shared-description: 11\n",
+    "sha256": "aa651663042404b19af9e20e1a4cdfbc3b3b9b934a5739f4ca28d9a430639db6",
+    "error": null
+   },
+   "json": {
+    "status": 0,
+    "stdout": "[\n  {\n    \"id\": 7,\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry\",\n    \"rule\": \"catalogue-placeholder\",\n    \"message\": \"placeholder: catalogue candidate text\"\n  },\n  {\n    \"id\": 7,\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry\",\n    \"rule\": \"shared-description\",\n    \"message\": \"shares its description with a differently named entity\",\n    \"shared_with\": [\n      null,\n      true,\n      1,\n      [\n        \"a\",\n        \"b\"\n      ],\n      [\n        \"a\",\n        \"b\"\n      ],\n      {\n        \"a\": 1\n      },\n      [],\n      1.5e+21,\n      \"a\\tb\\nc\",\n      null\n    ]\n  },\n  {\n    \"id\": \"7\",\n    \"kind\": \"model\",\n    \"description\": \"identity as reported\",\n    \"rule\": \"identity-as-reported\",\n    \"message\": \"placeholder: says only that the identity is as the source reported it\"\n  },\n  {\n    \"id\": 7,\n    \"kind\": \"model\",\n    \"description\": \"quoted in\",\n    \"rule\": \"quoted-in\",\n    \"message\": \"provenance: says where scores were quoted\"\n  },\n  {\n    \"id\": null,\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry\",\n    \"rule\": \"catalogue-placeholder\",\n    \"message\": \"placeholder: catalogue candidate text\"\n  },\n  {\n    \"id\": null,\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry\",\n    \"rule\": \"shared-description\",\n    \"message\": \"shares its description with a differently named entity\",\n    \"shared_with\": [\n      7,\n      true,\n      1,\n      [\n        \"a\",\n        \"b\"\n      ],\n      [\n        \"a\",\n        \"b\"\n      ],\n      {\n        \"a\": 1\n      },\n      [],\n      1.5e+21,\n      \"a\\tb\\nc\",\n      null\n    ]\n  },\n  {\n    \"id\": true,\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry\",\n    \"rule\": \"catalogue-placeholder\",\n    \"message\": \"placeholder: catalogue candidate text\"\n  },\n  {\n    \"id\": true,\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry\",\n    \"rule\": \"shared-description\",\n    \"message\": \"shares its description with a differently named entity\",\n    \"shared_with\": [\n      7,\n      null,\n      1,\n      [\n        \"a\",\n        \"b\"\n      ],\n      [\n        \"a\",\n        \"b\"\n      ],\n      {\n        \"a\": 1\n      },\n      [],\n      1.5e+21,\n      \"a\\tb\\nc\",\n      null\n    ]\n  },\n  {\n    \"id\": 1,\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry\",\n    \"rule\": \"catalogue-placeholder\",\n    \"message\": \"placeholder: catalogue candidate text\"\n  },\n  {\n    \"id\": 1,\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry\",\n    \"rule\": \"shared-description\",\n    \"message\": \"shares its description with a differently named entity\",\n    \"shared_with\": [\n      7,\n      null,\n      true,\n      [\n        \"a\",\n        \"b\"\n      ],\n      [\n        \"a\",\n        \"b\"\n      ],\n      {\n        \"a\": 1\n      },\n      [],\n      1.5e+21,\n      \"a\\tb\\nc\",\n      null\n    ]\n  },\n  {\n    \"id\": [\n      \"a\",\n      \"b\"\n    ],\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry\",\n    \"rule\": \"catalogue-placeholder\",\n    \"message\": \"placeholder: catalogue candidate text\"\n  },\n  {\n    \"id\": [\n      \"a\",\n      \"b\"\n    ],\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry\",\n    \"rule\": \"shared-description\",\n    \"message\": \"shares its description with a differently named entity\",\n    \"shared_with\": [\n      7,\n      null,\n      true,\n      1,\n      {\n        \"a\": 1\n      },\n      [],\n      1.5e+21,\n      \"a\\tb\\nc\",\n      null\n    ]\n  },\n  {\n    \"id\": [\n      \"a\",\n      \"b\"\n    ],\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry\",\n    \"rule\": \"catalogue-placeholder\",\n    \"message\": \"placeholder: catalogue candidate text\"\n  },\n  {\n    \"id\": [\n      \"a\",\n      \"b\"\n    ],\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry\",\n    \"rule\": \"shared-description\",\n    \"message\": \"shares its description with a differently named entity\",\n    \"shared_with\": [\n      7,\n      null,\n      true,\n      1,\n      {\n        \"a\": 1\n      },\n      [],\n      1.5e+21,\n      \"a\\tb\\nc\",\n      null\n    ]\n  },\n  {\n    \"id\": {\n      \"a\": 1\n    },\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry\",\n    \"rule\": \"catalogue-placeholder\",\n    \"message\": \"placeholder: catalogue candidate text\"\n  },\n  {\n    \"id\": {\n      \"a\": 1\n    },\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry\",\n    \"rule\": \"shared-description\",\n    \"message\": \"shares its description with a differently named entity\",\n    \"shared_with\": [\n      7,\n      null,\n      true,\n      1,\n      [\n        \"a\",\n        \"b\"\n      ],\n      [\n        \"a\",\n        \"b\"\n      ],\n      [],\n      1.5e+21,\n      \"a\\tb\\nc\",\n      null\n    ]\n  },\n  {\n    \"id\": [],\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry\",\n    \"rule\": \"catalogue-placeholder\",\n    \"message\": \"placeholder: catalogue candidate text\"\n  },\n  {\n    \"id\": [],\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry\",\n    \"rule\": \"shared-description\",\n    \"message\": \"shares its description with a differently named entity\",\n    \"shared_with\": [\n      7,\n      null,\n      true,\n      1,\n      [\n        \"a\",\n        \"b\"\n      ],\n      [\n        \"a\",\n        \"b\"\n      ],\n      {\n        \"a\": 1\n      },\n      1.5e+21,\n      \"a\\tb\\nc\",\n      null\n    ]\n  },\n  {\n    \"id\": 1.5e+21,\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry\",\n    \"rule\": \"catalogue-placeholder\",\n    \"message\": \"placeholder: catalogue candidate text\"\n  },\n  {\n    \"id\": 1.5e+21,\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry\",\n    \"rule\": \"shared-description\",\n    \"message\": \"shares its description with a differently named entity\",\n    \"shared_with\": [\n      7,\n      null,\n      true,\n      1,\n      [\n        \"a\",\n        \"b\"\n      ],\n      [\n        \"a\",\n        \"b\"\n      ],\n      {\n        \"a\": 1\n      },\n      [],\n      \"a\\tb\\nc\",\n      null\n    ]\n  },\n  {\n    \"id\": \"a\\tb\\nc\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry\",\n    \"rule\": \"catalogue-placeholder\",\n    \"message\": \"placeholder: catalogue candidate text\"\n  },\n  {\n    \"id\": \"a\\tb\\nc\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry\",\n    \"rule\": \"shared-description\",\n    \"message\": \"shares its description with a differently named entity\",\n    \"shared_with\": [\n      7,\n      null,\n      true,\n      1,\n      [\n        \"a\",\n        \"b\"\n      ],\n      [\n        \"a\",\n        \"b\"\n      ],\n      {\n        \"a\": 1\n      },\n      [],\n      1.5e+21,\n      null\n    ]\n  },\n  {\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry\",\n    \"rule\": \"catalogue-placeholder\",\n    \"message\": \"placeholder: catalogue candidate text\"\n  },\n  {\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry\",\n    \"rule\": \"shared-description\",\n    \"message\": \"shares its description with a differently named entity\",\n    \"shared_with\": [\n      7,\n      null,\n      true,\n      1,\n      [\n        \"a\",\n        \"b\"\n      ],\n      [\n        \"a\",\n        \"b\"\n      ],\n      {\n        \"a\": 1\n      },\n      [],\n      1.5e+21,\n      \"a\\tb\\nc\"\n    ]\n  }\n]\n",
+    "sha256": "c7b3be6f1e041531f4f65129ac51b720afbb45c0f939f5e1660d7fb677f05834",
+    "error": null
+   }
+  },
+  {
+   "name": "a shared description on rows whose IDs are not text",
+   "files": {
+    "data/entities/models.jsonl": "{\"id\":7,\"kind\":\"model\",\"name\":\"Name of 7\",\"description\":\"Shared text.\",\"status\":\"needs_review\"}\n{\"id\":[1],\"kind\":\"model\",\"name\":\"Name of 1\",\"description\":\"Shared text.\",\"status\":\"needs_review\"}\n{\"id\":{\"a\":1},\"kind\":\"model\",\"name\":\"Name of [object Object]\",\"description\":\"Shared text.\",\"status\":\"needs_review\"}\n{\"id\":\"m4\",\"kind\":\"model\",\"name\":\"Name of m4\",\"description\":\"Shared text.\",\"status\":\"needs_review\"}\n{\"id\":7,\"kind\":\"model\",\"name\":\"Name of 7\",\"description\":\"Shared text.\",\"status\":\"needs_review\"}\n"
+   },
+   "text": {
+    "status": 0,
+    "stdout": "7\tshared-description\tShared text.\n1\tshared-description\tShared text.\n[object Object]\tshared-description\tShared text.\nm4\tshared-description\tShared text.\n7\tshared-description\tShared text.\n\n4 records, 5 problems\n  kind model: 5\n  rule shared-description: 5\n",
+    "sha256": "33147db15aec55b565a35bcde43fe0197303c17bee85534b98b77cfb60bf57d1",
+    "error": null
+   },
+   "json": {
+    "status": 0,
+    "stdout": "[\n  {\n    \"id\": 7,\n    \"kind\": \"model\",\n    \"description\": \"Shared text.\",\n    \"rule\": \"shared-description\",\n    \"message\": \"shares its description with a differently named entity\",\n    \"shared_with\": [\n      [\n        1\n      ],\n      {\n        \"a\": 1\n      },\n      \"m4\"\n    ]\n  },\n  {\n    \"id\": [\n      1\n    ],\n    \"kind\": \"model\",\n    \"description\": \"Shared text.\",\n    \"rule\": \"shared-description\",\n    \"message\": \"shares its description with a differently named entity\",\n    \"shared_with\": [\n      7,\n      {\n        \"a\": 1\n      },\n      \"m4\",\n      7\n    ]\n  },\n  {\n    \"id\": {\n      \"a\": 1\n    },\n    \"kind\": \"model\",\n    \"description\": \"Shared text.\",\n    \"rule\": \"shared-description\",\n    \"message\": \"shares its description with a differently named entity\",\n    \"shared_with\": [\n      7,\n      [\n        1\n      ],\n      \"m4\",\n      7\n    ]\n  },\n  {\n    \"id\": \"m4\",\n    \"kind\": \"model\",\n    \"description\": \"Shared text.\",\n    \"rule\": \"shared-description\",\n    \"message\": \"shares its description with a differently named entity\",\n    \"shared_with\": [\n      7,\n      [\n        1\n      ],\n      {\n        \"a\": 1\n      },\n      7\n    ]\n  },\n  {\n    \"id\": 7,\n    \"kind\": \"model\",\n    \"description\": \"Shared text.\",\n    \"rule\": \"shared-description\",\n    \"message\": \"shares its description with a differently named entity\",\n    \"shared_with\": [\n      [\n        1\n      ],\n      {\n        \"a\": 1\n      },\n      \"m4\"\n    ]\n  }\n]\n",
+    "sha256": "6d2831abf5f1f5aff22035fcd9618a37e25536bba73b13ed6cf7d59955385917",
+    "error": null
+   }
+  },
+  {
+   "name": "rows that are not objects",
+   "files": {
+    "data/entities/models.jsonl": "5\n[]\n\"x\"\ntrue\n{\"id\":\"m1\",\"kind\":\"model\",\"name\":\"Name of m1\",\"description\":\"candidate catalogue entry\",\"status\":\"needs_review\"}\n"
+   },
+   "text": {
+    "status": 0,
+    "stdout": "m1\tcatalogue-placeholder\tcandidate catalogue entry\n\n1 records, 1 problems\n  kind model: 1\n  rule catalogue-placeholder: 1\n",
+    "sha256": "581a1dfc1702e53cb62b35a2f43d28a736feaa1d0fbbb697457dba8e480688e6",
+    "error": null
+   },
+   "json": {
+    "status": 0,
+    "stdout": "[\n  {\n    \"id\": \"m1\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry\",\n    \"rule\": \"catalogue-placeholder\",\n    \"message\": \"placeholder: catalogue candidate text\"\n  }\n]\n",
+    "sha256": "08e8cfa6577ed48cc862880d6a88f3adaef5a957b6d18b0eff190e45c5e0da23",
+    "error": null
+   }
+  },
+  {
+   "name": "a row that is null",
+   "files": {
+    "data/entities/models.jsonl": "null\n{\"id\":\"m1\",\"kind\":\"model\",\"name\":\"Name of m1\",\"description\":\"candidate catalogue entry\",\"status\":\"needs_review\"}\n"
+   },
+   "text": {
+    "status": 1,
+    "stdout": "",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "error": "TypeError"
+   },
+   "json": {
+    "status": 1,
+    "stdout": "",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "error": "TypeError"
+   }
+  },
+  {
+   "name": "a line that is not JSON",
+   "files": {
+    "data/entities/models.jsonl": "{\n{\"id\":\"m1\",\"kind\":\"model\",\"name\":\"Name of m1\",\"description\":\"candidate catalogue entry\",\"status\":\"needs_review\"}\n"
+   },
+   "text": {
+    "status": 1,
+    "stdout": "",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "error": "SyntaxError"
+   },
+   "json": {
+    "status": 1,
+    "stdout": "",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "error": "SyntaxError"
+   }
+  },
+  {
+   "name": "a shared description on a row with no name",
+   "files": {
+    "data/entities/models.jsonl": "{\"id\":\"m1\",\"kind\":\"model\",\"name\":\"Name of m1\",\"description\":\"Shared text.\",\"status\":\"needs_review\"}\n{\"id\":\"m2\",\"kind\":\"model\",\"description\":\"Shared text.\"}\n"
+   },
+   "text": {
+    "status": 1,
+    "stdout": "",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "error": "TypeError"
+   },
+   "json": {
+    "status": 1,
+    "stdout": "",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "error": "TypeError"
+   }
+  },
+  {
+   "name": "a shared description on a row whose name is a number",
+   "files": {
+    "data/entities/models.jsonl": "{\"id\":\"m1\",\"kind\":\"model\",\"name\":\"Name of m1\",\"description\":\"Shared text.\",\"status\":\"needs_review\"}\n{\"id\":\"m2\",\"kind\":\"model\",\"name\":5,\"description\":\"Shared text.\",\"status\":\"needs_review\"}\n"
+   },
+   "text": {
+    "status": 1,
+    "stdout": "",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "error": "TypeError"
+   },
+   "json": {
+    "status": 1,
+    "stdout": "",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "error": "TypeError"
+   }
+  },
+  {
+   "name": "a shared description on two rows with one ID and no names",
+   "files": {
+    "data/entities/models.jsonl": "{\"id\":\"m1\",\"kind\":\"model\",\"description\":\"Shared text.\"}\n{\"id\":\"m1\",\"kind\":\"model\",\"description\":\"Shared text.\"}\n"
+   },
+   "text": {
+    "status": 0,
+    "stdout": "\n0 records, 0 problems\n",
+    "sha256": "753e6aa3d96c557e8fc319560fba952b8dff6cf3c61ad26a4fb1aab7d9c1c570",
+    "error": null
+   },
+   "json": {
+    "status": 0,
+    "stdout": "[]\n",
+    "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "error": null
+   }
+  },
+  {
+   "name": "a description shared with a configuration, and one of spaces",
+   "files": {
+    "data/entities/configurations.jsonl": "{\"id\":\"c1\",\"kind\":\"configuration\",\"name\":\"Name of c1\",\"description\":\"Shared text.\",\"status\":\"needs_review\"}\n",
+    "data/entities/models.jsonl": "{\"id\":\"m1\",\"kind\":\"model\",\"name\":\"Name of m1\",\"description\":\"Shared text.\",\"status\":\"needs_review\"}\n{\"id\":\"m2\",\"kind\":\"model\",\"name\":\"Name of m2\",\"description\":\" \",\"status\":\"needs_review\"}\n{\"id\":\"m3\",\"kind\":\"model\",\"name\":\"Name of m3\",\"description\":\" \",\"status\":\"needs_review\"}\n"
+   },
+   "text": {
+    "status": 0,
+    "stdout": "\n0 records, 0 problems\n",
+    "sha256": "753e6aa3d96c557e8fc319560fba952b8dff6cf3c61ad26a4fb1aab7d9c1c570",
+    "error": null
+   },
+   "json": {
+    "status": 0,
+    "stdout": "[]\n",
+    "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "error": null
+   }
+  },
+  {
+   "name": "a blank line, a line of spaces and no final line break",
+   "files": {
+    "data/entities/models.jsonl": "{\"id\":\"m1\",\"kind\":\"model\",\"name\":\"Name of m1\",\"description\":\"candidate catalogue entry\",\"status\":\"needs_review\"}\n\n  \n{\"id\":\"m2\",\"kind\":\"model\",\"name\":\"Name of m2\",\"description\":\"quoted in\",\"status\":\"needs_review\"}"
+   },
+   "text": {
+    "status": 1,
+    "stdout": "",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "error": "SyntaxError"
+   },
+   "json": {
+    "status": 1,
+    "stdout": "",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "error": "SyntaxError"
+   }
+  },
+  {
+   "name": "more problems than a check would list",
+   "files": {
+    "data/entities/models.jsonl": "{\"id\":\"m0\",\"kind\":\"model\",\"name\":\"Name of m0\",\"description\":\"candidate catalogue entry (this paper)\",\"status\":\"needs_review\"}\n{\"id\":\"m1\",\"kind\":\"model\",\"name\":\"Name of m1\",\"description\":\"candidate catalogue entry (this paper)\",\"status\":\"needs_review\"}\n{\"id\":\"m2\",\"kind\":\"model\",\"name\":\"Name of m2\",\"description\":\"candidate catalogue entry (this paper)\",\"status\":\"needs_review\"}\n{\"id\":\"m3\",\"kind\":\"model\",\"name\":\"Name of m3\",\"description\":\"candidate catalogue entry (this paper)\",\"status\":\"needs_review\"}\n{\"id\":\"m4\",\"kind\":\"model\",\"name\":\"Name of m4\",\"description\":\"candidate catalogue entry (this paper)\",\"status\":\"needs_review\"}\n{\"id\":\"m5\",\"kind\":\"model\",\"name\":\"Name of m5\",\"description\":\"candidate catalogue entry (this paper)\",\"status\":\"needs_review\"}\n{\"id\":\"m6\",\"kind\":\"model\",\"name\":\"Name of m6\",\"description\":\"candidate catalogue entry (this paper)\",\"status\":\"needs_review\"}\n{\"id\":\"m7\",\"kind\":\"model\",\"name\":\"Name of m7\",\"description\":\"candidate catalogue entry (this paper)\",\"status\":\"needs_review\"}\n{\"id\":\"m8\",\"kind\":\"model\",\"name\":\"Name of m8\",\"description\":\"candidate catalogue entry (this paper)\",\"status\":\"needs_review\"}\n{\"id\":\"m9\",\"kind\":\"model\",\"name\":\"Name of m9\",\"description\":\"candidate catalogue entry (this paper)\",\"status\":\"needs_review\"}\n{\"id\":\"m10\",\"kind\":\"model\",\"name\":\"Name of m10\",\"description\":\"candidate catalogue entry (this paper)\",\"status\":\"needs_review\"}\n{\"id\":\"m11\",\"kind\":\"model\",\"name\":\"Name of m11\",\"description\":\"candidate catalogue entry (this paper)\",\"status\":\"needs_review\"}\n{\"id\":\"m12\",\"kind\":\"model\",\"name\":\"Name of m12\",\"description\":\"candidate catalogue entry (this paper)\",\"status\":\"needs_review\"}\n{\"id\":\"m13\",\"kind\":\"model\",\"name\":\"Name of m13\",\"description\":\"candidate catalogue entry (this paper)\",\"status\":\"needs_review\"}\n{\"id\":\"m14\",\"kind\":\"model\",\"name\":\"Name of m14\",\"description\":\"candidate catalogue entry (this paper)\",\"status\":\"needs_review\"}\n{\"id\":\"m15\",\"kind\":\"model\",\"name\":\"Name of m15\",\"description\":\"candidate catalogue entry (this paper)\",\"status\":\"needs_review\"}\n{\"id\":\"m16\",\"kind\":\"model\",\"name\":\"Name of m16\",\"description\":\"candidate catalogue entry (this paper)\",\"status\":\"needs_review\"}\n{\"id\":\"m17\",\"kind\":\"model\",\"name\":\"Name of m17\",\"description\":\"candidate catalogue entry (this paper)\",\"status\":\"needs_review\"}\n{\"id\":\"m18\",\"kind\":\"model\",\"name\":\"Name of m18\",\"description\":\"candidate catalogue entry (this paper)\",\"status\":\"needs_review\"}\n{\"id\":\"m19\",\"kind\":\"model\",\"name\":\"Name of m19\",\"description\":\"candidate catalogue entry (this paper)\",\"status\":\"needs_review\"}\n{\"id\":\"m20\",\"kind\":\"model\",\"name\":\"Name of m20\",\"description\":\"candidate catalogue entry (this paper)\",\"status\":\"needs_review\"}\n{\"id\":\"m21\",\"kind\":\"model\",\"name\":\"Name of m21\",\"description\":\"candidate catalogue entry (this paper)\",\"status\":\"needs_review\"}\n{\"id\":\"m22\",\"kind\":\"model\",\"name\":\"Name of m22\",\"description\":\"candidate catalogue entry (this paper)\",\"status\":\"needs_review\"}\n{\"id\":\"m23\",\"kind\":\"model\",\"name\":\"Name of m23\",\"description\":\"candidate catalogue entry (this paper)\",\"status\":\"needs_review\"}\n{\"id\":\"m24\",\"kind\":\"model\",\"name\":\"Name of m24\",\"description\":\"candidate catalogue entry (this paper)\",\"status\":\"needs_review\"}\n"
+   },
+   "text": {
+    "status": 0,
+    "stdout": "m0\tcatalogue-placeholder\tcandidate catalogue entry (this paper)\nm0\tthis-paper\tcandidate catalogue entry (this paper)\nm0\tshared-description\tcandidate catalogue entry (this paper)\nm1\tcatalogue-placeholder\tcandidate catalogue entry (this paper)\nm1\tthis-paper\tcandidate catalogue entry (this paper)\nm1\tshared-description\tcandidate catalogue entry (this paper)\nm2\tcatalogue-placeholder\tcandidate catalogue entry (this paper)\nm2\tthis-paper\tcandidate catalogue entry (this paper)\nm2\tshared-description\tcandidate catalogue entry (this paper)\nm3\tcatalogue-placeholder\tcandidate catalogue entry (this paper)\nm3\tthis-paper\tcandidate catalogue entry (this paper)\nm3\tshared-description\tcandidate catalogue entry (this paper)\nm4\tcatalogue-placeholder\tcandidate catalogue entry (this paper)\nm4\tthis-paper\tcandidate catalogue entry (this paper)\nm4\tshared-description\tcandidate catalogue entry (this paper)\nm5\tcatalogue-placeholder\tcandidate catalogue entry (this paper)\nm5\tthis-paper\tcandidate catalogue entry (this paper)\nm5\tshared-description\tcandidate catalogue entry (this paper)\nm6\tcatalogue-placeholder\tcandidate catalogue entry (this paper)\nm6\tthis-paper\tcandidate catalogue entry (this paper)\nm6\tshared-description\tcandidate catalogue entry (this paper)\nm7\tcatalogue-placeholder\tcandidate catalogue entry (this paper)\nm7\tthis-paper\tcandidate catalogue entry (this paper)\nm7\tshared-description\tcandidate catalogue entry (this paper)\nm8\tcatalogue-placeholder\tcandidate catalogue entry (this paper)\nm8\tthis-paper\tcandidate catalogue entry (this paper)\nm8\tshared-description\tcandidate catalogue entry (this paper)\nm9\tcatalogue-placeholder\tcandidate catalogue entry (this paper)\nm9\tthis-paper\tcandidate catalogue entry (this paper)\nm9\tshared-description\tcandidate catalogue entry (this paper)\nm10\tcatalogue-placeholder\tcandidate catalogue entry (this paper)\nm10\tthis-paper\tcandidate catalogue entry (this paper)\nm10\tshared-description\tcandidate catalogue entry (this paper)\nm11\tcatalogue-placeholder\tcandidate catalogue entry (this paper)\nm11\tthis-paper\tcandidate catalogue entry (this paper)\nm11\tshared-description\tcandidate catalogue entry (this paper)\nm12\tcatalogue-placeholder\tcandidate catalogue entry (this paper)\nm12\tthis-paper\tcandidate catalogue entry (this paper)\nm12\tshared-description\tcandidate catalogue entry (this paper)\nm13\tcatalogue-placeholder\tcandidate catalogue entry (this paper)\nm13\tthis-paper\tcandidate catalogue entry (this paper)\nm13\tshared-description\tcandidate catalogue entry (this paper)\nm14\tcatalogue-placeholder\tcandidate catalogue entry (this paper)\nm14\tthis-paper\tcandidate catalogue entry (this paper)\nm14\tshared-description\tcandidate catalogue entry (this paper)\nm15\tcatalogue-placeholder\tcandidate catalogue entry (this paper)\nm15\tthis-paper\tcandidate catalogue entry (this paper)\nm15\tshared-description\tcandidate catalogue entry (this paper)\nm16\tcatalogue-placeholder\tcandidate catalogue entry (this paper)\nm16\tthis-paper\tcandidate catalogue entry (this paper)\nm16\tshared-description\tcandidate catalogue entry (this paper)\nm17\tcatalogue-placeholder\tcandidate catalogue entry (this paper)\nm17\tthis-paper\tcandidate catalogue entry (this paper)\nm17\tshared-description\tcandidate catalogue entry (this paper)\nm18\tcatalogue-placeholder\tcandidate catalogue entry (this paper)\nm18\tthis-paper\tcandidate catalogue entry (this paper)\nm18\tshared-description\tcandidate catalogue entry (this paper)\nm19\tcatalogue-placeholder\tcandidate catalogue entry (this paper)\nm19\tthis-paper\tcandidate catalogue entry (this paper)\nm19\tshared-description\tcandidate catalogue entry (this paper)\nm20\tcatalogue-placeholder\tcandidate catalogue entry (this paper)\nm20\tthis-paper\tcandidate catalogue entry (this paper)\nm20\tshared-description\tcandidate catalogue entry (this paper)\nm21\tcatalogue-placeholder\tcandidate catalogue entry (this paper)\nm21\tthis-paper\tcandidate catalogue entry (this paper)\nm21\tshared-description\tcandidate catalogue entry (this paper)\nm22\tcatalogue-placeholder\tcandidate catalogue entry (this paper)\nm22\tthis-paper\tcandidate catalogue entry (this paper)\nm22\tshared-description\tcandidate catalogue entry (this paper)\nm23\tcatalogue-placeholder\tcandidate catalogue entry (this paper)\nm23\tthis-paper\tcandidate catalogue entry (this paper)\nm23\tshared-description\tcandidate catalogue entry (this paper)\nm24\tcatalogue-placeholder\tcandidate catalogue entry (this paper)\nm24\tthis-paper\tcandidate catalogue entry (this paper)\nm24\tshared-description\tcandidate catalogue entry (this paper)\n\n25 records, 75 problems\n  kind model: 75\n  rule catalogue-placeholder: 25\n  rule shared-description: 25\n  rule this-paper: 25\n",
+    "sha256": "253f6397d07ce80735cbe6e28c2616917ec3dd4c0db7aa2f2acdc7b85348851a",
+    "error": null
+   },
+   "json": {
+    "status": 0,
+    "stdout": "[\n  {\n    \"id\": \"m0\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"catalogue-placeholder\",\n    \"message\": \"placeholder: catalogue candidate text\"\n  },\n  {\n    \"id\": \"m0\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"this-paper\",\n    \"message\": \"provenance: refers to this paper\"\n  },\n  {\n    \"id\": \"m0\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"shared-description\",\n    \"message\": \"shares its description with a differently named entity\",\n    \"shared_with\": [\n      \"m1\",\n      \"m2\",\n      \"m3\",\n      \"m4\",\n      \"m5\",\n      \"m6\",\n      \"m7\",\n      \"m8\",\n      \"m9\",\n      \"m10\",\n      \"m11\",\n      \"m12\",\n      \"m13\",\n      \"m14\",\n      \"m15\",\n      \"m16\",\n      \"m17\",\n      \"m18\",\n      \"m19\",\n      \"m20\",\n      \"m21\",\n      \"m22\",\n      \"m23\",\n      \"m24\"\n    ]\n  },\n  {\n    \"id\": \"m1\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"catalogue-placeholder\",\n    \"message\": \"placeholder: catalogue candidate text\"\n  },\n  {\n    \"id\": \"m1\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"this-paper\",\n    \"message\": \"provenance: refers to this paper\"\n  },\n  {\n    \"id\": \"m1\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"shared-description\",\n    \"message\": \"shares its description with a differently named entity\",\n    \"shared_with\": [\n      \"m0\",\n      \"m2\",\n      \"m3\",\n      \"m4\",\n      \"m5\",\n      \"m6\",\n      \"m7\",\n      \"m8\",\n      \"m9\",\n      \"m10\",\n      \"m11\",\n      \"m12\",\n      \"m13\",\n      \"m14\",\n      \"m15\",\n      \"m16\",\n      \"m17\",\n      \"m18\",\n      \"m19\",\n      \"m20\",\n      \"m21\",\n      \"m22\",\n      \"m23\",\n      \"m24\"\n    ]\n  },\n  {\n    \"id\": \"m2\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"catalogue-placeholder\",\n    \"message\": \"placeholder: catalogue candidate text\"\n  },\n  {\n    \"id\": \"m2\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"this-paper\",\n    \"message\": \"provenance: refers to this paper\"\n  },\n  {\n    \"id\": \"m2\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"shared-description\",\n    \"message\": \"shares its description with a differently named entity\",\n    \"shared_with\": [\n      \"m0\",\n      \"m1\",\n      \"m3\",\n      \"m4\",\n      \"m5\",\n      \"m6\",\n      \"m7\",\n      \"m8\",\n      \"m9\",\n      \"m10\",\n      \"m11\",\n      \"m12\",\n      \"m13\",\n      \"m14\",\n      \"m15\",\n      \"m16\",\n      \"m17\",\n      \"m18\",\n      \"m19\",\n      \"m20\",\n      \"m21\",\n      \"m22\",\n      \"m23\",\n      \"m24\"\n    ]\n  },\n  {\n    \"id\": \"m3\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"catalogue-placeholder\",\n    \"message\": \"placeholder: catalogue candidate text\"\n  },\n  {\n    \"id\": \"m3\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"this-paper\",\n    \"message\": \"provenance: refers to this paper\"\n  },\n  {\n    \"id\": \"m3\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"shared-description\",\n    \"message\": \"shares its description with a differently named entity\",\n    \"shared_with\": [\n      \"m0\",\n      \"m1\",\n      \"m2\",\n      \"m4\",\n      \"m5\",\n      \"m6\",\n      \"m7\",\n      \"m8\",\n      \"m9\",\n      \"m10\",\n      \"m11\",\n      \"m12\",\n      \"m13\",\n      \"m14\",\n      \"m15\",\n      \"m16\",\n      \"m17\",\n      \"m18\",\n      \"m19\",\n      \"m20\",\n      \"m21\",\n      \"m22\",\n      \"m23\",\n      \"m24\"\n    ]\n  },\n  {\n    \"id\": \"m4\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"catalogue-placeholder\",\n    \"message\": \"placeholder: catalogue candidate text\"\n  },\n  {\n    \"id\": \"m4\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"this-paper\",\n    \"message\": \"provenance: refers to this paper\"\n  },\n  {\n    \"id\": \"m4\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"shared-description\",\n    \"message\": \"shares its description with a differently named entity\",\n    \"shared_with\": [\n      \"m0\",\n      \"m1\",\n      \"m2\",\n      \"m3\",\n      \"m5\",\n      \"m6\",\n      \"m7\",\n      \"m8\",\n      \"m9\",\n      \"m10\",\n      \"m11\",\n      \"m12\",\n      \"m13\",\n      \"m14\",\n      \"m15\",\n      \"m16\",\n      \"m17\",\n      \"m18\",\n      \"m19\",\n      \"m20\",\n      \"m21\",\n      \"m22\",\n      \"m23\",\n      \"m24\"\n    ]\n  },\n  {\n    \"id\": \"m5\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"catalogue-placeholder\",\n    \"message\": \"placeholder: catalogue candidate text\"\n  },\n  {\n    \"id\": \"m5\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"this-paper\",\n    \"message\": \"provenance: refers to this paper\"\n  },\n  {\n    \"id\": \"m5\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"shared-description\",\n    \"message\": \"shares its description with a differently named entity\",\n    \"shared_with\": [\n      \"m0\",\n      \"m1\",\n      \"m2\",\n      \"m3\",\n      \"m4\",\n      \"m6\",\n      \"m7\",\n      \"m8\",\n      \"m9\",\n      \"m10\",\n      \"m11\",\n      \"m12\",\n      \"m13\",\n      \"m14\",\n      \"m15\",\n      \"m16\",\n      \"m17\",\n      \"m18\",\n      \"m19\",\n      \"m20\",\n      \"m21\",\n      \"m22\",\n      \"m23\",\n      \"m24\"\n    ]\n  },\n  {\n    \"id\": \"m6\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"catalogue-placeholder\",\n    \"message\": \"placeholder: catalogue candidate text\"\n  },\n  {\n    \"id\": \"m6\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"this-paper\",\n    \"message\": \"provenance: refers to this paper\"\n  },\n  {\n    \"id\": \"m6\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"shared-description\",\n    \"message\": \"shares its description with a differently named entity\",\n    \"shared_with\": [\n      \"m0\",\n      \"m1\",\n      \"m2\",\n      \"m3\",\n      \"m4\",\n      \"m5\",\n      \"m7\",\n      \"m8\",\n      \"m9\",\n      \"m10\",\n      \"m11\",\n      \"m12\",\n      \"m13\",\n      \"m14\",\n      \"m15\",\n      \"m16\",\n      \"m17\",\n      \"m18\",\n      \"m19\",\n      \"m20\",\n      \"m21\",\n      \"m22\",\n      \"m23\",\n      \"m24\"\n    ]\n  },\n  {\n    \"id\": \"m7\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"catalogue-placeholder\",\n    \"message\": \"placeholder: catalogue candidate text\"\n  },\n  {\n    \"id\": \"m7\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"this-paper\",\n    \"message\": \"provenance: refers to this paper\"\n  },\n  {\n    \"id\": \"m7\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"shared-description\",\n    \"message\": \"shares its description with a differently named entity\",\n    \"shared_with\": [\n      \"m0\",\n      \"m1\",\n      \"m2\",\n      \"m3\",\n      \"m4\",\n      \"m5\",\n      \"m6\",\n      \"m8\",\n      \"m9\",\n      \"m10\",\n      \"m11\",\n      \"m12\",\n      \"m13\",\n      \"m14\",\n      \"m15\",\n      \"m16\",\n      \"m17\",\n      \"m18\",\n      \"m19\",\n      \"m20\",\n      \"m21\",\n      \"m22\",\n      \"m23\",\n      \"m24\"\n    ]\n  },\n  {\n    \"id\": \"m8\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"catalogue-placeholder\",\n    \"message\": \"placeholder: catalogue candidate text\"\n  },\n  {\n    \"id\": \"m8\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"this-paper\",\n    \"message\": \"provenance: refers to this paper\"\n  },\n  {\n    \"id\": \"m8\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"shared-description\",\n    \"message\": \"shares its description with a differently named entity\",\n    \"shared_with\": [\n      \"m0\",\n      \"m1\",\n      \"m2\",\n      \"m3\",\n      \"m4\",\n      \"m5\",\n      \"m6\",\n      \"m7\",\n      \"m9\",\n      \"m10\",\n      \"m11\",\n      \"m12\",\n      \"m13\",\n      \"m14\",\n      \"m15\",\n      \"m16\",\n      \"m17\",\n      \"m18\",\n      \"m19\",\n      \"m20\",\n      \"m21\",\n      \"m22\",\n      \"m23\",\n      \"m24\"\n    ]\n  },\n  {\n    \"id\": \"m9\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"catalogue-placeholder\",\n    \"message\": \"placeholder: catalogue candidate text\"\n  },\n  {\n    \"id\": \"m9\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"this-paper\",\n    \"message\": \"provenance: refers to this paper\"\n  },\n  {\n    \"id\": \"m9\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"shared-description\",\n    \"message\": \"shares its description with a differently named entity\",\n    \"shared_with\": [\n      \"m0\",\n      \"m1\",\n      \"m2\",\n      \"m3\",\n      \"m4\",\n      \"m5\",\n      \"m6\",\n      \"m7\",\n      \"m8\",\n      \"m10\",\n      \"m11\",\n      \"m12\",\n      \"m13\",\n      \"m14\",\n      \"m15\",\n      \"m16\",\n      \"m17\",\n      \"m18\",\n      \"m19\",\n      \"m20\",\n      \"m21\",\n      \"m22\",\n      \"m23\",\n      \"m24\"\n    ]\n  },\n  {\n    \"id\": \"m10\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"catalogue-placeholder\",\n    \"message\": \"placeholder: catalogue candidate text\"\n  },\n  {\n    \"id\": \"m10\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"this-paper\",\n    \"message\": \"provenance: refers to this paper\"\n  },\n  {\n    \"id\": \"m10\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"shared-description\",\n    \"message\": \"shares its description with a differently named entity\",\n    \"shared_with\": [\n      \"m0\",\n      \"m1\",\n      \"m2\",\n      \"m3\",\n      \"m4\",\n      \"m5\",\n      \"m6\",\n      \"m7\",\n      \"m8\",\n      \"m9\",\n      \"m11\",\n      \"m12\",\n      \"m13\",\n      \"m14\",\n      \"m15\",\n      \"m16\",\n      \"m17\",\n      \"m18\",\n      \"m19\",\n      \"m20\",\n      \"m21\",\n      \"m22\",\n      \"m23\",\n      \"m24\"\n    ]\n  },\n  {\n    \"id\": \"m11\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"catalogue-placeholder\",\n    \"message\": \"placeholder: catalogue candidate text\"\n  },\n  {\n    \"id\": \"m11\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"this-paper\",\n    \"message\": \"provenance: refers to this paper\"\n  },\n  {\n    \"id\": \"m11\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"shared-description\",\n    \"message\": \"shares its description with a differently named entity\",\n    \"shared_with\": [\n      \"m0\",\n      \"m1\",\n      \"m2\",\n      \"m3\",\n      \"m4\",\n      \"m5\",\n      \"m6\",\n      \"m7\",\n      \"m8\",\n      \"m9\",\n      \"m10\",\n      \"m12\",\n      \"m13\",\n      \"m14\",\n      \"m15\",\n      \"m16\",\n      \"m17\",\n      \"m18\",\n      \"m19\",\n      \"m20\",\n      \"m21\",\n      \"m22\",\n      \"m23\",\n      \"m24\"\n    ]\n  },\n  {\n    \"id\": \"m12\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"catalogue-placeholder\",\n    \"message\": \"placeholder: catalogue candidate text\"\n  },\n  {\n    \"id\": \"m12\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"this-paper\",\n    \"message\": \"provenance: refers to this paper\"\n  },\n  {\n    \"id\": \"m12\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"shared-description\",\n    \"message\": \"shares its description with a differently named entity\",\n    \"shared_with\": [\n      \"m0\",\n      \"m1\",\n      \"m2\",\n      \"m3\",\n      \"m4\",\n      \"m5\",\n      \"m6\",\n      \"m7\",\n      \"m8\",\n      \"m9\",\n      \"m10\",\n      \"m11\",\n      \"m13\",\n      \"m14\",\n      \"m15\",\n      \"m16\",\n      \"m17\",\n      \"m18\",\n      \"m19\",\n      \"m20\",\n      \"m21\",\n      \"m22\",\n      \"m23\",\n      \"m24\"\n    ]\n  },\n  {\n    \"id\": \"m13\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"catalogue-placeholder\",\n    \"message\": \"placeholder: catalogue candidate text\"\n  },\n  {\n    \"id\": \"m13\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"this-paper\",\n    \"message\": \"provenance: refers to this paper\"\n  },\n  {\n    \"id\": \"m13\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"shared-description\",\n    \"message\": \"shares its description with a differently named entity\",\n    \"shared_with\": [\n      \"m0\",\n      \"m1\",\n      \"m2\",\n      \"m3\",\n      \"m4\",\n      \"m5\",\n      \"m6\",\n      \"m7\",\n      \"m8\",\n      \"m9\",\n      \"m10\",\n      \"m11\",\n      \"m12\",\n      \"m14\",\n      \"m15\",\n      \"m16\",\n      \"m17\",\n      \"m18\",\n      \"m19\",\n      \"m20\",\n      \"m21\",\n      \"m22\",\n      \"m23\",\n      \"m24\"\n    ]\n  },\n  {\n    \"id\": \"m14\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"catalogue-placeholder\",\n    \"message\": \"placeholder: catalogue candidate text\"\n  },\n  {\n    \"id\": \"m14\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"this-paper\",\n    \"message\": \"provenance: refers to this paper\"\n  },\n  {\n    \"id\": \"m14\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"shared-description\",\n    \"message\": \"shares its description with a differently named entity\",\n    \"shared_with\": [\n      \"m0\",\n      \"m1\",\n      \"m2\",\n      \"m3\",\n      \"m4\",\n      \"m5\",\n      \"m6\",\n      \"m7\",\n      \"m8\",\n      \"m9\",\n      \"m10\",\n      \"m11\",\n      \"m12\",\n      \"m13\",\n      \"m15\",\n      \"m16\",\n      \"m17\",\n      \"m18\",\n      \"m19\",\n      \"m20\",\n      \"m21\",\n      \"m22\",\n      \"m23\",\n      \"m24\"\n    ]\n  },\n  {\n    \"id\": \"m15\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"catalogue-placeholder\",\n    \"message\": \"placeholder: catalogue candidate text\"\n  },\n  {\n    \"id\": \"m15\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"this-paper\",\n    \"message\": \"provenance: refers to this paper\"\n  },\n  {\n    \"id\": \"m15\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"shared-description\",\n    \"message\": \"shares its description with a differently named entity\",\n    \"shared_with\": [\n      \"m0\",\n      \"m1\",\n      \"m2\",\n      \"m3\",\n      \"m4\",\n      \"m5\",\n      \"m6\",\n      \"m7\",\n      \"m8\",\n      \"m9\",\n      \"m10\",\n      \"m11\",\n      \"m12\",\n      \"m13\",\n      \"m14\",\n      \"m16\",\n      \"m17\",\n      \"m18\",\n      \"m19\",\n      \"m20\",\n      \"m21\",\n      \"m22\",\n      \"m23\",\n      \"m24\"\n    ]\n  },\n  {\n    \"id\": \"m16\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"catalogue-placeholder\",\n    \"message\": \"placeholder: catalogue candidate text\"\n  },\n  {\n    \"id\": \"m16\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"this-paper\",\n    \"message\": \"provenance: refers to this paper\"\n  },\n  {\n    \"id\": \"m16\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"shared-description\",\n    \"message\": \"shares its description with a differently named entity\",\n    \"shared_with\": [\n      \"m0\",\n      \"m1\",\n      \"m2\",\n      \"m3\",\n      \"m4\",\n      \"m5\",\n      \"m6\",\n      \"m7\",\n      \"m8\",\n      \"m9\",\n      \"m10\",\n      \"m11\",\n      \"m12\",\n      \"m13\",\n      \"m14\",\n      \"m15\",\n      \"m17\",\n      \"m18\",\n      \"m19\",\n      \"m20\",\n      \"m21\",\n      \"m22\",\n      \"m23\",\n      \"m24\"\n    ]\n  },\n  {\n    \"id\": \"m17\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"catalogue-placeholder\",\n    \"message\": \"placeholder: catalogue candidate text\"\n  },\n  {\n    \"id\": \"m17\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"this-paper\",\n    \"message\": \"provenance: refers to this paper\"\n  },\n  {\n    \"id\": \"m17\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"shared-description\",\n    \"message\": \"shares its description with a differently named entity\",\n    \"shared_with\": [\n      \"m0\",\n      \"m1\",\n      \"m2\",\n      \"m3\",\n      \"m4\",\n      \"m5\",\n      \"m6\",\n      \"m7\",\n      \"m8\",\n      \"m9\",\n      \"m10\",\n      \"m11\",\n      \"m12\",\n      \"m13\",\n      \"m14\",\n      \"m15\",\n      \"m16\",\n      \"m18\",\n      \"m19\",\n      \"m20\",\n      \"m21\",\n      \"m22\",\n      \"m23\",\n      \"m24\"\n    ]\n  },\n  {\n    \"id\": \"m18\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"catalogue-placeholder\",\n    \"message\": \"placeholder: catalogue candidate text\"\n  },\n  {\n    \"id\": \"m18\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"this-paper\",\n    \"message\": \"provenance: refers to this paper\"\n  },\n  {\n    \"id\": \"m18\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"shared-description\",\n    \"message\": \"shares its description with a differently named entity\",\n    \"shared_with\": [\n      \"m0\",\n      \"m1\",\n      \"m2\",\n      \"m3\",\n      \"m4\",\n      \"m5\",\n      \"m6\",\n      \"m7\",\n      \"m8\",\n      \"m9\",\n      \"m10\",\n      \"m11\",\n      \"m12\",\n      \"m13\",\n      \"m14\",\n      \"m15\",\n      \"m16\",\n      \"m17\",\n      \"m19\",\n      \"m20\",\n      \"m21\",\n      \"m22\",\n      \"m23\",\n      \"m24\"\n    ]\n  },\n  {\n    \"id\": \"m19\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"catalogue-placeholder\",\n    \"message\": \"placeholder: catalogue candidate text\"\n  },\n  {\n    \"id\": \"m19\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"this-paper\",\n    \"message\": \"provenance: refers to this paper\"\n  },\n  {\n    \"id\": \"m19\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"shared-description\",\n    \"message\": \"shares its description with a differently named entity\",\n    \"shared_with\": [\n      \"m0\",\n      \"m1\",\n      \"m2\",\n      \"m3\",\n      \"m4\",\n      \"m5\",\n      \"m6\",\n      \"m7\",\n      \"m8\",\n      \"m9\",\n      \"m10\",\n      \"m11\",\n      \"m12\",\n      \"m13\",\n      \"m14\",\n      \"m15\",\n      \"m16\",\n      \"m17\",\n      \"m18\",\n      \"m20\",\n      \"m21\",\n      \"m22\",\n      \"m23\",\n      \"m24\"\n    ]\n  },\n  {\n    \"id\": \"m20\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"catalogue-placeholder\",\n    \"message\": \"placeholder: catalogue candidate text\"\n  },\n  {\n    \"id\": \"m20\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"this-paper\",\n    \"message\": \"provenance: refers to this paper\"\n  },\n  {\n    \"id\": \"m20\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"shared-description\",\n    \"message\": \"shares its description with a differently named entity\",\n    \"shared_with\": [\n      \"m0\",\n      \"m1\",\n      \"m2\",\n      \"m3\",\n      \"m4\",\n      \"m5\",\n      \"m6\",\n      \"m7\",\n      \"m8\",\n      \"m9\",\n      \"m10\",\n      \"m11\",\n      \"m12\",\n      \"m13\",\n      \"m14\",\n      \"m15\",\n      \"m16\",\n      \"m17\",\n      \"m18\",\n      \"m19\",\n      \"m21\",\n      \"m22\",\n      \"m23\",\n      \"m24\"\n    ]\n  },\n  {\n    \"id\": \"m21\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"catalogue-placeholder\",\n    \"message\": \"placeholder: catalogue candidate text\"\n  },\n  {\n    \"id\": \"m21\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"this-paper\",\n    \"message\": \"provenance: refers to this paper\"\n  },\n  {\n    \"id\": \"m21\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"shared-description\",\n    \"message\": \"shares its description with a differently named entity\",\n    \"shared_with\": [\n      \"m0\",\n      \"m1\",\n      \"m2\",\n      \"m3\",\n      \"m4\",\n      \"m5\",\n      \"m6\",\n      \"m7\",\n      \"m8\",\n      \"m9\",\n      \"m10\",\n      \"m11\",\n      \"m12\",\n      \"m13\",\n      \"m14\",\n      \"m15\",\n      \"m16\",\n      \"m17\",\n      \"m18\",\n      \"m19\",\n      \"m20\",\n      \"m22\",\n      \"m23\",\n      \"m24\"\n    ]\n  },\n  {\n    \"id\": \"m22\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"catalogue-placeholder\",\n    \"message\": \"placeholder: catalogue candidate text\"\n  },\n  {\n    \"id\": \"m22\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"this-paper\",\n    \"message\": \"provenance: refers to this paper\"\n  },\n  {\n    \"id\": \"m22\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"shared-description\",\n    \"message\": \"shares its description with a differently named entity\",\n    \"shared_with\": [\n      \"m0\",\n      \"m1\",\n      \"m2\",\n      \"m3\",\n      \"m4\",\n      \"m5\",\n      \"m6\",\n      \"m7\",\n      \"m8\",\n      \"m9\",\n      \"m10\",\n      \"m11\",\n      \"m12\",\n      \"m13\",\n      \"m14\",\n      \"m15\",\n      \"m16\",\n      \"m17\",\n      \"m18\",\n      \"m19\",\n      \"m20\",\n      \"m21\",\n      \"m23\",\n      \"m24\"\n    ]\n  },\n  {\n    \"id\": \"m23\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"catalogue-placeholder\",\n    \"message\": \"placeholder: catalogue candidate text\"\n  },\n  {\n    \"id\": \"m23\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"this-paper\",\n    \"message\": \"provenance: refers to this paper\"\n  },\n  {\n    \"id\": \"m23\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"shared-description\",\n    \"message\": \"shares its description with a differently named entity\",\n    \"shared_with\": [\n      \"m0\",\n      \"m1\",\n      \"m2\",\n      \"m3\",\n      \"m4\",\n      \"m5\",\n      \"m6\",\n      \"m7\",\n      \"m8\",\n      \"m9\",\n      \"m10\",\n      \"m11\",\n      \"m12\",\n      \"m13\",\n      \"m14\",\n      \"m15\",\n      \"m16\",\n      \"m17\",\n      \"m18\",\n      \"m19\",\n      \"m20\",\n      \"m21\",\n      \"m22\",\n      \"m24\"\n    ]\n  },\n  {\n    \"id\": \"m24\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"catalogue-placeholder\",\n    \"message\": \"placeholder: catalogue candidate text\"\n  },\n  {\n    \"id\": \"m24\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"this-paper\",\n    \"message\": \"provenance: refers to this paper\"\n  },\n  {\n    \"id\": \"m24\",\n    \"kind\": \"model\",\n    \"description\": \"candidate catalogue entry (this paper)\",\n    \"rule\": \"shared-description\",\n    \"message\": \"shares its description with a differently named entity\",\n    \"shared_with\": [\n      \"m0\",\n      \"m1\",\n      \"m2\",\n      \"m3\",\n      \"m4\",\n      \"m5\",\n      \"m6\",\n      \"m7\",\n      \"m8\",\n      \"m9\",\n      \"m10\",\n      \"m11\",\n      \"m12\",\n      \"m13\",\n      \"m14\",\n      \"m15\",\n      \"m16\",\n      \"m17\",\n      \"m18\",\n      \"m19\",\n      \"m20\",\n      \"m21\",\n      \"m22\",\n      \"m23\"\n    ]\n  }\n]\n",
+    "sha256": "9d7a39569b58f473cc67ffd62a4a62791b6a792cc78fe8079ce807c9e8b3f32c",
+    "error": null
+   }
   }
  ]
 }
