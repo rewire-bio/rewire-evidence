@@ -13,7 +13,10 @@
 //       what the call returned or how it refused, and every file it left different.
 //   scripts/expected/store-recorded-writes.json
 //       addBatch and then applyChanges on a copy of the pinned store, given the data
-//       repository's own reviewer fixture: every store file they left, by its git blob name.
+//       repository's own reviewer fixture, and applyChanges given each changes file
+//       store_changes.mjs writes: every store file they left, by its git blob name.
+//   scripts/expected/changes/*.jsonl
+//       those changes files, as the TypeScript was given them.
 //
 // The functions are called with the scratch folder as their root. The command line is not
 // run: it writes the checkout it is run in, and its SHACL step is not what is recorded here.
@@ -25,6 +28,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { changesText, storeChanges } from "./store_changes.mjs";
 import { CLOCK, DATE, writeCases } from "./write_cases.mjs";
 
 const store = process.cwd();
@@ -127,56 +131,88 @@ const recorded = cases.map((held) => {
   return { ...held, error, returned, after };
 });
 
-// The pinned store itself, with the data repository's own reviewer fixture: a batch of one
-// source, and a changes file that cites it from a model. The store is copied to a scratch
-// folder with the scripts its derivations name, the batch is added and the changes are
-// applied, and every store file left is written down by the name git gives its blob. The
-// write gate replays the same two commands from the pinned commit and has to arrive at these.
+// The pinned store itself. The store is copied to a scratch folder with the scripts its
+// derivations name, the commands of a case are run on the copy, and every store file left is
+// written down by the name git gives its blob. The write gate replays the same commands from
+// the pinned commit and has to arrive at these.
+//
+// The first case is the data repository's own reviewer fixture: a batch of one source, and a
+// changes file that cites it from a model. The others are changes files store_changes.mjs
+// writes from the pinned store, kept in scripts/expected/changes/ as the TypeScript was given
+// them: the data repository holds no other.
 const update = "tests/agents-reviewer-fixtures/update";
 const batchDir = "data/omics/update-9998-20261119";
 const review = "docs/reviews/2026-11-19-update-9998.md";
+const changesDir = "data/omics/changes-recorded-20261121";
+const changesReview = "docs/reviews/2026-11-21-changes-recorded.md";
 const storeFolders = ["data/entities", "data/evidence", "data/provenance"];
 const configuration = ["data/vocab", "data/ontology/mapping.json", "scripts/omics/derive"];
 const blobName = (bytes) => crypto.createHash("sha1").update(`blob ${bytes.length}\0`).update(bytes).digest("hex");
-const copy = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "rewire-evidence-write-store-")));
-for (const folder of [...storeFolders, "scripts/omics/derive"]) fs.cpSync(path.join(store, folder), path.join(copy, folder), { recursive: true });
-globalThis.Date = StoppedDate;
-const added = addBatch(path.join(store, update, "batch.jsonl"), batchDir, copy);
-const changed = applyChanges(path.join(store, update, "changes.jsonl"), batchDir, review, copy);
-globalThis.Date = RealDate;
-const leftFiles = {};
-for (const folder of storeFolders)
-  for (const [file] of Object.entries(filesUnder(copy, folder)).sort(([a], [b]) => (a < b ? -1 : 1))) leftFiles[file] = blobName(fs.readFileSync(path.join(copy, file)));
-const untouched = Object.entries(leftFiles).filter(([file, name]) => name === blobName(fs.readFileSync(path.join(store, file)))).length;
-fs.rmSync(copy, { recursive: true });
-if (added !== 1 || changed.length !== 1) throw new Error(`the reviewer fixture added ${added} records and changed ${changed.length}`);
+
+/** Run a case's commands on a copy of the pinned store. Returns what they amount to and what they left. */
+function onThePinnedStore(run) {
+  const copy = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "rewire-evidence-write-store-")));
+  for (const folder of [...storeFolders, "scripts/omics/derive"]) fs.cpSync(path.join(store, folder), path.join(copy, folder), { recursive: true });
+  globalThis.Date = StoppedDate;
+  const counts = run(copy);
+  globalThis.Date = RealDate;
+  const left = {};
+  for (const folder of storeFolders)
+    for (const [file] of Object.entries(filesUnder(copy, folder)).sort(([a], [b]) => (a < b ? -1 : 1))) left[file] = blobName(fs.readFileSync(path.join(copy, file)));
+  const untouched = Object.entries(left).filter(([file, name]) => name === blobName(fs.readFileSync(path.join(store, file)))).length;
+  fs.rmSync(copy, { recursive: true });
+  return { ...counts, files: Object.keys(left).length, files_untouched: untouched, left };
+}
+
+const fixture = onThePinnedStore((copy) => {
+  const added = addBatch(path.join(store, update, "batch.jsonl"), batchDir, copy);
+  const changed = applyChanges(path.join(store, update, "changes.jsonl"), batchDir, review, copy);
+  if (added !== 1 || changed.length !== 1) throw new Error(`the reviewer fixture added ${added} records and changed ${changed.length}`);
+  return { added, changed: changed.length };
+});
+const pinned = [
+  {
+    name: "The data repository's reviewer fixture, added and applied to the pinned store by the TypeScript",
+    store: recordedFrom.store_ref,
+    steps: [
+      { add: `${update}/batch.jsonl`, batch_dir: batchDir },
+      { changes: `${update}/changes.jsonl`, batch_dir: batchDir, review, date: DATE },
+    ],
+    ...fixture,
+  },
+];
+// A changes file written here is named in its step by its path from scripts/expected/.
+fs.rmSync(path.join(repo, "scripts/expected/changes"), { recursive: true, force: true });
+fs.mkdirSync(path.join(repo, "scripts/expected/changes"));
+for (const { name, about, lines } of storeChanges(store)) {
+  const file = path.join(repo, "scripts/expected/changes", `${name}.jsonl`);
+  fs.writeFileSync(file, changesText(lines));
+  const applied = onThePinnedStore((copy) => {
+    const changed = applyChanges(file, changesDir, changesReview, copy);
+    if (changed.length !== lines.length) throw new Error(`${name} holds ${lines.length} changes and ${changed.length} were applied`);
+    return { added: 0, changed: changed.length };
+  });
+  if (applied.files_untouched === applied.files) throw new Error(`${name} left the pinned store as it was`);
+  pinned.push({
+    name: `${about}, applied to the pinned store by the TypeScript`,
+    store: recordedFrom.store_ref,
+    steps: [{ changes_here: `changes/${name}.jsonl`, batch_dir: changesDir, review: changesReview, date: DATE }],
+    ...applied,
+  });
+}
 fs.writeFileSync(
   path.join(repo, "scripts/expected/store-recorded-writes.json"),
   `${written(
     {
-      recorded_from: { script: recordedFrom.script, store_ref: recordedFrom.store_ref, node: recordedFrom.node, inputs: update },
+      recorded_from: { script: recordedFrom.script, changes: "scripts/fixtures/store_changes.mjs", store_ref: recordedFrom.store_ref, node: recordedFrom.node, inputs: update },
       clock: CLOCK,
       configuration,
-      cases: [
-        {
-          name: "The data repository's reviewer fixture, added and applied to the pinned store by the TypeScript",
-          store: recordedFrom.store_ref,
-          steps: [
-            { add: `${update}/batch.jsonl`, batch_dir: batchDir },
-            { changes: `${update}/changes.jsonl`, batch_dir: batchDir, review, date: DATE },
-          ],
-          added,
-          changed: changed.length,
-          files: Object.keys(leftFiles).length,
-          files_untouched: untouched,
-          left: leftFiles,
-        },
-      ],
+      cases: pinned,
     },
     4,
   )}\n`,
 );
-console.log(`the pinned store: ${added} added and ${changed.length} changed from ${update}, ${Object.keys(leftFiles).length - untouched} of ${Object.keys(leftFiles).length} files left different`);
+for (const held of pinned) console.log(`the pinned store: ${held.added} added and ${held.changed} changed, ${held.files - held.files_untouched} of ${held.files} files left different: ${held.name}`);
 
 fs.writeFileSync(path.join(repo, "tests/fixtures/write-path.json"), `${written({ recorded_from: recordedFrom, clock: CLOCK, date: DATE, stores, cases: recorded }, 2)}\n`);
 const count = (command) => recorded.filter((held) => held.command === command).length;

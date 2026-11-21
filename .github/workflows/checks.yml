@@ -210,10 +210,11 @@ jobs:
   # has to be the merge commit's, by git's own blob names. The clone has the history and no
   # file contents, and the gate fetches the blobs of the stores it lays out.
   #
-  # History has no `records change --changes`, so one more case is a write the TypeScript made
-  # itself: the fixtures job below adds and applies the data repository's reviewer fixture to
-  # the pinned store and records the blob name of every file left, in
-  # scripts/expected/store-recorded-writes.json. The gate replays it from the pinned commit.
+  # History has no `records change --changes`, so three more cases are writes the TypeScript
+  # made itself: the fixtures job below adds and applies the data repository's reviewer fixture
+  # to the pinned store, applies two changes files written from the store, and records the
+  # blob name of every file left each time, in scripts/expected/store-recorded-writes.json.
+  # The gate replays them from the pinned commit.
   writes:
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -252,7 +253,15 @@ jobs:
             fi
           done
 
-      - name: Replay merged batches and changes, and the recorded write
+      # The commands of each case are worked out from the provenance rows its merge changed.
+      # They are worked out again here, so the committed cases are what the script gives for
+      # this history and not something edited afterwards.
+      - name: The cases are what the history states
+        run: |
+          uv run --no-sync python scripts/fixtures/derive_write_cases.py history $(jq -r '.cases[].merge' scripts/expected/store-writes.json) > derived.json
+          diff derived.json scripts/expected/store-writes.json
+
+      - name: Replay merged batches and changes, and the recorded writes
         run: |
           set -o pipefail
           uv run --no-sync python scripts/verify_store_writes.py history --json writes.json 2>&1 | tee writes.log
@@ -305,7 +314,8 @@ jobs:
       # The write path, on small stores in a scratch folder: what addBatch, recordChanges and
       # applyChanges return or refuse, and every file they leave different. It reads the
       # small store the step before wrote into tests/fixtures/validation.json. Then the
-      # reviewer fixture, added and applied to a copy of the pinned store.
+      # reviewer fixture, added and applied to a copy of the pinned store, and two changes
+      # files written from the store by scripts/fixtures/store_changes.mjs.
       - name: Record the write path
         working-directory: store
         run: node_modules/.bin/tsx ../scripts/fixtures/record_write_fixture.mjs
@@ -327,6 +337,7 @@ jobs:
             scripts/expected/store-schema.json
             scripts/expected/store-validation.json
             scripts/expected/store-recorded-writes.json
+            scripts/expected/changes
             src/rewire_evidence/data/attribute-registry.json
             src/rewire_evidence/data/lowercase.json
           if-no-files-found: ignore

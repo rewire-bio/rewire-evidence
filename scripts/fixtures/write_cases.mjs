@@ -162,6 +162,35 @@ export function writeCases(tiny) {
   add("a link to a record that is not there", false, { files: noResult, input: batch({ ...result, links: [{ relation: "evaluation", target_id: "no-such-evaluation" }] }) });
   add("a source that is not there", false, { files: noResult, input: batch({ ...result, source_ids: ["no-such-source"] }) });
   add("a result with no printed value", false, { files: noResult, input: batch({ ...result, attributes: { ...result.attributes, printed_value: " " } }) });
+  // The validators after the first two, each on its own and then in pairs, so that the one
+  // that answers says which runs first. The store holds everything but the method's chain,
+  // or everything but the result, and the batch brings the rest.
+  const derivedResult = {
+    ...result,
+    attributes: {
+      ...result.attributes,
+      derivation: {
+        method: "computed-from-source-data",
+        inputs: [{ source_id: result.source_ids[1], artifact_sha256: records.find((record) => record.id === result.source_ids[1]).attributes.artifact_sha256, locator: "Table S9", row_filter: "every row", row_count: 1 }],
+        aggregation: "The count of true positives",
+        aggregation_source_id: result.source_ids[0],
+        aggregation_locator: "Table S9 legend",
+        script: "scripts/omics/derive/no-such-script.py",
+        script_sha256: sha256("no such script"),
+        precision: "Exact",
+      },
+    },
+  };
+  const concerned = (...named) => ({ ...methodOnly[0], attributes: { ...methodOnly[0].attributes, evidence_concerns: [{ message: "A concern.", applies_to: named }] } });
+  const again = { ...method, id: `${method.id}-again`, name: "Another name" };
+  const dangling = { ...result, links: [{ relation: "evaluation", target_id: "no-such-evaluation" }] };
+  const brought = (...changed) => batch(...[result, ...methodOnly, method, evaluation, configuration].map((record) => changed.find((other) => other.id === record.id) ?? record), ...changed.filter((other) => !chain.some((record) => record.id === other.id)));
+  add("a derivation whose script is not there, on sources the store holds", false, { files: noResult, input: batch(derivedResult) });
+  add("a scoped concern naming a record that is not there", false, { files: without(...chain), input: brought(concerned("no-such-record")) });
+  add("a scoped concern naming a record the store holds", true, { files: without(...chain), input: brought(concerned(dataset.id)) });
+  add("a description the batch has under two names and a derivation whose script is not there", false, { files: without(...chain), input: brought(again, derivedResult) });
+  add("a derivation whose script is not there and a scoped concern naming a record that is not there", false, { files: without(...chain), input: brought(derivedResult, concerned("no-such-record")) });
+  add("a scoped concern naming a record that is not there and a link to a record that is not there", false, { files: without(...chain), input: brought(concerned("no-such-record"), dangling) });
   add("a description the store already has under another name", null, { input: batch({ ...method, id: `${method.id}-again`, name: "Another name" }) });
   add("a description that says where it was found", null, { input: batch({ ...method, id: `${method.id}-again`, name: "Another name", description: "See Table 2 of the paper." }) });
   add("an attribute its kind does not declare, in a store with a description that says where it was found", false, {
