@@ -23,6 +23,7 @@ import json
 import math
 import re
 from collections.abc import Iterable, Sequence
+from fractions import Fraction
 from importlib import resources
 from typing import cast
 
@@ -54,6 +55,8 @@ SPACE_CLASS = r"\t\n\v\f\r \u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u30
 DOT = r"[^\n\r\u2028\u2029]"
 
 _DECIMAL = re.compile(r"[+-]?(?:Infinity|(?:[0-9]+\.?[0-9]*|\.[0-9]+)(?:[eE][+-]?[0-9]+)?)")
+#: `toFixed` writes a number this large as `String` does.
+_FIXED_BELOW = 1e21
 _RADIX = re.compile(r"0[xX][0-9a-fA-F]+|0[oO][0-7]+|0[bB][01]+")
 
 
@@ -287,3 +290,29 @@ def unit_text(text: str) -> str:
         return text
     data = text.encode("utf-16-le", "surrogatepass")
     return "".join(chr(int.from_bytes(data[at : at + 2], "little")) for at in range(0, len(data), 2))
+
+
+def paired(text: str) -> str:
+    """Text in units as whole characters: each pair of surrogates becomes the character it spells.
+
+    The inverse of `unit_text`. Half a character with no other half beside it stays as it is.
+    """
+    if text.isascii():
+        return text
+    return text.encode("utf-16-le", "surrogatepass").decode("utf-16-le", "surrogatepass")
+
+
+def fixed(value: float, digits: int) -> str:
+    """`value.toFixed(digits)`, for 0 to 100 digits.
+
+    JavaScript takes the nearest number with that many decimals to the exact value of the
+    double, and the larger of two that are equally near. Python's `%.1f` takes the even one,
+    so it writes 0.25 as 0.2 where JavaScript writes 0.3. A number of 1e21 or more, and one
+    that is not a number, is written as `String` writes it.
+    """
+    if not abs(value) < _FIXED_BELOW:
+        return "NaN" if math.isnan(value) else js_string(value)
+    scaled = abs(Fraction(value)) * 10**digits
+    whole = str((2 * scaled.numerator + scaled.denominator) // (2 * scaled.denominator)).rjust(digits + 1, "0")
+    sign = "-" if value < 0 else ""
+    return f"{sign}{whole[:-digits]}.{whole[-digits:]}" if digits else f"{sign}{whole}"
