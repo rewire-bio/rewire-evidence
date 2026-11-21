@@ -28,7 +28,7 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import {
   applyOps, applyValueOps, attributeCases, closed, damage, descriptionTexts, examples, inherited, loadCases,
-  normalizeCases, palette, privateValues, selectBase, uncertaintyValues, validatorCases,
+  normalizeCases, palette, privateValues, selectBase, uncertaintyValues, validatorCases, handwritten,
 } from "./validation_cases.mjs";
 
 const store = process.cwd();
@@ -200,7 +200,8 @@ const structured = {
 };
 const schemaCases = {};
 let schemaCount = 0;
-for (const [name, list] of Object.entries(examples(base))) {
+const exampleValues = examples(base);
+for (const [name, list] of Object.entries(exampleValues)) {
   const schema = structured[name];
   schemaCases[name] = list.map((example, index) => {
     const whole = parsedBy(schema, example);
@@ -210,6 +211,8 @@ for (const [name, list] of Object.entries(examples(base))) {
     return { example, cases: damaged };
   });
 }
+
+const writtenCases = Object.fromEntries(Object.entries(handwritten(exampleValues)).map(([name, texts]) => [name, texts.map((text) => [text, parsedBy(structured[name], JSON.parse(text))])]));
 
 // ---------------------------------------------------------------------------------------
 // 5. attributeIssues, normalizeAttributes, descriptions, private fields
@@ -388,6 +391,8 @@ write(
     attribute_types: { palette: palette.map((value) => JSON.stringify(value)), outcomes: typeOutcomes },
     // Each case is the operations on the example and the issues zod reports, none if it parses.
     schemas: schemaCases,
+    // Values written for the rules a schema states across its members, each as JSON text.
+    written: writtenCases,
     attribute_issues: issueCases,
     base_attribute_issues: { values: short, records: baseIssues },
     normalize: normalizeRecorded,

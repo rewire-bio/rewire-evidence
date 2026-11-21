@@ -11,7 +11,9 @@
 //   tests/fixtures/js-semantics.json  Behaviour the store holds no example of: key order,
 //                                     integers a double cannot hold, numbers beyond any double,
 //                                     lone surrogates, the UTF-8 bytes a string is hashed
-//                                     as, string comparison, and what JSON.parse refuses.
+//                                     as, string comparison, what JSON.parse refuses, what counts
+//                                     as true, trimming, Number of text, lowercase, strict
+//                                     equality, localeCompare on record IDs, and the URL parser.
 //
 // CI runs this and fails if either file changes, so a fixture cannot drift from the script
 // that claims to have produced it.
@@ -119,6 +121,110 @@ const refuses = (text) => {
   }
 };
 
+
+// What the validators lean on: which values count as true, what trim removes, what Number
+// makes of text, lowercase, slices and lengths in UTF-16 units, and strict equality.
+const values = [
+  "null", "true", "false", "0", "-0", "1", "0.5", "1e400", '""', '" "', '"0"', '"false"', "[]", "[0]", "{}", '{"a":null}',
+];
+const spaced = [
+  "", " ", "a", " a ", "\t\n\v\f\r a \t\n\v\f\r", "\u00a0a\u00a0", "\ufeffa\ufeff", "\u1680a\u1680", "\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200aa",
+  "\u2028a\u2029", "\u202fa\u205f\u3000", "\u001ca\u001f", "\u0085a\u0085", "\u200ba\u200b", "\u180ea", "a b", "\u0000a\u0000",
+];
+const numerals = [
+  "", " ", "0", "-0", "+5", "5.", ".5", "5e3", "5E-3", "1e400", "-1e400", "Infinity", "-Infinity", "+Infinity", "infinity", "NaN", "abc", "5x", "0x10", "0X1f",
+  "0x", "0b101", "0B11", "0o17", "0O7", "-0x10", "+0x10", "0x1p3", "1_000", "1,5", " 12 ", "\t12\n", "\u00a012\ufeff", "\u200b12", "1 2", "١٢", "１２", "0.1e-7", "00012",
+  "9007199254740993", "0x20000000000001", "1e", "e5", ".", "+", "-", "++5", "5e+", "0x" + "f".repeat(300),
+];
+const cased = ["ABC", "Named Model", "İstanbul", "ΑΣ", "ΑΣ Σ", "ΌΣΟΣ", "ǅ", "ẞ", "K", "Å", "ſ", "\ud801\udc00", "\ud800A"];
+const sliced = [["2026-11-18T00:00:00Z", 10], ["2026", 10], ["", 10], ["\ud83e\uddec2026-11-18", 10], ["123456789\ud83e\uddec", 10], ["\ud800123456789", 10]];
+const equal = [
+  ["1", "1.0"], ["1", "1"], ["0", "-0"], ["1", "true"], ["0", "false"], ["0", '""'], ["null", "null"], ["null", "0"], ['"a"', '"a"'], ['"a"', '"A"'],
+  ['"1"', "1"], ["[]", "[]"], ["{}", "{}"], ["[1]", "[1]"], ["true", "true"], ["1e400", "1e400"], ["1e400", "-1e400"], ['"\\ud83e\\uddec"', '"\\ud83e\\uddec"'],
+];
+
+// The catalogue query sorts record IDs with localeCompare. For IDs of lowercase letters,
+// digits and hyphens that is the order of their UTF-16 units, which is what the port sorts by.
+const idLists = [
+  ["b", "a", "a-b", "ab", "a0", "a-0", "a", "0", "-", "a--b", "a-", "z9", "z-9", "10", "9", "1-0"],
+  ["paper-result-10", "paper-result-9", "paper-result-1a", "paper-result-a1", "paper-result", "paper-results", "paper-result-", "paper"],
+  ["reported-task-9f9ab0090f6522", "reported-task-9f9ab0090f6522-a", "reported-task-9f9ab0090f65220", "reported-task-9f9ab0090f652", "reported-task-a", "reported-task-0"],
+];
+let idState = 20261121;
+const idNext = () => {
+  idState = (idState + 0x6d2b79f5) >>> 0;
+  let t = idState;
+  t = Math.imul(t ^ (t >>> 15), t | 1);
+  t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+};
+const idAlphabet = "abcxyz019-";
+for (let list = 0; list < 6; list += 1) {
+  const ids = new Set();
+  while (ids.size < 60) {
+    let id = "";
+    const length = 1 + Math.floor(idNext() * 6);
+    for (let i = 0; i < length; i += 1) id += idAlphabet[Math.floor(idNext() * idAlphabet.length)];
+    ids.add(id);
+  }
+  idLists.push([...ids]);
+}
+
+// What the URL parser makes of an input: the protocol it finds, or null where it throws.
+// zod's .url() and the source URL check of validateRecords both rest on it.
+const urls = [
+  "https://example.org/a", "http://example.org", "HTTP://EXAMPLE.ORG", " https://example.org ", "\thttps://example.org\n", "https://exa mple.org", "https://exa\tmple.org", "https://exa\nmple.org",
+  "ftp://example.org/a.pdf", "mailto:someone@example.org", "example.org", "/a/b.txt", "//example.org/a", "https://", "https:", "https:/", "https:///", "https:///example.org", "http:example.org", "https:\\\\example.org", "https:/example.org",
+  "c:/x", "c:\\x", "file:///tmp/a.pdf", "file://host/a", "file://c:/a", "file://c|/a", "file://ho st/a", "file:a", "file:", "file://", "file://localhost/a", "file://[::1]/a", "file://1.2.3.4.5/a", "file://%00/a",
+  "not a url", "", " ", "a", "a:", "a:b", "1a:b", "+a:b", "a+b-c.d:e", "a b:c", ":a", "://a", "data:text/plain,x", "javascript:void(0)", "urn:isbn:1", "foo://", "foo:///a", "foo://a b", "foo://a%20b", "foo://a^b", "foo://a|b", "foo://a<b", "foo://a:80", "foo://:80", "foo://a:b", "foo://[::1]", "foo://[::1", "foo://a@", "foo://@a",
+  "https://user@example.org", "https://user:pass@example.org", "https://@example.org", "https://user@", "https://user:pass@", "https://@", "https://a@b@c", "https://a@b@", "https://:@example.org", "https://example.org:", "https://example.org:80", "https://example.org:080", "https://example.org:65535", "https://example.org:65536",
+  "https://example.org:99999", "https://example.org:8a", "https://example.org:-1", "https://example.org: 80", "https://:80", "https://example.org:80:80", "https://example.org::80", "https://example.org:\t8\n0",
+  "https://[::1]/a", "https://[::1]:80", "https://[::1]:", "https://[::1]x", "https://[::1", "https://::1]", "https://[]", "https://[::]", "https://[1:2:3:4:5:6:7:8]", "https://[1:2:3:4:5:6:7:8:9]", "https://[1:2:3:4:5:6:7]", "https://[1::2::3]", "https://[:1]", "https://[1:]", "https://[g::]", "https://[12345::]",
+  "https://[::1.2.3.4]", "https://[::1.2.3]", "https://[::1.2.3.4.5]", "https://[::256.1.1.1]", "https://[::01.2.3.4]", "https://[1:2:3:4:5:6:1.2.3.4]", "https://[1:2:3:4:5:6:7:1.2.3.4]", "https://[1.2.3.4]", "https://[::1.]", "https://[::.1.2.3.4]", "https://[::ffff:1.2.3.4]", "https://[1:2:3:4:5:6:7::]", "https://[1:2:3:4:5:6::7:8]", "https://[::%25eth0]",
+  "https://1.2.3.4", "https://1.2.3.4.", "https://1.2.3.4..", "https://1.2.3", "https://1.2", "https://1", "https://256.1.1.1", "https://1.1.1.256", "https://1.2.3.4.5", "https://0x10.1", "https://0x.1", "https://0x", "https://08", "https://07", "https://4294967295", "https://4294967296", "https://1.2.65536", "https://1.16777216", "https://1..2",
+  "https://a.1", "https://a.1.", "https://1.a", "https://a.0x1", "https://a.0xz", "https://a.08", "https://0xffz", "https://1e3", "https://a..b", "https://.", "https://..", "https://.a", "https://a.", "https://a_b", "https://-", "https://a%41", "https://a%2e", "https://a%20b", "https://a%00b", "https://a%7fb", "https://a%b", "https://a%zz", "https://%", "https://%2e",
+  "https://a#b", "https://a?b", "https://a/b", "https://a\\b", "https://a^b", "https://a|b", "https://a<b", "https://a>b", "https://a[b", "https://a]b", "https://a\u0000b", "https://a\u007fb", "https://a\u0019b", "https://a\u001fb",
+  "ws://example.org", "wss://example.org", "ws://", "ftp://", "ftp:example.org", "https://example.org/a b?c d#e f", "https://example.org/%zz", "https://example.org/../..", "\u0000https://example.org\u0000", "\u00a0https://example.org",
+];
+// Hosts only Unicode's IDNA mapping can judge. The port refuses to answer for these, and the
+// tests hold it to that. Node's answer is kept for the record.
+const idnaUrls = ["https://b\u00fccher.example/", "https://xn--bcher-kva.example/", "https://\u4f8b\u3048.jp/", "https://exa\u00admple.org/", "https://\uff25\uff38\uff21\uff2d\uff30\uff2c\uff25.org/", "https://a.XN--bcher-kva/", "https://a%C3%A9.org/", "file://b\u00fccher/a", "https://example.org\u00a0"];
+// More of the same shapes, from a generator with a stated seed.
+let urlState = 4242;
+const urlNext = () => {
+  urlState = (urlState + 0x6d2b79f5) >>> 0;
+  let t = urlState;
+  t = Math.imul(t ^ (t >>> 15), t | 1);
+  t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+};
+const urlPick = (list) => list[Math.floor(urlNext() * list.length)];
+const urlSchemes = ["http", "https", "HTTP", "ftp", "file", "ws", "wss", "mailto", "foo", "a+b-c.d", "c", "1a", "", "ht tp"];
+const urlSeparators = [":", "://", ":/", ":///", ":\\\\", ":\\/", "", ": //", "::", ":////"];
+const urlAtoms = ["example", "org", "a", "0", "1", "255", "256", "0x10", "0x", "08", "07", "4294967295", "4294967296", "localhost", "", "-", "_", "%41", "%20", "%", "%zz", "%2e", "%00", "1e3", "0xffz"];
+const urlJoins = [".", ".", ".", "..", "", ":", "@", "[", "]", " ", "\t", "#", "?", "/", "\\", "^", "|", "<", ">", "%", "\u0000", "\u007f"];
+const urlBrackets = ["[::1]", "[::]", "[1:2:3:4:5:6:7:8]", "[::1.2.3.4]", "[1::2::3]", "[::256.1.1.1]", "[:1]", "[1:]", "[g::]", "[::1", "[]", "[::1]x"];
+const urlPorts = ["", ":80", ":", ":0", ":65535", ":65536", ":8a", ":-1", ": 80", ":080"];
+const urlTails = ["", "/", "/a b", "?q", "#f", "\\x"];
+const urlEdges = ["", "", "", " ", "\t", "\n", "\u0000", "\u001f"];
+for (let i = 0; i < 1500; i += 1) {
+  let host = "";
+  if (urlNext() < 0.15) host = urlPick(urlBrackets);
+  else {
+    const count = 1 + Math.floor(urlNext() * 4);
+    for (let j = 0; j < count; j += 1) host += (j ? urlPick(urlJoins) : "") + urlPick(urlAtoms);
+  }
+  const user = urlNext() < 0.12 ? urlPick(["u@", "u:p@", "@", ":@", "u@v@"]) : "";
+  urls.push(urlPick(urlEdges) + urlPick(urlSchemes) + urlPick(urlSeparators) + user + host + urlPick(urlPorts) + urlPick(urlTails) + urlPick(urlEdges));
+}
+const protocolOf = (text) => {
+  try {
+    return new URL(text).protocol;
+  } catch {
+    return null;
+  }
+};
+
 const semantics = {
   source: "node scripts/fixtures/record_js_fixture.mjs",
   key_order: objects.map((text) => [text, JSON.stringify(JSON.parse(text))]),
@@ -131,6 +237,16 @@ const semantics = {
   sha256_of_text: hashed.map((text) => [text, sha256(text)]),
   sort: sortInputs.map((list) => [list, [...list].sort(byText)]),
   refused: refused.map((text) => [text, refuses(text)]),
+  truthy: values.map((text) => [text, Boolean(JSON.parse(text))]),
+  trim: spaced.map((text) => [text, text.trim(), text.replace(/\s+/g, " ")]),
+  number_of_text: numerals.map((text) => [text, String(Number(text))]),
+  number_of: [...values, '"5"', '" 12 "', "[5]", '["5"]', "[1,2]", "[[7]]", "[null]", '["0x10"]'].map((text) => [text, String(Number(JSON.parse(text)))]),
+  lower: cased.map((text) => [text, text.toLowerCase()]),
+  slice: sliced.map(([text, end]) => [text, end, text.slice(0, end), text.length]),
+  strictly_equal: equal.map(([left, right]) => [left, right, JSON.parse(left) === JSON.parse(right)]),
+  locale_order: idLists.map((list) => [list, [...list].sort((a, b) => a.localeCompare(b))]),
+  url: urls.map((text) => [text, protocolOf(text), URL.canParse(text.trim())]),
+  url_idna: idnaUrls.map((text) => [text, protocolOf(text)]),
 };
 fs.mkdirSync(path.join(root, "tests/fixtures"), { recursive: true });
 fs.writeFileSync(path.join(root, "tests/fixtures/js-semantics.json"), JSON.stringify(semantics, null, 1) + "\n");

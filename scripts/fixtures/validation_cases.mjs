@@ -170,6 +170,8 @@ export function generator(seed) {
 
 const swaps = [null, true, 0, 1, -1, 1.5, "", " ", "x", "2026-11-18", "2026-11-18T00:00:00Z", [], ["x"], [""], {}, { x: 1 }];
 
+const deepSwaps = [null, 0, "", {}];
+
 function paths(value, at = [], found = []) {
   if (value && typeof value === "object")
     for (const key of Array.isArray(value) ? value.keys() : Object.keys(value)) {
@@ -216,7 +218,8 @@ export function damage(example, seed, combined = 60) {
   const single = [];
   for (const swap of swaps) single.push([["set", [], swap]]);
   for (const path of paths(example)) {
-    for (const swap of swaps) single.push([["set", path, swap]]);
+    // Every value at the top two levels, and a few below, where the schemas repeat themselves.
+    for (const swap of path.length <= 2 ? swaps : deepSwaps) single.push([["set", path, swap]]);
     single.push([["del", path]]);
   }
   for (const path of [[], ...paths(example)]) {
@@ -317,6 +320,9 @@ export function validatorCases({ records, roles }) {
   add("run documentation citing a record that is no source", set(documented, [A, "run_documentation", "source_ids"], [documented]));
   add("run documentation whose source has a hash in capitals", set(documentationOf.source_ids[0], [A, "artifact_sha256"], "A".repeat(64)));
   add("run documentation whose source has a number for a hash", set(documentationOf.source_ids[0], [A, "artifact_sha256"], 5));
+  add("run documentation whose source has its hash in a list", set(documentationOf.source_ids[0], [A, "artifact_sha256"], [["c".repeat(64)]]));
+  add("run documentation whose source has two hashes in a list", set(documentationOf.source_ids[0], [A, "artifact_sha256"], ["c".repeat(64), "c".repeat(64)]));
+  add("run documentation whose source has a hash with a member named toString", set(documentationOf.source_ids[0], [A, "artifact_sha256"], { toString: 1 }));
   const guided = roles.guide;
   const guideOf = clone(at(guided).attributes.run_guide);
   add("a run guide on a model", set(model, [A, "run_guide"], { ...guideOf, record_id: model }));
@@ -383,6 +389,7 @@ export function validatorCases({ records, roles }) {
   add("a profile whose locator is only spaces", set(profiled, [...profile, "sections", 0, "source_locator"], "   "));
   add("a profile whose locator has spaces around it", set(profiled, [...profile, "sections", 0, "source_locator"], "  Table 1  "));
   add("a profile on a source", set(source, profile, clone(at(profiled).attributes.profile)));
+  add("a profile with no summary sources", del(profiled, [...profile, "summary_source_ids"]), del(profiled, [...profile, "summary_source_locator"]));
   const extensions = [A, "extensions"];
   const genomics = { assembly: "GRCh38", chromosome: "chr1", coordinate_system: "0-based-half-open", start: 10, end: 20, strand: "+", window_length: 100, variant_offset: 50, orientation: "transcript", window_placement: null };
   add("extensions, valid", set(result, extensions, { genomics, protein: { sequence_identity_threshold: 0.3 }, cellular: { dose: { value: 1.5, unit: "uM" }, time: null, biological_replicates: 3 }, molecular_measurement: {}, microbial: { taxonomy: "x" }, mechanistic: { solver: null } }));
@@ -402,6 +409,7 @@ export function validatorCases({ records, roles }) {
   add("a source whose URL is a list", set(source, [A, "url"], ["https://example.org/a", "b"]));
   add("a source whose URL is an object", set(source, [A, "url"], { href: "https://example.org" }));
   add("a source whose URL is null", set(source, [A, "url"], null));
+  add("a source whose URL has a member named toString", set(source, [A, "url"], { toString: "https://example.org" }));
   add("a source with no retrieval date", del(source, [A, "retrieved_at"]));
   add("a source with an empty retrieval date", set(source, [A, "retrieved_at"], ""));
   add("a source with zero for a retrieval date", set(source, [A, "retrieved_at"], 0));
@@ -551,6 +559,20 @@ export function validatorCases({ records, roles }) {
   add("a panel on a protocol under a task that is not a panel", set(child, panels, [{ ...panel2, direction: "up" }]));
   add("a panel on a protocol under a task with panels removed from the task", set(child, panels, [panel2]), del(owner2, panels));
 
+  // What the query reads without being asked to: a profile on an evaluation, a claim with two
+  // links, a field that is not text, and panels on a record below the owner.
+  const profileOf = clone(at(roles.profile).attributes.profile);
+  add("a panel result whose evaluation carries a profile", set(rowEvaluation, [A, "profile"], profileOf));
+  add("a panel result whose evaluation's profile cites a source with a concern", set(rowEvaluation, [A, "profile"], profileOf), set(profileOf.sections[0].source_ids[0], [A, "evidence_concerns"], ["x"]));
+  add("a panel result whose source carries a list for a concern", set(at(row).source_ids[0], [A, "evidence_concerns"], [["x"]]));
+  add("a panel on another record whose backing claim has a second link", set(backing, ["links"], [...at(backing).links, { relation: "source", target_id: source }]));
+  add("a panel on another record whose backing claim gives its field as a list", set(backing, [A, "field"], [`links:evaluates_task:${owner2}`]));
+  add("the same panel on a protocol and on its task, with the backing claim's field as a list", set(panel2.protocol_id, panels, [panel2]), set(backing, [A, "field"], [`links:evaluates_task:${owner2}`]));
+  add("a checked claim whose field has a member named toString", set(backing, [A, "field"], { toString: 1 }));
+  add("an unchecked claim whose field has a member named toString", set(backing, [A, "field"], { toString: 1 }), set(backing, ["status"], "needs_review"));
+  add("a protocol under a task with panels that are zero", set(panel2.protocol_id, panels, 0));
+  add("an excluded protocol under a task with panels that are not panels", set(panel2.protocol_id, panels, "x"), set(panel2.protocol_id, ["status"], "excluded"));
+
   // ---- validateConcerns ----
   const concerned = roles.concern_scoped;
   const concerns = [A, "evidence_concerns"];
@@ -575,6 +597,11 @@ export function validatorCases({ records, roles }) {
   add("a derivation whose script does not exist", set(derived, [...derivation, "script"], "scripts/omics/derive/missing.py"));
   add("a derivation whose script has another hash", set(derived, [...derivation, "script_sha256"], "0".repeat(64)));
   add("a derivation whose script is a folder", set(derived, [...derivation, "script"], "scripts"));
+  add("a derivation whose script starts with a slash", set(derived, [...derivation, "script"], `/${derivationOf.script}`));
+  add("a derivation whose script goes out of the repository and back", set(derived, [...derivation, "script"], `scripts/../${derivationOf.script}`));
+  add("two results derived by one script", copy(derived, { id: "another-derived-result" }));
+  add("two results derived by one script that does not exist", set(derived, [...derivation, "script"], "missing.py"), ["add", { ...clone(at(derived)), id: "another-derived-result", attributes: { ...clone(at(derived).attributes), derivation: { ...derivationOf, script: "missing.py" } } }]);
+  add("a derivation whose aggregation source has a member named toString", set(derived, [...derivation, "aggregation_source_id"], { toString: 1 }));
   add("a derivation with a null numeric value", set(derived, [A, "numeric_value"], null));
   add("a derivation with no numeric value", del(derived, [A, "numeric_value"]));
   add("a derivation whose aggregation source does not exist", set(derived, [...derivation, "aggregation_source_id"], "no-such-record"));
@@ -870,6 +897,8 @@ export function normalizeCases() {
     one("a source's review scope with a review that is text", "source", { review_scope: "s", review: "x" }),
     one("a source's review method that is a number", "source", { review_method: 5 }),
     one("a result's review method is left alone", "result", { review_method: "automated_source_review" }),
+    one("a review whose reviewers are not text", "result", { review: { method: ["m"], reviewer: [{ a: 1 }, ["x"], "a", 1, true, null], actor: [{ a: 1 }, ["x"], "a", 1, 1, true, null, "1", false, true] } }),
+    one("a reason that is the name of the prototype", "model", { missing_metadata: { a: "__proto__", b: "hasOwnProperty" } }),
     one("integer-like attribute names", "model", { b: 1, 10: null, 2: "x", a: null }),
     one("a name every object answers to", "source", { toString: null, constructor: 1, missing_metadata: { valueOf: "x" } }),
   ];
@@ -921,3 +950,48 @@ export const loadCases = [
   ["a blank line and no final line break", [["blank", "record"]]],
   ["no records and no provenance", [["empty"]]],
 ];
+
+// ---------------------------------------------------------------------------------------
+// Values written for the rules a schema states across its members, which damaging one
+// member of a valid value seldom breaks. Each is JSON text, so a member named __proto__ is
+// a member and not the object's prototype.
+// ---------------------------------------------------------------------------------------
+
+export function handwritten(held) {
+  const text = (value) => JSON.stringify(value);
+  const profile = held.profile[0];
+  const steps = (count) => text({ ...profile, diagram: { title: "t", steps: Array(count).fill("s"), caption: "c", source_ids: ["s"], source_locator: "l" } });
+  return {
+    "missing-metadata": ['{"__proto__":{"reason":"unreported"}}', '{"__proto__":{"reason":"unreported"},"a":{"reason":"unreported"}}', '{"a":{"__proto__":1,"reason":"unreported"}}', "{}", "[]"],
+    uncertainty: [
+      { type: "standard_deviation", value: "1", lower: "0" }, { type: "standard_deviation", value: "1", half_width: "1" }, { type: "standard_deviation", value: "1", level: 0.5 },
+      { type: "standard_deviation", value: "1", lower: "0", upper: "1" }, { type: "standard_deviation", value: "1", upper: "1" }, { type: "standard_error" }, { type: "unresolved_spread", lower: "0" },
+      { type: "confidence_interval" }, { type: "confidence_interval", lower: "0" }, { type: "confidence_interval", upper: "1" }, { type: "confidence_interval", half_width: "1", upper: "2" },
+      { type: "confidence_interval", lower: "x", upper: "y" }, { type: "confidence_interval", level: 1.5, half_width: "1" }, { type: "confidence_interval", level: 0, half_width: "1" },
+      { type: "confidence_interval", level: 1, half_width: "1" }, { type: "confidence_interval", level: 0.999, half_width: "1" }, { type: "confidence_interval", level: "0.95", half_width: "1" },
+      { type: "confidence_interval", n: 0, half_width: "1" }, { type: "confidence_interval", n: 1.5, half_width: "1" }, { type: "confidence_interval", n: 9007199254740992, half_width: "1" },
+      { type: "confidence_interval", n: -9007199254740992, half_width: "1" }, { type: "confidence_interval", resamples: -1, half_width: "1" }, { type: "credible_interval", lower: "0", upper: "1", value: "0.5" },
+      { type: "nope", value: "1" }, { type: "standard_deviation", value: 5 }, { type: "standard_deviation", value: "x" }, { type: "standard_deviation", extra: 1 }, { type: "standard_deviation", value: "1", lower: 5 },
+      { type: "standard_deviation", value: "" }, { value: "1" }, { type: "standard_deviation", note: "" }, { type: "standard_deviation", value: "1", n: 1e21 },
+    ].map(text),
+    coverage: [{ scored: -1 }, { scored: 1.5 }, { eligible: 9007199254740992 }, { generated_per_run: 0 }, { repeats: 0, note: "" }, { scored: 0, eligible: 0 }, { scored: "5" }, {}].map(text),
+    review: [
+      { method: ["rendered-source-visual-check"], date: "2026-11-18" }, { method: ["rendered-source-visual-check"], date: "2026-11-17" }, { method: ["rendered-source-visual-check"] },
+      { method: ["transcription", "rendered-source-visual-check"], reviewed_at: "2026-11-18T00:00:00+14:00" }, { method: ["rendered-source-visual-check"], reviewed_at: "2026-11-17T23:59:59-12:00" },
+      { method: ["rendered-source-visual-check"], date: "2026-11-17", reviewed_at: "2026-11-18T00:00:00Z" }, { method: ["rendered-source-visual-check"], date: "2026-11-18", reviewed_at: "2026-11-01T00:00:00Z" },
+      { method: ["rendered-source-visual-check"], date: "2027" }, { method: ["rendered-source-visual-check"], date: "2025" }, { method: ["rendered-source-visual-check"], reviewed_at: "2026-12" },
+      { method: ["rendered-source-visual-check"], reviewed_at: "\ud83e\uddec2026-11-18T00:00:00Z" }, { method: ["rendered-source-visual-check"], reviewed_at: "9" }, { method: ["rendered-source-visual-check"], reviewed_at: "" },
+      { method: ["transcription"], date: "2026-11-18" }, { method: [], date: "2026-11-18" }, { method: ["rendered-source-visual-check", "rendered-source-visual-check"], date: "2026-12-01" },
+      { method: ["rendered-source-visual-check"], date: null }, { method: ["rendered-source-visual-check"], date: "2026-11-18", extra: 1 }, { method: ["Rendered-Source-Visual-Check"], date: "2026-11-18" },
+      { method: "rendered-source-visual-check", date: "2026-11-18" }, { method: ["rendered-source-visual-check", ""], date: "2026-11-18" }, { method: ["m"], retrieval_url: " https://example.org " }, { method: ["m"], retrieval_url: "example.org" },
+    ].map(text),
+    "reported-population": [{ train_validation_test: [1, 2] }, { train_validation_test: [1, 2, 3, 4] }, { train_validation_test: ["1", 2, 3] }, { train_validation_test: [1.5, 2, 3] }, { train_validation_test: [1, 2, 3, "4"] }, { train_validation_test: [] }, { train_validation_test: "123" }, { train_validation_test: { length: 3 } }, { count: -1 }, { count: 0 }, {}].map(text),
+    profile: [steps(0), steps(1), steps(2), steps(8), steps(9), text({ ...profile, summary_source_ids: [] }), text({ ...profile, summary_source_locator: "  " }), text({ ...profile, coverage: "limited", gaps: [] }), text({ ...profile, coverage: "limited", gaps: [""] }), text({ ...profile, coverage: "reviewed", sections: [] }), text({ ...profile, coverage: "reviewed", sections: [], gaps: [], summary_source_ids: undefined })],
+    extensions: [
+      { genomics: { start: 5, end: 5 } }, { genomics: { start: 6, end: 5 } }, { genomics: { variant_offset: 5, window_length: 5 } }, { genomics: { variant_offset: 4, window_length: 5 } },
+      { genomics: { start: -1, end: -2 } }, { genomics: { start: 1.5, end: 1 } }, { genomics: { start: 6, end: 5, variant_offset: 9, window_length: 1 } }, { genomics: { start: 6, end: 5, extra: 1 } }, { genomics: { start: 6, end: null } },
+      { genomics: { window_length: 0 } }, { protein: { sequence_identity_threshold: 0 } }, { protein: { sequence_identity_threshold: 1 } }, { protein: { sequence_identity_threshold: -0.1 } }, { protein: { sequence_identity_threshold: 1.1 } },
+      { cellular: { dose: { value: "1", unit: "" } } }, { cellular: { dose: { value: 1 } } }, { cellular: { dose: { value: 1, unit: "uM", extra: 1 } } }, { genomics: null }, { genomics: { strand: "" } },
+    ].map(text),
+  };
+}
