@@ -511,3 +511,23 @@ def test_a_number_beyond_every_double_is_refused_or_accepted_and_never_stops_a_v
     for runner in stage_runners(scripts).values():
         with contextlib.suppress(RecordError, SchemaError):
             runner(records)
+
+
+@pytest.mark.parametrize(
+    ("role", "path"),
+    [
+        ("kind_source", ["attributes", "missing_metadata", "artifact_member"]),
+        ("kind_result", ["attributes", "review", "method"]),
+        ("kind_claim", ["attributes", "review", "method"]),
+        ("reproduction", ["attributes", "comparison", "split"]),
+        ("uncertain", ["attributes", "coverage", "eligible"]),
+    ],
+)
+def test_validate_records_asked_on_its_own_reads_a_number_beyond_every_double(
+    scripts: Path, role: str, path: list[JsonValue]
+) -> None:
+    # Five of the 1,097 places in the base store where this raised a bare ValueError, from
+    # trying to write the number in order to compare two values.
+    rows = apply_ops(BASE_ROWS, [["set", ROLES[role], path, math.inf]])
+    answer = outcome(lambda: stage_runners(scripts)["records"](records_of(rows)))
+    assert answer is None or answer["name"] == "Error"
