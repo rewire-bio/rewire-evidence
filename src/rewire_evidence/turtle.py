@@ -23,6 +23,9 @@ Three things about JavaScript are part of the behaviour and are reproduced:
 
 `tests/fixtures/turtle.json` holds what n3 itself gives for each construct and for a few
 hundred damaged documents, recorded in CI by `scripts/fixtures/record_schema_fixture.mjs`.
+
+n3 is copyright Ruben Verborgh and is under the MIT licence. Its notice is in
+`THIRD-PARTY-NOTICES.md` at the root of this repository and ships in the wheel.
 """
 
 from __future__ import annotations

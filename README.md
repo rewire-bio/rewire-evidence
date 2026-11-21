@@ -109,3 +109,7 @@ scripts/                            one thin file per gate, the expectations, th
 tests/                              pytest and Hypothesis, with the Node fixtures
 docs/stages/                       one note per ported stage: oracle, measured result, known gaps
 ```
+
+## Licence
+
+The code is under the MIT licence: see [LICENSE](LICENSE). `src/rewire_evidence/turtle.py` is a port of part of n3, which is also MIT; its notice is in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md). The records this library reads and writes live in `rewire-benchmark-data` and are not covered by this licence.
