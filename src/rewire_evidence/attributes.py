@@ -30,13 +30,14 @@ from importlib import resources
 from typing import Final, cast
 
 from rewire_evidence import zod
-from rewire_evidence.canonical import JsonObject, JsonValue, js_key_order, js_stringify, js_value, utf16_key
+from rewire_evidence.canonical import JsonObject, JsonValue, js_key_order, js_value, js_written, utf16_key
 from rewire_evidence.js import (
     DOT,
     MISSING,
     SPACE_CLASS,
     Missing,
     joined,
+    lower,
     number_of_text,
     slice_units,
     text_of,
@@ -462,11 +463,11 @@ def same_json(left: object, right: object) -> bool:
         return True
     if isinstance(left, Missing) or isinstance(right, Missing):
         return False
-    return js_stringify(cast("JsonValue", left)) == js_stringify(cast("JsonValue", right))
+    return js_written(cast("JsonValue", left)) == js_written(cast("JsonValue", right))
 
 
 def _guess_reason(note: str) -> str:
-    lowered = note.lower()
+    lowered = lower(note)
     if _INAPPLICABLE.search(lowered):
         return "inapplicable"
     if _UNAVAILABLE.search(lowered):

@@ -6,8 +6,11 @@ with Node's built-ins. Every expected value here is something Node produced.
 
 from __future__ import annotations
 
+import json
 import math
 import re
+from importlib import resources
+from typing import Any
 
 import pytest
 from hypothesis import given
@@ -56,7 +59,83 @@ def test_any_value_is_read_as_a_number_the_way_javascript_reads_it(text: str, ex
 
 @pytest.mark.parametrize(("text", "expected"), SEMANTICS["lower"])
 def test_lowercase_is_javascripts(text: str, expected: str) -> None:
-    assert text.lower() == expected
+    assert js.lower(text) == expected
+
+
+LOWERCASE: dict[str, Any] = json.loads(
+    resources.files("rewire_evidence").joinpath("data/lowercase.json").read_text("utf-8")
+)
+LOWERED = {
+    chr(int(code, 16)): "".join(chr(int(each, 16)) for each in becomes.split(" "))
+    for code, becomes in LOWERCASE["lower"]
+}
+
+
+def test_lowercase_is_the_recorded_nodes_for_every_code_point() -> None:
+    assert LOWERCASE["recorded_from"]["script"] == "scripts/fixtures/record_lowercase.mjs"
+    assert len(LOWERED) > 1400
+    # Letters Unicode 16 added, which the Python that runs this may not know.
+    assert LOWERED["\u1c89"] == "\u1c8a"
+    assert LOWERED["\u0130"] == "i\u0307"
+    for code in range(0x110000):
+        character = chr(code)
+        assert js.lower(character) == LOWERED.get(character, character)
+        # A character with others around it that are not letters is lowered the same way.
+        assert js.lower(f"\u00a0{character}1") == f"\u00a0{LOWERED.get(character, character)}1"
+
+
+@given(st.text(alphabet=st.characters(max_codepoint=0x7F)))
+def test_ascii_is_lowered_as_the_recording_lowers_it(text: str) -> None:
+    assert js.lower(text) == "".join(LOWERED.get(character, character) for character in text)
+
+
+@given(st.text(alphabet=st.sampled_from("A\u0391\u03a3\u03c3. \u0301'1\u02b0\u0130\u1c89z")))
+def test_lowering_twice_is_lowering_once(text: str) -> None:
+    lowered = js.lower(text)
+    assert js.lower(lowered) == lowered
+    assert "\u03a3" not in lowered
+    # Only a capital sigma reads its neighbours, so text without one is lowered character by character.
+    if "\u03a3" not in text:
+        assert lowered == "".join(LOWERED.get(character, character) for character in text)
+
+
+def test_a_set_keeps_apart_what_javascript_keeps_apart() -> None:
+    one: JsonValue = ["a"]
+    values: list[js.Held] = [
+        7,
+        7.0,
+        "7",
+        True,
+        1,
+        1.0,
+        None,
+        None,
+        js.MISSING,
+        js.MISSING,
+        one,
+        one,
+        ["a"],
+        {},
+        {},
+    ]
+    # 7, "7", true, 1, null, undefined, one list twice, another list, two objects.
+    assert js.distinct(values) == 10
+    assert js.distinct([]) == 0
+    assert js.distinct([0, -0.0, False, ""]) == 3
+
+
+def test_a_member_is_the_values_own_or_nothing() -> None:
+    assert js.member({"kind": "model"}, "kind") == "model"
+    assert js.member({"kind": None}, "kind") is None
+    for text in ("{}", "[]", '["kind"]', '"kind"', "5", "true"):
+        assert js.member(value_of(text), "kind") is js.MISSING
+    with pytest.raises(TypeError, match="Cannot read properties of null"):
+        js.member(None, "kind")
+
+
+def test_a_list_is_joined_with_nothing_for_null_and_for_what_is_absent() -> None:
+    assert js.join(["a", None, js.MISSING, 5, [1, None, 2], {}], ", ") == "a, , , 5, 1,,2, [object Object]"
+    assert js.join([], ", ") == ""
 
 
 @pytest.mark.parametrize(("text", "end", "expected", "length"), SEMANTICS["slice"])
