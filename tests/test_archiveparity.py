@@ -272,7 +272,9 @@ def test_the_gate_holds_the_files_the_port_was_made_from_and_the_queues(tmp_path
     ]
 
 
-def test_the_gate_cannot_be_run_on_what_was_not_recorded(tmp_path: Path) -> None:
+def test_the_gate_cannot_be_run_on_what_was_not_recorded(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     root = lay_out(tmp_path / "store")
     folder = tmp_path / "expected"
     recorded = recorded_of(root, folder)
@@ -300,6 +302,9 @@ def test_the_gate_cannot_be_run_on_what_was_not_recorded(tmp_path: Path) -> None
     cached.write_bytes(gzip.compress(b"an object"))
     with pytest.raises(StoreError, match="has 1 objects in its cache"):
         verified(root, recorded, folder)
+    # The cache is wherever ARCHIVE_CACHE says, so an empty folder there is a checkout with none.
+    monkeypatch.setenv("ARCHIVE_CACHE", str(tmp_path / "empty"))
+    assert verified(root, recorded, folder).problems == []
 
 
 def test_a_tree_with_nothing_committed_is_read_as_nothing(tmp_path: Path) -> None:

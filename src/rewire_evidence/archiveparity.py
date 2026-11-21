@@ -15,7 +15,8 @@ port was made from to be the file the recording was made from.
 
 The recording was made of a checkout with no object cache, so `verify` and `status` report
 every object as missing. A checkout that has a cache is not what was recorded, and the gate
-says so and does not run.
+says so and does not run. `ARCHIVE_CACHE` names the cache, as it does for the TypeScript, so
+a working checkout is held to the recording by setting it to an empty folder for the run.
 """
 
 from __future__ import annotations
@@ -319,7 +320,8 @@ def verify_archive(root: Path, recorded: JsonObject, dump: Sequence[bytes]) -> A
     cached = len(archive.cached_files(root))
     if cached:
         raise StoreError(
-            f"the checkout has {cached} objects in its cache, and the recording was made of one with none"
+            f"the checkout has {cached} objects in its cache, and the recording was made of one with none: "
+            "set ARCHIVE_CACHE to an empty folder to hold it to the recording"
         )
     triage = _member(recorded, "triage")
     date = triage.get("date")
