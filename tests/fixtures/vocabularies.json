@@ -1,14 +1,17 @@
 {
  "recorded_from": {
-  "script": "scripts/fixtures/record_schema_fixture.mjs",
-  "store_ref": "91f76cf8e61cba9d6037a01a19c9aa3051184900",
-  "zod": "4.6.5",
+  "script": "preview",
   "n3": "1.17.4"
  },
  "load_schemes": [
   {
    "name": "no data/vocab folder",
    "files": null,
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 2,
+    "anonymous": 1
+   },
    "error": null,
    "schemes": {},
    "message_comparable": true
@@ -16,6 +19,11 @@
   {
    "name": "an empty data/vocab folder",
    "files": {},
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 4,
+    "anonymous": 2
+   },
    "error": null,
    "schemes": {},
    "message_comparable": true
@@ -25,6 +33,11 @@
    "files": {
     "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
     "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:a a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"a label\"@en .\n:b a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"b label\"@en ; skos:broader :a ; skos:related <https://benchmarks.rewire.it/vocab/direction/higher> ; rb:defaultDirection <https://benchmarks.rewire.it/vocab/direction/lower> .\n"
+   },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 6,
+    "anonymous": 3
    },
    "error": null,
    "schemes": {
@@ -72,6 +85,11 @@
     "migration": null,
     "folder.ttl-not": null
    },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 10,
+    "anonymous": 4
+   },
    "error": null,
    "schemes": {
     "Beta": {
@@ -106,6 +124,11 @@
    "files": {
     "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
     "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:zeta a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"zeta label\"@en .\n:alpha a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"alpha label\"@en .\n:mid a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"mid label\"@en .\n:zeta skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> .\n"
+   },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 15,
+    "anonymous": 5
    },
    "error": null,
    "schemes": {
@@ -152,6 +175,11 @@
    "files": {
     "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
     "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:source_checked a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"source_checked label\"@en .\n:f1-score a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"f1-score label\"@en .\n:0 a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"0 label\"@en .\n:a-b_c-9 a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"a-b_c-9 label\"@en .\n"
+   },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 19,
+    "anonymous": 6
    },
    "error": null,
    "schemes": {
@@ -204,6 +232,11 @@
     "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
     "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:a a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"premier\"@fr , \"first\"@en , \"plain\" .\n"
    },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 23,
+    "anonymous": 7
+   },
    "error": null,
    "schemes": {
     "direction": {
@@ -240,6 +273,11 @@
     "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
     "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:a skos:prefLabel \"early\" .\n:a skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> .\n:a skos:prefLabel \"late\"@en .\n"
    },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 27,
+    "anonymous": 8
+   },
    "error": null,
    "schemes": {
     "direction": {
@@ -275,6 +313,11 @@
    "files": {
     "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
     "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:a skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"a \\\"quoted\\\" \\\\ label\\twith\\ttabs \\u00e9 α 🧬\"@en .\n:b skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"\"\"two\nlines\"\"\" .\n:c skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel 7 .\n:d skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel <https://example.org/label> .\n"
+   },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 31,
+    "anonymous": 9
    },
    "error": null,
    "schemes": {
@@ -326,6 +369,11 @@
    "files": {
     "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n<https://benchmarks.rewire.it/vocab/metric/a> skos:prefLabel \"a\" .\n"
    },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 35,
+    "anonymous": 10
+   },
    "error": "metric.ttl does not declare the concept scheme <https://benchmarks.rewire.it/vocab/metric/>",
    "schemes": null,
    "message_comparable": true
@@ -334,6 +382,11 @@
    "name": "an empty file",
    "files": {
     "metric.ttl": ""
+   },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 38,
+    "anonymous": 11
    },
    "error": "metric.ttl does not declare the concept scheme <https://benchmarks.rewire.it/vocab/metric/>",
    "schemes": null,
@@ -344,6 +397,11 @@
    "files": {
     "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n"
    },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 41,
+    "anonymous": 12
+   },
    "error": "metric.ttl does not declare the concept scheme <https://benchmarks.rewire.it/vocab/metric/>",
    "schemes": null,
    "message_comparable": true
@@ -353,6 +411,11 @@
    "files": {
     "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:Concept .\n"
    },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 44,
+    "anonymous": 13
+   },
    "error": "metric.ttl does not declare the concept scheme <https://benchmarks.rewire.it/vocab/metric/>",
    "schemes": null,
    "message_comparable": true
@@ -361,6 +424,11 @@
    "name": "a scheme with no concepts",
    "files": {
     "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n"
+   },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 47,
+    "anonymous": 14
    },
    "error": null,
    "schemes": {
@@ -377,6 +445,11 @@
     "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
     "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:Accuracy a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"Accuracy label\"@en .\n"
    },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 50,
+    "anonymous": 15
+   },
    "error": "metric.ttl: concept <https://benchmarks.rewire.it/vocab/metric/Accuracy> is not <https://benchmarks.rewire.it/vocab/metric/key> with a lowercase key",
    "schemes": null,
    "message_comparable": true
@@ -386,6 +459,11 @@
    "files": {
     "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
     "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n<https://benchmarks.rewire.it/vocab/metric/a-> skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"a\" .\n"
+   },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 54,
+    "anonymous": 16
    },
    "error": "metric.ttl: concept <https://benchmarks.rewire.it/vocab/metric/a-> is not <https://benchmarks.rewire.it/vocab/metric/key> with a lowercase key",
    "schemes": null,
@@ -397,6 +475,11 @@
     "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
     "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n<https://benchmarks.rewire.it/vocab/metric/a--b> skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"a\" .\n"
    },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 58,
+    "anonymous": 17
+   },
    "error": "metric.ttl: concept <https://benchmarks.rewire.it/vocab/metric/a--b> is not <https://benchmarks.rewire.it/vocab/metric/key> with a lowercase key",
    "schemes": null,
    "message_comparable": true
@@ -406,6 +489,11 @@
    "files": {
     "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
     "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n<https://benchmarks.rewire.it/vocab/metric/a/b> skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"a\" .\n"
+   },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 62,
+    "anonymous": 18
    },
    "error": "metric.ttl: concept <https://benchmarks.rewire.it/vocab/metric/a/b> is not <https://benchmarks.rewire.it/vocab/metric/key> with a lowercase key",
    "schemes": null,
@@ -417,6 +505,11 @@
     "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
     "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n<https://benchmarks.rewire.it/vocab/metric/> skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"a\" .\n"
    },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 66,
+    "anonymous": 19
+   },
    "error": "metric.ttl: concept <https://benchmarks.rewire.it/vocab/metric/> is not <https://benchmarks.rewire.it/vocab/metric/key> with a lowercase key",
    "schemes": null,
    "message_comparable": true
@@ -426,6 +519,11 @@
    "files": {
     "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
     "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n<https://example.org/a> skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"a\" .\n"
+   },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 70,
+    "anonymous": 20
    },
    "error": "metric.ttl: concept <https://example.org/a> is not <https://benchmarks.rewire.it/vocab/metric/key> with a lowercase key",
    "schemes": null,
@@ -437,6 +535,11 @@
     "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
     "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:a a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"a label\"@en .\n:b a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:altLabel \"b\" .\n"
    },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 74,
+    "anonymous": 21
+   },
    "error": "metric.ttl: concept b has no skos:prefLabel",
    "schemes": null,
    "message_comparable": true
@@ -446,6 +549,11 @@
    "files": {
     "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
     "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:b a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"b label\"@en ; skos:broader :missing .\n"
+   },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 78,
+    "anonymous": 22
    },
    "error": "Vocabulary references do not resolve:\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/b> skos:broader <https://benchmarks.rewire.it/vocab/metric/missing>, which is not a concept",
    "schemes": null,
@@ -457,6 +565,11 @@
     "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
     "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:b a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"b label\"@en ; skos:related <https://benchmarks.rewire.it/vocab/direction/sideways> .\n"
    },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 82,
+    "anonymous": 23
+   },
    "error": "Vocabulary references do not resolve:\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/b> skos:related <https://benchmarks.rewire.it/vocab/direction/sideways>, which is not a concept",
    "schemes": null,
    "message_comparable": true
@@ -466,6 +579,11 @@
    "files": {
     "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
     "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:b a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"b label\"@en ; skos:related <https://benchmarks.rewire.it/vocab/unit/percent> .\n"
+   },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 86,
+    "anonymous": 24
    },
    "error": "Vocabulary references do not resolve:\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/b> skos:related <https://benchmarks.rewire.it/vocab/unit/percent>, which is not a concept",
    "schemes": null,
@@ -477,6 +595,11 @@
     "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
     "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:b a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"b label\"@en ; skos:related <https://benchmarks.rewire.it/vocab/metric/b/c> .\n"
    },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 90,
+    "anonymous": 25
+   },
    "error": "Vocabulary references do not resolve:\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/b> skos:related <https://benchmarks.rewire.it/vocab/metric/b/c>, which is not a concept",
    "schemes": null,
    "message_comparable": true
@@ -486,6 +609,11 @@
    "files": {
     "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
     "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:b a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"b label\"@en ; skos:closeMatch <http://purl.obolibrary.org/obo/STATO_0000415> ; skos:related <https://benchmarks.rewire.it/vocab/metric/> ; skos:note \"https://benchmarks.rewire.it/vocab/metric/missing\" ; skos:related <https://benchmarks.rewire.it/vocab#Thing> ; skos:related <https://benchmarks.rewire.it/vocab/Upper/x> .\n"
+   },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 94,
+    "anonymous": 26
    },
    "error": null,
    "schemes": {
@@ -523,6 +651,11 @@
     "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
     "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:a a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"a label\"@en .\n:x skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> .\n"
    },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 98,
+    "anonymous": 27
+   },
    "error": "Vocabulary references do not resolve:\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/x> is in scheme <https://benchmarks.rewire.it/vocab/direction/> but its IRI is in <https://benchmarks.rewire.it/vocab/metric/>",
    "schemes": null,
    "message_comparable": true
@@ -533,6 +666,11 @@
     "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
     "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:a a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"a label\"@en .\n:x skos:inScheme <https://example.org/scheme> ; skos:prefLabel \"x\" .\n"
    },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 102,
+    "anonymous": 28
+   },
    "error": "Vocabulary references do not resolve:\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/x> is in scheme <https://example.org/scheme> but its IRI is in <https://benchmarks.rewire.it/vocab/metric/>",
    "schemes": null,
    "message_comparable": true
@@ -541,6 +679,11 @@
    "name": "a scheme whose name the reference pattern does not read",
    "files": {
     "my_scheme.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/my_scheme/> .\n<https://benchmarks.rewire.it/vocab/my_scheme/> a skos:ConceptScheme .\n:a a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/my_scheme/> ; skos:prefLabel \"a label\"@en ; skos:broader :missing .\n:x skos:inScheme <https://benchmarks.rewire.it/vocab/other/> .\n"
+   },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 106,
+    "anonymous": 29
    },
    "error": null,
    "schemes": {
@@ -562,6 +705,11 @@
    "files": {
     "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
     "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:a a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"a label\"@en ; skos:broader :b .\n:b a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"b label\"@en ; skos:narrower :a .\n"
+   },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 109,
+    "anonymous": 30
    },
    "error": null,
    "schemes": {
@@ -604,6 +752,11 @@
     "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
     "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:a a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"a label\"@en ; skos:broader :b .\n:b a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"b label\"@en ; skos:broader :c .\n:c a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"c label\"@en .\n:a skos:narrower :c .\n"
    },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 113,
+    "anonymous": 31
+   },
    "error": "Vocabulary references do not resolve:\n  skos:broader cycle: metric/a, then metric/b, then metric/c, then metric/a",
    "schemes": null,
    "message_comparable": true
@@ -613,6 +766,11 @@
    "files": {
     "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
     "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:a a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"a label\"@en ; skos:broader :a .\n"
+   },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 117,
+    "anonymous": 32
    },
    "error": "Vocabulary references do not resolve:\n  skos:broader cycle: metric/a, then metric/a",
    "schemes": null,
@@ -624,6 +782,11 @@
     "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
     "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:a a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"a label\"@en ; skos:broader :b .\n:b a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"b label\"@en ; skos:broader :a .\n:c a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"c label\"@en ; skos:broader :d .\n:d a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"d label\"@en ; skos:broader :c .\n:t a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"t label\"@en ; skos:broader :a .\n:u a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"u label\"@en ; skos:broader :t , :c .\n"
    },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 121,
+    "anonymous": 33
+   },
    "error": "Vocabulary references do not resolve:\n  skos:broader cycle: metric/a, then metric/b, then metric/a\n  skos:broader cycle: metric/c, then metric/d, then metric/c",
    "schemes": null,
    "message_comparable": true
@@ -634,6 +797,11 @@
     "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en ; skos:broader <https://benchmarks.rewire.it/vocab/metric/a> .\n",
     "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:a a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"a label\"@en ; skos:broader <https://benchmarks.rewire.it/vocab/direction/higher> .\n"
    },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 125,
+    "anonymous": 34
+   },
    "error": "Vocabulary references do not resolve:\n  skos:broader cycle: direction/higher, then metric/a, then direction/higher",
    "schemes": null,
    "message_comparable": true
@@ -643,6 +811,11 @@
    "files": {
     "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
     "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:top a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"top label\"@en .\n:l a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"l label\"@en ; skos:broader :top .\n:r a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"r label\"@en ; skos:broader :top .\n:bottom a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"bottom label\"@en ; skos:broader :l , :r .\n"
+   },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 129,
+    "anonymous": 35
    },
    "error": null,
    "schemes": {
@@ -695,6 +868,11 @@
     "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
     "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:a a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"a label\"@en .\n:a skos:related :missing-0 .\n:a skos:related :missing-1 .\n:a skos:related :missing-2 .\n:a skos:related :missing-3 .\n:a skos:related :missing-4 .\n:a skos:related :missing-5 .\n:a skos:related :missing-6 .\n:a skos:related :missing-7 .\n:a skos:related :missing-8 .\n:a skos:related :missing-9 .\n:a skos:related :missing-10 .\n:a skos:related :missing-11 .\n:a skos:related :missing-12 .\n:a skos:related :missing-13 .\n:a skos:related :missing-14 .\n:a skos:related :missing-15 .\n:a skos:related :missing-16 .\n:a skos:related :missing-17 .\n:a skos:related :missing-18 .\n:a skos:related :missing-19 .\n:a skos:related :missing-20 .\n:a skos:related :missing-21 .\n:a skos:related :missing-22 .\n:a skos:related :missing-23 .\n:a skos:related :missing-24 .\n"
    },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 133,
+    "anonymous": 36
+   },
    "error": "Vocabulary references do not resolve:\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/a> skos:related <https://benchmarks.rewire.it/vocab/metric/missing-0>, which is not a concept\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/a> skos:related <https://benchmarks.rewire.it/vocab/metric/missing-1>, which is not a concept\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/a> skos:related <https://benchmarks.rewire.it/vocab/metric/missing-2>, which is not a concept\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/a> skos:related <https://benchmarks.rewire.it/vocab/metric/missing-3>, which is not a concept\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/a> skos:related <https://benchmarks.rewire.it/vocab/metric/missing-4>, which is not a concept\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/a> skos:related <https://benchmarks.rewire.it/vocab/metric/missing-5>, which is not a concept\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/a> skos:related <https://benchmarks.rewire.it/vocab/metric/missing-6>, which is not a concept\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/a> skos:related <https://benchmarks.rewire.it/vocab/metric/missing-7>, which is not a concept\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/a> skos:related <https://benchmarks.rewire.it/vocab/metric/missing-8>, which is not a concept\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/a> skos:related <https://benchmarks.rewire.it/vocab/metric/missing-9>, which is not a concept\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/a> skos:related <https://benchmarks.rewire.it/vocab/metric/missing-10>, which is not a concept\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/a> skos:related <https://benchmarks.rewire.it/vocab/metric/missing-11>, which is not a concept\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/a> skos:related <https://benchmarks.rewire.it/vocab/metric/missing-12>, which is not a concept\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/a> skos:related <https://benchmarks.rewire.it/vocab/metric/missing-13>, which is not a concept\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/a> skos:related <https://benchmarks.rewire.it/vocab/metric/missing-14>, which is not a concept\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/a> skos:related <https://benchmarks.rewire.it/vocab/metric/missing-15>, which is not a concept\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/a> skos:related <https://benchmarks.rewire.it/vocab/metric/missing-16>, which is not a concept\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/a> skos:related <https://benchmarks.rewire.it/vocab/metric/missing-17>, which is not a concept\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/a> skos:related <https://benchmarks.rewire.it/vocab/metric/missing-18>, which is not a concept\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/a> skos:related <https://benchmarks.rewire.it/vocab/metric/missing-19>, which is not a concept",
    "schemes": null,
    "message_comparable": true
@@ -704,6 +882,11 @@
    "files": {
     "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
     "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:a a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"a label\"@en ; skos:broader :a ; skos:related :gone .\n"
+   },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 137,
+    "anonymous": 37
    },
    "error": "Vocabulary references do not resolve:\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/a> skos:related <https://benchmarks.rewire.it/vocab/metric/gone>, which is not a concept\n  skos:broader cycle: metric/a, then metric/a",
    "schemes": null,
@@ -715,6 +898,11 @@
     "alpha.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/alpha/> .\n<https://benchmarks.rewire.it/vocab/alpha/> a skos:ConceptScheme .\n:Bad a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/alpha/> ; skos:prefLabel \"Bad label\"@en .\n",
     "beta.ttl": ""
    },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 141,
+    "anonymous": 38
+   },
    "error": "alpha.ttl: concept <https://benchmarks.rewire.it/vocab/alpha/Bad> is not <https://benchmarks.rewire.it/vocab/alpha/key> with a lowercase key",
    "schemes": null,
    "message_comparable": true
@@ -724,18 +912,658 @@
    "files": {
     "metric.ttl": "this is not turtle"
    },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 144,
+    "anonymous": 39
+   },
    "error": "Unexpected \"this\" on line 1.",
    "schemes": null,
-   "message_comparable": false
+   "message_comparable": true
   },
   {
    "name": "a statement left unfinished",
    "files": {
     "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:a skos:prefLabel \"a\" ;\n"
    },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 147,
+    "anonymous": 40
+   },
    "error": "Expected entity but got eof on line 6.",
    "schemes": null,
+   "message_comparable": true
+  },
+  {
+   "name": "an IRI with a pipe, a caret and a backtick",
+   "files": {
+    "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
+    "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n<http://e/a|b^c`d> skos:note \"x\" .\n"
+   },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 150,
+    "anonymous": 41
+   },
+   "error": "Unexpected \"<http://e/a|b^c`d>\" on line 5.",
+   "schemes": null,
+   "message_comparable": true
+  },
+  {
+   "name": "an IRI with a space",
+   "files": {
+    "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
+    "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n<http://e/a b> skos:note \"x\" .\n"
+   },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 154,
+    "anonymous": 42
+   },
+   "error": "Unexpected \"<http://e/a\" on line 5.",
+   "schemes": null,
+   "message_comparable": true
+  },
+  {
+   "name": "an IRI with braces",
+   "files": {
+    "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
+    "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n<http://e/{a}> skos:note \"x\" .\n"
+   },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 158,
+    "anonymous": 43
+   },
+   "error": "Unexpected \"<http://e/{a}>\" on line 5.",
+   "schemes": null,
+   "message_comparable": true
+  },
+  {
+   "name": "a keyword where a predicate belongs",
+   "files": {
+    "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
+    "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:a @a skos:Concept .\n"
+   },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 162,
+    "anonymous": 44
+   },
+   "error": "Expected entity but got @a on line 5.",
+   "schemes": null,
+   "message_comparable": true
+  },
+  {
+   "name": "a path, which only N3 has",
+   "files": {
+    "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
+    "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:a!skos:broader skos:note \"x\" .\n"
+   },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 166,
+    "anonymous": 45
+   },
+   "error": "Unexpected \"!skos:broader\" on line 5.",
+   "schemes": null,
+   "message_comparable": true
+  },
+  {
+   "name": "text as a subject",
+   "files": {
+    "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
+    "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n\"lit\" skos:note \"x\" .\n"
+   },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 170,
+    "anonymous": 46
+   },
+   "error": "Unexpected literal on line 5.",
+   "schemes": null,
+   "message_comparable": true
+  },
+  {
+   "name": "a boolean as a subject",
+   "files": {
+    "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
+    "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\ntrue skos:note \"x\" .\n"
+   },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 174,
+    "anonymous": 47
+   },
+   "error": "Unexpected literal on line 5.",
+   "schemes": null,
+   "message_comparable": true
+  },
+  {
+   "name": "a variable",
+   "files": {
+    "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
+    "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n?x skos:prefLabel \"v\" .\n"
+   },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 178,
+    "anonymous": 48
+   },
+   "error": "Unexpected \"?x\" on line 5.",
+   "schemes": null,
+   "message_comparable": true
+  },
+  {
+   "name": "a fault of spelling below a fault of grammar is the one reported",
+   "files": {
+    "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
+    "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:a :a .\n:b skos:note ?x .\n"
+   },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 182,
+    "anonymous": 49
+   },
+   "error": "Unexpected \"?x\" on line 6.",
+   "schemes": null,
+   "message_comparable": true
+  },
+  {
+   "name": "a syntax error in the second file, on its third line",
+   "files": {
+    "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
+    "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n\n\n:a skos:note \"x\" \"y\" .\n"
+   },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 186,
+    "anonymous": 50
+   },
+   "error": "Expected punctuation to follow \"\"x\"\" on line 7.",
+   "schemes": null,
+   "message_comparable": true
+  },
+  {
+   "name": "labels that are numbers and booleans keep the spelling they were written in",
+   "files": {
+    "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
+    "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:n0 skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel 01 .\n:n1 skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel 1e0 .\n:n2 skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel 1.e3 .\n:n3 skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel -.50 .\n:n4 skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel true .\n:n5 skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"01\"^^<http://www.w3.org/2001/XMLSchema#integer> .\n:n6 skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"TRUE\"^^<http://www.w3.org/2001/XMLSchema#boolean> .\n:n7 skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"x\"@EN-gb .\n"
+   },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 190,
+    "anonymous": 51
+   },
+   "error": null,
+   "schemes": {
+    "direction": {
+     "iri": "https://benchmarks.rewire.it/vocab/direction/",
+     "concepts": [
+      [
+       "higher",
+       "https://benchmarks.rewire.it/vocab/direction/higher",
+       "higher label"
+      ],
+      [
+       "lower",
+       "https://benchmarks.rewire.it/vocab/direction/lower",
+       "lower label"
+      ]
+     ]
+    },
+    "metric": {
+     "iri": "https://benchmarks.rewire.it/vocab/metric/",
+     "concepts": [
+      [
+       "n0",
+       "https://benchmarks.rewire.it/vocab/metric/n0",
+       "01"
+      ],
+      [
+       "n1",
+       "https://benchmarks.rewire.it/vocab/metric/n1",
+       "1e0"
+      ],
+      [
+       "n2",
+       "https://benchmarks.rewire.it/vocab/metric/n2",
+       "1.e3"
+      ],
+      [
+       "n3",
+       "https://benchmarks.rewire.it/vocab/metric/n3",
+       "-.50"
+      ],
+      [
+       "n4",
+       "https://benchmarks.rewire.it/vocab/metric/n4",
+       "true"
+      ],
+      [
+       "n5",
+       "https://benchmarks.rewire.it/vocab/metric/n5",
+       "01"
+      ],
+      [
+       "n6",
+       "https://benchmarks.rewire.it/vocab/metric/n6",
+       "TRUE"
+      ],
+      [
+       "n7",
+       "https://benchmarks.rewire.it/vocab/metric/n7",
+       "x"
+      ]
+     ]
+    }
+   },
+   "message_comparable": true
+  },
+  {
+   "name": "a label escaped as a surrogate pair, and as half of one",
+   "files": {
+    "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
+    "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:a skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"\\uD83D\\uDE00\" .\n:b skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"\\uD83D\" .\n"
+   },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 194,
+    "anonymous": 52
+   },
+   "error": null,
+   "schemes": {
+    "direction": {
+     "iri": "https://benchmarks.rewire.it/vocab/direction/",
+     "concepts": [
+      [
+       "higher",
+       "https://benchmarks.rewire.it/vocab/direction/higher",
+       "higher label"
+      ],
+      [
+       "lower",
+       "https://benchmarks.rewire.it/vocab/direction/lower",
+       "lower label"
+      ]
+     ]
+    },
+    "metric": {
+     "iri": "https://benchmarks.rewire.it/vocab/metric/",
+     "concepts": [
+      [
+       "a",
+       "https://benchmarks.rewire.it/vocab/metric/a",
+       "😀"
+      ],
+      [
+       "b",
+       "https://benchmarks.rewire.it/vocab/metric/b",
+       "\ud83d"
+      ]
+     ]
+    }
+   },
+   "message_comparable": true
+  },
+  {
+   "name": "a relative IRI placed in the scheme",
+   "files": {
+    "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
+    "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n<rel> skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"r\" .\n"
+   },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 198,
+    "anonymous": 53
+   },
+   "error": "metric.ttl: concept <rel> is not <https://benchmarks.rewire.it/vocab/metric/key> with a lowercase key",
+   "schemes": null,
+   "message_comparable": true
+  },
+  {
+   "name": "a relative IRI that is the concept, under a declared base",
+   "files": {
+    "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
+    "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n@base <https://benchmarks.rewire.it/vocab/metric/> .\n<rel> skos:inScheme <> ; skos:prefLabel \"r\" ; skos:broader <../direction/higher> .\n"
+   },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 202,
+    "anonymous": 54
+   },
+   "error": null,
+   "schemes": {
+    "direction": {
+     "iri": "https://benchmarks.rewire.it/vocab/direction/",
+     "concepts": [
+      [
+       "higher",
+       "https://benchmarks.rewire.it/vocab/direction/higher",
+       "higher label"
+      ],
+      [
+       "lower",
+       "https://benchmarks.rewire.it/vocab/direction/lower",
+       "lower label"
+      ]
+     ]
+    },
+    "metric": {
+     "iri": "https://benchmarks.rewire.it/vocab/metric/",
+     "concepts": [
+      [
+       "rel",
+       "https://benchmarks.rewire.it/vocab/metric/rel",
+       "r"
+      ]
+     ]
+    }
+   },
+   "message_comparable": true
+  },
+  {
+   "name": "lists and blank nodes inside a concept",
+   "files": {
+    "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
+    "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:a a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"a label\"@en ; skos:member ( :a [ skos:note \"n\" ; skos:related :a ] ( ) ) ; skos:related [ skos:member ( \"x\" 1 ) ] .\n"
+   },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 206,
+    "anonymous": 55
+   },
+   "error": null,
+   "schemes": {
+    "direction": {
+     "iri": "https://benchmarks.rewire.it/vocab/direction/",
+     "concepts": [
+      [
+       "higher",
+       "https://benchmarks.rewire.it/vocab/direction/higher",
+       "higher label"
+      ],
+      [
+       "lower",
+       "https://benchmarks.rewire.it/vocab/direction/lower",
+       "lower label"
+      ]
+     ]
+    },
+    "metric": {
+     "iri": "https://benchmarks.rewire.it/vocab/metric/",
+     "concepts": [
+      [
+       "a",
+       "https://benchmarks.rewire.it/vocab/metric/a",
+       "a label"
+      ]
+     ]
+    }
+   },
+   "message_comparable": true
+  },
+  {
+   "name": "a list that holds a concept that does not exist",
+   "files": {
+    "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
+    "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:a a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"a label\"@en ; skos:member ( :a :gone ) .\n"
+   },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 210,
+    "anonymous": 63
+   },
+   "error": "Vocabulary references do not resolve:\n  metric.ttl: <n3-64> http://www.w3.org/1999/02/22-rdf-syntax-ns#first <https://benchmarks.rewire.it/vocab/metric/gone>, which is not a concept",
+   "schemes": null,
+   "message_comparable": true
+  },
+  {
+   "name": "an unlabelled blank node placed in the scheme",
+   "files": {
+    "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
+    "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n[] skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"b\" .\n"
+   },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 214,
+    "anonymous": 66
+   },
+   "error": "metric.ttl: concept <n3-66> is not <https://benchmarks.rewire.it/vocab/metric/key> with a lowercase key",
+   "schemes": null,
+   "message_comparable": true
+  },
+  {
+   "name": "a labelled blank node placed in the scheme, in the second file",
+   "files": {
+    "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
+    "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n[] skos:note \"first\" .\n_:q skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"b\" .\n"
+   },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 218,
+    "anonymous": 68
+   },
+   "error": "metric.ttl: concept <b219_q> is not <https://benchmarks.rewire.it/vocab/metric/key> with a lowercase key",
+   "schemes": null,
+   "message_comparable": true
+  },
+  {
+   "name": "a blank node that is broader than a concept does not resolve as one",
+   "files": {
+    "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
+    "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:a a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"a label\"@en ; skos:broader _:x , [ ] .\n"
+   },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 222,
+    "anonymous": 70
+   },
+   "error": null,
+   "schemes": {
+    "direction": {
+     "iri": "https://benchmarks.rewire.it/vocab/direction/",
+     "concepts": [
+      [
+       "higher",
+       "https://benchmarks.rewire.it/vocab/direction/higher",
+       "higher label"
+      ],
+      [
+       "lower",
+       "https://benchmarks.rewire.it/vocab/direction/lower",
+       "lower label"
+      ]
+     ]
+    },
+    "metric": {
+     "iri": "https://benchmarks.rewire.it/vocab/metric/",
+     "concepts": [
+      [
+       "a",
+       "https://benchmarks.rewire.it/vocab/metric/a",
+       "a label"
+      ]
+     ]
+    }
+   },
+   "message_comparable": true
+  },
+  {
+   "name": "a byte order mark before the first directive",
+   "files": {
+    "metric.ttl": {
+     "hex": "efbbbf4070726566697820736b6f733a203c687474703a2f2f7777772e77332e6f72672f323030342f30322f736b6f732f636f7265233e202e0a407072656669782072623a203c68747470733a2f2f62656e63686d61726b732e7265776972652e69742f766f636162233e202e0a40707265666978203a203c68747470733a2f2f62656e63686d61726b732e7265776972652e69742f766f6361622f6d65747269632f3e202e0a3c68747470733a2f2f62656e63686d61726b732e7265776972652e69742f766f6361622f6d65747269632f3e206120736b6f733a436f6e63657074536368656d65202e0a3a61206120736b6f733a436f6e63657074203b20736b6f733a696e536368656d65203c68747470733a2f2f62656e63686d61726b732e7265776972652e69742f766f6361622f6d65747269632f3e203b20736b6f733a707265664c6162656c202261206c6162656c2240656e202e0a"
+    }
+   },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 226,
+    "anonymous": 72
+   },
+   "error": null,
+   "schemes": {
+    "metric": {
+     "iri": "https://benchmarks.rewire.it/vocab/metric/",
+     "concepts": [
+      [
+       "a",
+       "https://benchmarks.rewire.it/vocab/metric/a",
+       "a label"
+      ]
+     ]
+    }
+   },
+   "message_comparable": true
+  },
+  {
+   "name": "a byte order mark in the middle",
+   "files": {
+    "metric.ttl": {
+     "hex": "4070726566697820736b6f733a203c687474703a2f2f7777772e77332e6f72672f323030342f30322f736b6f732f636f7265233e202e0a407072656669782072623a203c68747470733a2f2f62656e63686d61726b732e7265776972652e69742f766f636162233e202e0a40707265666978203a203c68747470733a2f2f62656e63686d61726b732e7265776972652e69742f766f6361622f6d65747269632f3e202e0a3c68747470733a2f2f62656e63686d61726b732e7265776972652e69742f766f6361622f6d65747269632f3e206120736b6f733a436f6e63657074536368656d65202e0aefbbbf3a61206120736b6f733a436f6e63657074203b20736b6f733a696e536368656d65203c68747470733a2f2f62656e63686d61726b732e7265776972652e69742f766f6361622f6d65747269632f3e203b20736b6f733a707265664c6162656c202261206c6162656c2240656e202e0a"
+    }
+   },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 229,
+    "anonymous": 73
+   },
+   "error": "Undefined prefix \"﻿:\" on line 5.",
+   "schemes": null,
+   "message_comparable": true
+  },
+  {
+   "name": "a byte that is not UTF-8 in a label",
+   "files": {
+    "metric.ttl": {
+     "hex": "4070726566697820736b6f733a203c687474703a2f2f7777772e77332e6f72672f323030342f30322f736b6f732f636f7265233e202e0a407072656669782072623a203c68747470733a2f2f62656e63686d61726b732e7265776972652e69742f766f636162233e202e0a40707265666978203a203c68747470733a2f2f62656e63686d61726b732e7265776972652e69742f766f6361622f6d65747269632f3e202e0a3c68747470733a2f2f62656e63686d61726b732e7265776972652e69742f766f6361622f6d65747269632f3e206120736b6f733a436f6e63657074536368656d65202e0a3a6120736b6f733a696e536368656d65203c68747470733a2f2f62656e63686d61726b732e7265776972652e69742f766f6361622f6d65747269632f3e203b20736b6f733a707265664c6162656c2022636166e920f09f9820e28222202e0a"
+    }
+   },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 232,
+    "anonymous": 74
+   },
+   "error": null,
+   "schemes": {
+    "metric": {
+     "iri": "https://benchmarks.rewire.it/vocab/metric/",
+     "concepts": [
+      [
+       "a",
+       "https://benchmarks.rewire.it/vocab/metric/a",
+       "caf� � �"
+      ]
+     ]
+    }
+   },
+   "message_comparable": true
+  },
+  {
+   "name": "a byte that is not UTF-8 in a name, where U+FFFD is a letter n3 allows",
+   "files": {
+    "metric.ttl": {
+     "hex": "4070726566697820736b6f733a203c687474703a2f2f7777772e77332e6f72672f323030342f30322f736b6f732f636f7265233e202e0a407072656669782072623a203c68747470733a2f2f62656e63686d61726b732e7265776972652e69742f766f636162233e202e0a40707265666978203a203c68747470733a2f2f62656e63686d61726b732e7265776972652e69742f766f6361622f6d65747269632f3e202e0a3c68747470733a2f2f62656e63686d61726b732e7265776972652e69742f766f6361622f6d65747269632f3e206120736b6f733a436f6e63657074536368656d65202e0a3a61ff20736b6f733a6e6f746520227822202e0a"
+    }
+   },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 235,
+    "anonymous": 75
+   },
+   "error": null,
+   "schemes": {
+    "metric": {
+     "iri": "https://benchmarks.rewire.it/vocab/metric/",
+     "concepts": []
+    }
+   },
+   "message_comparable": true
+  },
+  {
+   "name": "a folder with the name of a scheme file",
+   "files": {
+    "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
+    "metric.ttl": null
+   },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 238,
+    "anonymous": 76
+   },
+   "error": "EISDIR",
+   "schemes": null,
    "message_comparable": false
+  },
+  {
+   "name": "a file where data/vocab belongs",
+   "files": null,
+   "vocab_is_file": true,
+   "labels": {
+    "documents": 241,
+    "anonymous": 77
+   },
+   "error": "ENOTDIR",
+   "schemes": null,
+   "message_comparable": false
+  },
+  {
+   "name": "a byte that is not UTF-8 where a statement should end",
+   "files": {
+    "metric.ttl": {
+     "hex": "4070726566697820736b6f733a203c687474703a2f2f7777772e77332e6f72672f323030342f30322f736b6f732f636f7265233e202e0a407072656669782072623a203c68747470733a2f2f62656e63686d61726b732e7265776972652e69742f766f636162233e202e0a40707265666978203a203c68747470733a2f2f62656e63686d61726b732e7265776972652e69742f766f6361622f6d65747269632f3e202e0a3c68747470733a2f2f62656e63686d61726b732e7265776972652e69742f766f6361622f6d65747269632f3e206120736b6f733a436f6e63657074536368656d65202e0a3a6120736b6f733a6e6f74652022782220fffe2e0a"
+    }
+   },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 243,
+    "anonymous": 78
+   },
+   "error": "Unexpected \"��.\" on line 5.",
+   "schemes": null,
+   "message_comparable": true
+  },
+  {
+   "name": "a file named .ttl and nothing more",
+   "files": {
+    ".ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab//> .\n<https://benchmarks.rewire.it/vocab//> a skos:ConceptScheme .\n<https://benchmarks.rewire.it/vocab//a> skos:inScheme <https://benchmarks.rewire.it/vocab//> ; skos:prefLabel \"a\" .\n"
+   },
+   "vocab_is_file": false,
+   "labels": {
+    "documents": 246,
+    "anonymous": 79
+   },
+   "error": null,
+   "schemes": {
+    "": {
+     "iri": "https://benchmarks.rewire.it/vocab//",
+     "concepts": [
+      [
+       "a",
+       "https://benchmarks.rewire.it/vocab//a",
+       "a"
+      ]
+     ]
+    }
+   },
+   "message_comparable": true
+  }
+ ],
+ "chains": [
+  {
+   "length": 1500,
+   "loop": false,
+   "text_sha256": "5799ece7ce085331f23fdc6057327a43f96f4857695afba6ceaa9ebd0067c138",
+   "concepts": 1500,
+   "error": null
+  },
+  {
+   "length": 1500,
+   "loop": true,
+   "text_sha256": "52086e9f75311249deb4de23128b8fc87513783e0d835cc6d9644c9cf99001c2",
+   "concepts": null,
+   "error": "Vocabulary references do not resolve:\n  skos:broader cycle: metric/c0, then metric/c1, then metric/c2, then metric/c3, then metric/c4, then metric/c5, then metric/c6, then metric/c7, then metric/c8, then metric/c9, then metric/c10, then metric/c11, then metric/c12, then metric/c13, then metric/c14, then metric/c15, then metric/c16, then metric/c17, then metric/c18, then metric/c19, then metric/c20, then metric/c21, then metric/c22, then metric/c23, then metric/c24, then metric/c25, then metric/c26, then metric/c27, then metric/c28, then metric/c29, then metric/c30, then metric/c31, then metric/c32, then metric/c33, then metric/c34, then metric/c35, then metric/c36, then metric/c37, then metric/c38, then metric/c39, then metric/c40, then metric/c41, then metric/c42, then metric/c43, then metric/c44, then metric/c45, then metric/c46, then metric/c47, then metric/c48, then metric/c49, then metric/c50, then metric/c51, then metric/c52, then metric/c53, then metric/c54, then metric/c55, then metric/c56, then metric/c57, then metric/c58, then metric/c59, then metric/c60, then metric/c61, then metric/c62, then metric/c63, then metric/c64, then metric/c65, then metric/c66, then metric/c67, then metric/c68, then metric/c69, then metric/c70, then metric/c71, then metric/c72, then metric/c73, then metric/c74, then metric/c75, then metric/c76, then metric/c77, then metric/c78, then metric/c79, then metric/c80, then metric/c81, then metric/c82, then metric/c83, then metric/c84, then metric/c85, then metric/c86, then metric/c87, then metric/c88, then metric/c89, then metric/c90, then metric/c91, then metric/c92, then metric/c93, then metric/c94, then metric/c95, then metric/c96, then metric/c97, then metric/c98, then metric/c99, then metric/c100, then metric/c101, then metric/c102, then metric/c103, then metric/c104, then metric/c105, then metric/c106, then metric/c107, then metric/c108, then metric/c109, then metric/c110, then metric/c111, then metric/c112, then metric/c113, then metric/c114, then metric/c115, then metric/c116, then metric/c117, then metric/c118, then metric/c119, then metric/c120, then metric/c121, then metric/c122, then metric/c123, then metric/c124, then metric/c125, then metric/c126, then metric/c127, then metric/c128, then metric/c129, then metric/c130, then metric/c131, then metric/c132, then metric/c133, then metric/c134, then metric/c135, then metric/c136, then metric/c137, then metric/c138, then metric/c139, then metric/c140, then metric/c141, then metric/c142, then metric/c143, then metric/c144, then metric/c145, then metric/c146, then metric/c147, then metric/c148, then metric/c149, then metric/c150, then metric/c151, then metric/c152, then metric/c153, then metric/c154, then metric/c155, then metric/c156, then metric/c157, then metric/c158, then metric/c159, then metric/c160, then metric/c161, then metric/c162, then metric/c163, then metric/c164, then metric/c165, then metric/c166, then metric/c167, then metric/c168, then metric/c169, then metric/c170, then metric/c171, then metric/c172, then metric/c173, then metric/c174, then metric/c175, then metric/c176, then metric/c177, then metric/c178, then metric/c179, then metric/c180, then metric/c181, then metric/c182, then metric/c183, then metric/c184, then metric/c185, then metric/c186, then metric/c187, then metric/c188, then metric/c189, then metric/c190, then metric/c191, then metric/c192, then metric/c193, then metric/c194, then metric/c195, then metric/c196, then metric/c197, then metric/c198, then metric/c199, then metric/c200, then metric/c201, then metric/c202, then metric/c203, then metric/c204, then metric/c205, then metric/c206, then metric/c207, then metric/c208, then metric/c209, then metric/c210, then metric/c211, then metric/c212, then metric/c213, then metric/c214, then metric/c215, then metric/c216, then metric/c217, then metric/c218, then metric/c219, then metric/c220, then metric/c221, then metric/c222, then metric/c223, then metric/c224, then metric/c225, then metric/c226, then metric/c227, then metric/c228, then metric/c229, then metric/c230, then metric/c231, then metric/c232, then metric/c233, then metric/c234, then metric/c235, then metric/c236, then metric/c237, then metric/c238, then metric/c239, then metric/c240, then metric/c241, then metric/c242, then metric/c243, then metric/c244, then metric/c245, then metric/c246, then metric/c247, then metric/c248, then metric/c249, then metric/c250, then metric/c251, then metric/c252, then metric/c253, then metric/c254, then metric/c255, then metric/c256, then metric/c257, then metric/c258, then metric/c259, then metric/c260, then metric/c261, then metric/c262, then metric/c263, then metric/c264, then metric/c265, then metric/c266, then metric/c267, then metric/c268, then metric/c269, then metric/c270, then metric/c271, then metric/c272, then metric/c273, then metric/c274, then metric/c275, then metric/c276, then metric/c277, then metric/c278, then metric/c279, then metric/c280, then metric/c281, then metric/c282, then metric/c283, then metric/c284, then metric/c285, then metric/c286, then metric/c287, then metric/c288, then metric/c289, then metric/c290, then metric/c291, then metric/c292, then metric/c293, then metric/c294, then metric/c295, then metric/c296, then metric/c297, then metric/c298, then metric/c299, then metric/c300, then metric/c301, then metric/c302, then metric/c303, then metric/c304, then metric/c305, then metric/c306, then metric/c307, then metric/c308, then metric/c309, then metric/c310, then metric/c311, then metric/c312, then metric/c313, then metric/c314, then metric/c315, then metric/c316, then metric/c317, then metric/c318, then metric/c319, then metric/c320, then metric/c321, then metric/c322, then metric/c323, then metric/c324, then metric/c325, then metric/c326, then metric/c327, then metric/c328, then metric/c329, then metric/c330, then metric/c331, then metric/c332, then metric/c333, then metric/c334, then metric/c335, then metric/c336, then metric/c337, then metric/c338, then metric/c339, then metric/c340, then metric/c341, then metric/c342, then metric/c343, then metric/c344, then metric/c345, then metric/c346, then metric/c347, then metric/c348, then metric/c349, then metric/c350, then metric/c351, then metric/c352, then metric/c353, then metric/c354, then metric/c355, then metric/c356, then metric/c357, then metric/c358, then metric/c359, then metric/c360, then metric/c361, then metric/c362, then metric/c363, then metric/c364, then metric/c365, then metric/c366, then metric/c367, then metric/c368, then metric/c369, then metric/c370, then metric/c371, then metric/c372, then metric/c373, then metric/c374, then metric/c375, then metric/c376, then metric/c377, then metric/c378, then metric/c379, then metric/c380, then metric/c381, then metric/c382, then metric/c383, then metric/c384, then metric/c385, then metric/c386, then metric/c387, then metric/c388, then metric/c389, then metric/c390, then metric/c391, then metric/c392, then metric/c393, then metric/c394, then metric/c395, then metric/c396, then metric/c397, then metric/c398, then metric/c399, then metric/c400, then metric/c401, then metric/c402, then metric/c403, then metric/c404, then metric/c405, then metric/c406, then metric/c407, then metric/c408, then metric/c409, then metric/c410, then metric/c411, then metric/c412, then metric/c413, then metric/c414, then metric/c415, then metric/c416, then metric/c417, then metric/c418, then metric/c419, then metric/c420, then metric/c421, then metric/c422, then metric/c423, then metric/c424, then metric/c425, then metric/c426, then metric/c427, then metric/c428, then metric/c429, then metric/c430, then metric/c431, then metric/c432, then metric/c433, then metric/c434, then metric/c435, then metric/c436, then metric/c437, then metric/c438, then metric/c439, then metric/c440, then metric/c441, then metric/c442, then metric/c443, then metric/c444, then metric/c445, then metric/c446, then metric/c447, then metric/c448, then metric/c449, then metric/c450, then metric/c451, then metric/c452, then metric/c453, then metric/c454, then metric/c455, then metric/c456, then metric/c457, then metric/c458, then metric/c459, then metric/c460, then metric/c461, then metric/c462, then metric/c463, then metric/c464, then metric/c465, then metric/c466, then metric/c467, then metric/c468, then metric/c469, then metric/c470, then metric/c471, then metric/c472, then metric/c473, then metric/c474, then metric/c475, then metric/c476, then metric/c477, then metric/c478, then metric/c479, then metric/c480, then metric/c481, then metric/c482, then metric/c483, then metric/c484, then metric/c485, then metric/c486, then metric/c487, then metric/c488, then metric/c489, then metric/c490, then metric/c491, then metric/c492, then metric/c493, then metric/c494, then metric/c495, then metric/c496, then metric/c497, then metric/c498, then metric/c499, then metric/c500, then metric/c501, then metric/c502, then metric/c503, then metric/c504, then metric/c505, then metric/c506, then metric/c507, then metric/c508, then metric/c509, then metric/c510, then metric/c511, then metric/c512, then metric/c513, then metric/c514, then metric/c515, then metric/c516, then metric/c517, then metric/c518, then metric/c519, then metric/c520, then metric/c521, then metric/c522, then metric/c523, then metric/c524, then metric/c525, then metric/c526, then metric/c527, then metric/c528, then metric/c529, then metric/c530, then metric/c531, then metric/c532, then metric/c533, then metric/c534, then metric/c535, then metric/c536, then metric/c537, then metric/c538, then metric/c539, then metric/c540, then metric/c541, then metric/c542, then metric/c543, then metric/c544, then metric/c545, then metric/c546, then metric/c547, then metric/c548, then metric/c549, then metric/c550, then metric/c551, then metric/c552, then metric/c553, then metric/c554, then metric/c555, then metric/c556, then metric/c557, then metric/c558, then metric/c559, then metric/c560, then metric/c561, then metric/c562, then metric/c563, then metric/c564, then metric/c565, then metric/c566, then metric/c567, then metric/c568, then metric/c569, then metric/c570, then metric/c571, then metric/c572, then metric/c573, then metric/c574, then metric/c575, then metric/c576, then metric/c577, then metric/c578, then metric/c579, then metric/c580, then metric/c581, then metric/c582, then metric/c583, then metric/c584, then metric/c585, then metric/c586, then metric/c587, then metric/c588, then metric/c589, then metric/c590, then metric/c591, then metric/c592, then metric/c593, then metric/c594, then metric/c595, then metric/c596, then metric/c597, then metric/c598, then metric/c599, then metric/c600, then metric/c601, then metric/c602, then metric/c603, then metric/c604, then metric/c605, then metric/c606, then metric/c607, then metric/c608, then metric/c609, then metric/c610, then metric/c611, then metric/c612, then metric/c613, then metric/c614, then metric/c615, then metric/c616, then metric/c617, then metric/c618, then metric/c619, then metric/c620, then metric/c621, then metric/c622, then metric/c623, then metric/c624, then metric/c625, then metric/c626, then metric/c627, then metric/c628, then metric/c629, then metric/c630, then metric/c631, then metric/c632, then metric/c633, then metric/c634, then metric/c635, then metric/c636, then metric/c637, then metric/c638, then metric/c639, then metric/c640, then metric/c641, then metric/c642, then metric/c643, then metric/c644, then metric/c645, then metric/c646, then metric/c647, then metric/c648, then metric/c649, then metric/c650, then metric/c651, then metric/c652, then metric/c653, then metric/c654, then metric/c655, then metric/c656, then metric/c657, then metric/c658, then metric/c659, then metric/c660, then metric/c661, then metric/c662, then metric/c663, then metric/c664, then metric/c665, then metric/c666, then metric/c667, then metric/c668, then metric/c669, then metric/c670, then metric/c671, then metric/c672, then metric/c673, then metric/c674, then metric/c675, then metric/c676, then metric/c677, then metric/c678, then metric/c679, then metric/c680, then metric/c681, then metric/c682, then metric/c683, then metric/c684, then metric/c685, then metric/c686, then metric/c687, then metric/c688, then metric/c689, then metric/c690, then metric/c691, then metric/c692, then metric/c693, then metric/c694, then metric/c695, then metric/c696, then metric/c697, then metric/c698, then metric/c699, then metric/c700, then metric/c701, then metric/c702, then metric/c703, then metric/c704, then metric/c705, then metric/c706, then metric/c707, then metric/c708, then metric/c709, then metric/c710, then metric/c711, then metric/c712, then metric/c713, then metric/c714, then metric/c715, then metric/c716, then metric/c717, then metric/c718, then metric/c719, then metric/c720, then metric/c721, then metric/c722, then metric/c723, then metric/c724, then metric/c725, then metric/c726, then metric/c727, then metric/c728, then metric/c729, then metric/c730, then metric/c731, then metric/c732, then metric/c733, then metric/c734, then metric/c735, then metric/c736, then metric/c737, then metric/c738, then metric/c739, then metric/c740, then metric/c741, then metric/c742, then metric/c743, then metric/c744, then metric/c745, then metric/c746, then metric/c747, then metric/c748, then metric/c749, then metric/c750, then metric/c751, then metric/c752, then metric/c753, then metric/c754, then metric/c755, then metric/c756, then metric/c757, then metric/c758, then metric/c759, then metric/c760, then metric/c761, then metric/c762, then metric/c763, then metric/c764, then metric/c765, then metric/c766, then metric/c767, then metric/c768, then metric/c769, then metric/c770, then metric/c771, then metric/c772, then metric/c773, then metric/c774, then metric/c775, then metric/c776, then metric/c777, then metric/c778, then metric/c779, then metric/c780, then metric/c781, then metric/c782, then metric/c783, then metric/c784, then metric/c785, then metric/c786, then metric/c787, then metric/c788, then metric/c789, then metric/c790, then metric/c791, then metric/c792, then metric/c793, then metric/c794, then metric/c795, then metric/c796, then metric/c797, then metric/c798, then metric/c799, then metric/c800, then metric/c801, then metric/c802, then metric/c803, then metric/c804, then metric/c805, then metric/c806, then metric/c807, then metric/c808, then metric/c809, then metric/c810, then metric/c811, then metric/c812, then metric/c813, then metric/c814, then metric/c815, then metric/c816, then metric/c817, then metric/c818, then metric/c819, then metric/c820, then metric/c821, then metric/c822, then metric/c823, then metric/c824, then metric/c825, then metric/c826, then metric/c827, then metric/c828, then metric/c829, then metric/c830, then metric/c831, then metric/c832, then metric/c833, then metric/c834, then metric/c835, then metric/c836, then metric/c837, then metric/c838, then metric/c839, then metric/c840, then metric/c841, then metric/c842, then metric/c843, then metric/c844, then metric/c845, then metric/c846, then metric/c847, then metric/c848, then metric/c849, then metric/c850, then metric/c851, then metric/c852, then metric/c853, then metric/c854, then metric/c855, then metric/c856, then metric/c857, then metric/c858, then metric/c859, then metric/c860, then metric/c861, then metric/c862, then metric/c863, then metric/c864, then metric/c865, then metric/c866, then metric/c867, then metric/c868, then metric/c869, then metric/c870, then metric/c871, then metric/c872, then metric/c873, then metric/c874, then metric/c875, then metric/c876, then metric/c877, then metric/c878, then metric/c879, then metric/c880, then metric/c881, then metric/c882, then metric/c883, then metric/c884, then metric/c885, then metric/c886, then metric/c887, then metric/c888, then metric/c889, then metric/c890, then metric/c891, then metric/c892, then metric/c893, then metric/c894, then metric/c895, then metric/c896, then metric/c897, then metric/c898, then metric/c899, then metric/c900, then metric/c901, then metric/c902, then metric/c903, then metric/c904, then metric/c905, then metric/c906, then metric/c907, then metric/c908, then metric/c909, then metric/c910, then metric/c911, then metric/c912, then metric/c913, then metric/c914, then metric/c915, then metric/c916, then metric/c917, then metric/c918, then metric/c919, then metric/c920, then metric/c921, then metric/c922, then metric/c923, then metric/c924, then metric/c925, then metric/c926, then metric/c927, then metric/c928, then metric/c929, then metric/c930, then metric/c931, then metric/c932, then metric/c933, then metric/c934, then metric/c935, then metric/c936, then metric/c937, then metric/c938, then metric/c939, then metric/c940, then metric/c941, then metric/c942, then metric/c943, then metric/c944, then metric/c945, then metric/c946, then metric/c947, then metric/c948, then metric/c949, then metric/c950, then metric/c951, then metric/c952, then metric/c953, then metric/c954, then metric/c955, then metric/c956, then metric/c957, then metric/c958, then metric/c959, then metric/c960, then metric/c961, then metric/c962, then metric/c963, then metric/c964, then metric/c965, then metric/c966, then metric/c967, then metric/c968, then metric/c969, then metric/c970, then metric/c971, then metric/c972, then metric/c973, then metric/c974, then metric/c975, then metric/c976, then metric/c977, then metric/c978, then metric/c979, then metric/c980, then metric/c981, then metric/c982, then metric/c983, then metric/c984, then metric/c985, then metric/c986, then metric/c987, then metric/c988, then metric/c989, then metric/c990, then metric/c991, then metric/c992, then metric/c993, then metric/c994, then metric/c995, then metric/c996, then metric/c997, then metric/c998, then metric/c999, then metric/c1000, then metric/c1001, then metric/c1002, then metric/c1003, then metric/c1004, then metric/c1005, then metric/c1006, then metric/c1007, then metric/c1008, then metric/c1009, then metric/c1010, then metric/c1011, then metric/c1012, then metric/c1013, then metric/c1014, then metric/c1015, then metric/c1016, then metric/c1017, then metric/c1018, then metric/c1019, then metric/c1020, then metric/c1021, then metric/c1022, then metric/c1023, then metric/c1024, then metric/c1025, then metric/c1026, then metric/c1027, then metric/c1028, then metric/c1029, then metric/c1030, then metric/c1031, then metric/c1032, then metric/c1033, then metric/c1034, then metric/c1035, then metric/c1036, then metric/c1037, then metric/c1038, then metric/c1039, then metric/c1040, then metric/c1041, then metric/c1042, then metric/c1043, then metric/c1044, then metric/c1045, then metric/c1046, then metric/c1047, then metric/c1048, then metric/c1049, then metric/c1050, then metric/c1051, then metric/c1052, then metric/c1053, then metric/c1054, then metric/c1055, then metric/c1056, then metric/c1057, then metric/c1058, then metric/c1059, then metric/c1060, then metric/c1061, then metric/c1062, then metric/c1063, then metric/c1064, then metric/c1065, then metric/c1066, then metric/c1067, then metric/c1068, then metric/c1069, then metric/c1070, then metric/c1071, then metric/c1072, then metric/c1073, then metric/c1074, then metric/c1075, then metric/c1076, then metric/c1077, then metric/c1078, then metric/c1079, then metric/c1080, then metric/c1081, then metric/c1082, then metric/c1083, then metric/c1084, then metric/c1085, then metric/c1086, then metric/c1087, then metric/c1088, then metric/c1089, then metric/c1090, then metric/c1091, then metric/c1092, then metric/c1093, then metric/c1094, then metric/c1095, then metric/c1096, then metric/c1097, then metric/c1098, then metric/c1099, then metric/c1100, then metric/c1101, then metric/c1102, then metric/c1103, then metric/c1104, then metric/c1105, then metric/c1106, then metric/c1107, then metric/c1108, then metric/c1109, then metric/c1110, then metric/c1111, then metric/c1112, then metric/c1113, then metric/c1114, then metric/c1115, then metric/c1116, then metric/c1117, then metric/c1118, then metric/c1119, then metric/c1120, then metric/c1121, then metric/c1122, then metric/c1123, then metric/c1124, then metric/c1125, then metric/c1126, then metric/c1127, then metric/c1128, then metric/c1129, then metric/c1130, then metric/c1131, then metric/c1132, then metric/c1133, then metric/c1134, then metric/c1135, then metric/c1136, then metric/c1137, then metric/c1138, then metric/c1139, then metric/c1140, then metric/c1141, then metric/c1142, then metric/c1143, then metric/c1144, then metric/c1145, then metric/c1146, then metric/c1147, then metric/c1148, then metric/c1149, then metric/c1150, then metric/c1151, then metric/c1152, then metric/c1153, then metric/c1154, then metric/c1155, then metric/c1156, then metric/c1157, then metric/c1158, then metric/c1159, then metric/c1160, then metric/c1161, then metric/c1162, then metric/c1163, then metric/c1164, then metric/c1165, then metric/c1166, then metric/c1167, then metric/c1168, then metric/c1169, then metric/c1170, then metric/c1171, then metric/c1172, then metric/c1173, then metric/c1174, then metric/c1175, then metric/c1176, then metric/c1177, then metric/c1178, then metric/c1179, then metric/c1180, then metric/c1181, then metric/c1182, then metric/c1183, then metric/c1184, then metric/c1185, then metric/c1186, then metric/c1187, then metric/c1188, then metric/c1189, then metric/c1190, then metric/c1191, then metric/c1192, then metric/c1193, then metric/c1194, then metric/c1195, then metric/c1196, then metric/c1197, then metric/c1198, then metric/c1199, then metric/c1200, then metric/c1201, then metric/c1202, then metric/c1203, then metric/c1204, then metric/c1205, then metric/c1206, then metric/c1207, then metric/c1208, then metric/c1209, then metric/c1210, then metric/c1211, then metric/c1212, then metric/c1213, then metric/c1214, then metric/c1215, then metric/c1216, then metric/c1217, then metric/c1218, then metric/c1219, then metric/c1220, then metric/c1221, then metric/c1222, then metric/c1223, then metric/c1224, then metric/c1225, then metric/c1226, then metric/c1227, then metric/c1228, then metric/c1229, then metric/c1230, then metric/c1231, then metric/c1232, then metric/c1233, then metric/c1234, then metric/c1235, then metric/c1236, then metric/c1237, then metric/c1238, then metric/c1239, then metric/c1240, then metric/c1241, then metric/c1242, then metric/c1243, then metric/c1244, then metric/c1245, then metric/c1246, then metric/c1247, then metric/c1248, then metric/c1249, then metric/c1250, then metric/c1251, then metric/c1252, then metric/c1253, then metric/c1254, then metric/c1255, then metric/c1256, then metric/c1257, then metric/c1258, then metric/c1259, then metric/c1260, then metric/c1261, then metric/c1262, then metric/c1263, then metric/c1264, then metric/c1265, then metric/c1266, then metric/c1267, then metric/c1268, then metric/c1269, then metric/c1270, then metric/c1271, then metric/c1272, then metric/c1273, then metric/c1274, then metric/c1275, then metric/c1276, then metric/c1277, then metric/c1278, then metric/c1279, then metric/c1280, then metric/c1281, then metric/c1282, then metric/c1283, then metric/c1284, then metric/c1285, then metric/c1286, then metric/c1287, then metric/c1288, then metric/c1289, then metric/c1290, then metric/c1291, then metric/c1292, then metric/c1293, then metric/c1294, then metric/c1295, then metric/c1296, then metric/c1297, then metric/c1298, then metric/c1299, then metric/c1300, then metric/c1301, then metric/c1302, then metric/c1303, then metric/c1304, then metric/c1305, then metric/c1306, then metric/c1307, then metric/c1308, then metric/c1309, then metric/c1310, then metric/c1311, then metric/c1312, then metric/c1313, then metric/c1314, then metric/c1315, then metric/c1316, then metric/c1317, then metric/c1318, then metric/c1319, then metric/c1320, then metric/c1321, then metric/c1322, then metric/c1323, then metric/c1324, then metric/c1325, then metric/c1326, then metric/c1327, then metric/c1328, then metric/c1329, then metric/c1330, then metric/c1331, then metric/c1332, then metric/c1333, then metric/c1334, then metric/c1335, then metric/c1336, then metric/c1337, then metric/c1338, then metric/c1339, then metric/c1340, then metric/c1341, then metric/c1342, then metric/c1343, then metric/c1344, then metric/c1345, then metric/c1346, then metric/c1347, then metric/c1348, then metric/c1349, then metric/c1350, then metric/c1351, then metric/c1352, then metric/c1353, then metric/c1354, then metric/c1355, then metric/c1356, then metric/c1357, then metric/c1358, then metric/c1359, then metric/c1360, then metric/c1361, then metric/c1362, then metric/c1363, then metric/c1364, then metric/c1365, then metric/c1366, then metric/c1367, then metric/c1368, then metric/c1369, then metric/c1370, then metric/c1371, then metric/c1372, then metric/c1373, then metric/c1374, then metric/c1375, then metric/c1376, then metric/c1377, then metric/c1378, then metric/c1379, then metric/c1380, then metric/c1381, then metric/c1382, then metric/c1383, then metric/c1384, then metric/c1385, then metric/c1386, then metric/c1387, then metric/c1388, then metric/c1389, then metric/c1390, then metric/c1391, then metric/c1392, then metric/c1393, then metric/c1394, then metric/c1395, then metric/c1396, then metric/c1397, then metric/c1398, then metric/c1399, then metric/c1400, then metric/c1401, then metric/c1402, then metric/c1403, then metric/c1404, then metric/c1405, then metric/c1406, then metric/c1407, then metric/c1408, then metric/c1409, then metric/c1410, then metric/c1411, then metric/c1412, then metric/c1413, then metric/c1414, then metric/c1415, then metric/c1416, then metric/c1417, then metric/c1418, then metric/c1419, then metric/c1420, then metric/c1421, then metric/c1422, then metric/c1423, then metric/c1424, then metric/c1425, then metric/c1426, then metric/c1427, then metric/c1428, then metric/c1429, then metric/c1430, then metric/c1431, then metric/c1432, then metric/c1433, then metric/c1434, then metric/c1435, then metric/c1436, then metric/c1437, then metric/c1438, then metric/c1439, then metric/c1440, then metric/c1441, then metric/c1442, then metric/c1443, then metric/c1444, then metric/c1445, then metric/c1446, then metric/c1447, then metric/c1448, then metric/c1449, then metric/c1450, then metric/c1451, then metric/c1452, then metric/c1453, then metric/c1454, then metric/c1455, then metric/c1456, then metric/c1457, then metric/c1458, then metric/c1459, then metric/c1460, then metric/c1461, then metric/c1462, then metric/c1463, then metric/c1464, then metric/c1465, then metric/c1466, then metric/c1467, then metric/c1468, then metric/c1469, then metric/c1470, then metric/c1471, then metric/c1472, then metric/c1473, then metric/c1474, then metric/c1475, then metric/c1476, then metric/c1477, then metric/c1478, then metric/c1479, then metric/c1480, then metric/c1481, then metric/c1482, then metric/c1483, then metric/c1484, then metric/c1485, then metric/c1486, then metric/c1487, then metric/c1488, then metric/c1489, then metric/c1490, then metric/c1491, then metric/c1492, then metric/c1493, then metric/c1494, then metric/c1495, then metric/c1496, then metric/c1497, then metric/c1498, then metric/c1499, then metric/c0"
   }
  ],
  "mapping": {
@@ -2124,6 +2952,223 @@
     "facets": {},
     "attributes": {},
     "review": {}
+   },
+   "values": [
+    []
+   ],
+   "error": null
+  },
+  {
+   "name": "schemes that are not text are never found, and are printed as JavaScript prints them",
+   "input": "[{\"id\":\"r\",\"facets\":{},\"attributes\":{\"a\":\"x\",\"b\":\"x\",\"c\":\"x\",\"d\":\"x\",\"e\":\"x\",\"f\":\"x\",\"g\":\"x\",\"h\":\"x\",\"i\":\"x\"}}]",
+   "mapping": {
+    "fields": {},
+    "facets": {},
+    "attributes": {
+     "a": {
+      "scheme": 5
+     },
+     "b": {
+      "scheme": true
+     },
+     "c": {
+      "scheme": [
+       "metric"
+      ]
+     },
+     "d": {
+      "scheme": []
+     },
+     "e": {
+      "scheme": {}
+     },
+     "f": {
+      "scheme": [
+       null,
+       1.5,
+       "a",
+       [
+        2,
+        null
+       ],
+       {}
+      ]
+     },
+     "g": {
+      "scheme": 1e+21
+     },
+     "h": {
+      "scheme": 1e-7
+     },
+     "i": {
+      "scheme": -1
+     }
+    },
+    "review": {}
+   },
+   "values": [
+    [
+     [
+      "attributes.a",
+      5,
+      "\"x\""
+     ],
+     [
+      "attributes.b",
+      true,
+      "\"x\""
+     ],
+     [
+      "attributes.c",
+      [
+       "metric"
+      ],
+      "\"x\""
+     ],
+     [
+      "attributes.d",
+      [],
+      "\"x\""
+     ],
+     [
+      "attributes.e",
+      {},
+      "\"x\""
+     ],
+     [
+      "attributes.f",
+      [
+       null,
+       1.5,
+       "a",
+       [
+        2,
+        null
+       ],
+       {}
+      ],
+      "\"x\""
+     ],
+     [
+      "attributes.g",
+      1e+21,
+      "\"x\""
+     ],
+     [
+      "attributes.h",
+      1e-7,
+      "\"x\""
+     ],
+     [
+      "attributes.i",
+      -1,
+      "\"x\""
+     ]
+    ]
+   ],
+   "error": "Uncontrolled values:\n  attributes.a uses scheme \"5\", which has no data/vocab/5.ttl\n  attributes.b uses scheme \"true\", which has no data/vocab/true.ttl\n  attributes.c uses scheme \"metric\", which has no data/vocab/metric.ttl\n  attributes.d uses scheme \"\", which has no data/vocab/.ttl\n  attributes.e uses scheme \"[object Object]\", which has no data/vocab/[object Object].ttl\n  attributes.f uses scheme \",1.5,a,2,,[object Object]\", which has no data/vocab/,1.5,a,2,,[object Object].ttl\n  attributes.g uses scheme \"1e+21\", which has no data/vocab/1e+21.ttl\n  attributes.h uses scheme \"1e-7\", which has no data/vocab/1e-7.ttl\n  attributes.i uses scheme \"-1\", which has no data/vocab/-1.ttl"
+  },
+  {
+   "name": "schemes that JavaScript counts as false are no scheme",
+   "input": "[{\"id\":\"r\",\"facets\":{},\"attributes\":{\"a\":\"x\",\"b\":\"x\",\"c\":\"x\",\"d\":\"x\",\"e\":\"x\"}}]",
+   "mapping": {
+    "fields": {},
+    "facets": {},
+    "attributes": {
+     "a": {
+      "scheme": 0
+     },
+     "b": {
+      "scheme": false
+     },
+     "c": {
+      "scheme": null
+     },
+     "d": {
+      "scheme": ""
+     },
+     "e": {}
+    },
+    "review": {}
+   },
+   "values": [
+    []
+   ],
+   "error": null
+  },
+  {
+   "name": "a term that is not an object has no scheme",
+   "input": "[{\"id\":\"r\",\"facets\":{},\"attributes\":{\"a\":\"x\",\"b\":\"x\",\"c\":\"x\",\"d\":\"x\",\"e\":\"x\"}}]",
+   "mapping": {
+    "fields": {},
+    "facets": {},
+    "attributes": {
+     "a": 5,
+     "b": "metric",
+     "c": [
+      "metric"
+     ],
+     "d": true,
+     "e": [
+      {
+       "scheme": "metric"
+      }
+     ]
+    },
+    "review": {}
+   },
+   "values": [
+    []
+   ],
+   "error": null
+  },
+  {
+   "name": "a section that is a list is read by position",
+   "input": "[{\"id\":\"r\",\"facets\":{},\"attributes\":{\"0\":\"nope\",\"1\":\"auprc\",\"2\":\"x\"},\"status\":\"x\"}]",
+   "mapping": {
+    "fields": [
+     {
+      "scheme": "status"
+     }
+    ],
+    "facets": [],
+    "attributes": [
+     {
+      "scheme": "metric"
+     },
+     {
+      "scheme": "metric"
+     },
+     {
+      "property": "p"
+     }
+    ],
+    "review": []
+   },
+   "values": [
+    [
+     [
+      "attributes.0",
+      "metric",
+      "\"nope\""
+     ],
+     [
+      "attributes.1",
+      "metric",
+      "\"auprc\""
+     ]
+    ]
+   ],
+   "error": "Uncontrolled values:\n  r: attributes.0 \"nope\" is not a concept in the metric vocabulary"
+  },
+  {
+   "name": "a section that is text, a number or a boolean holds no field",
+   "input": "[{\"id\":\"r\",\"facets\":{},\"attributes\":{\"0\":\"x\",\"metric\":\"x\"},\"status\":\"x\"}]",
+   "mapping": {
+    "fields": "status",
+    "facets": 7,
+    "attributes": true,
+    "review": ""
    },
    "values": [
     []

@@ -30,6 +30,7 @@ from rewire_evidence.canonical import (
     js_number,
     js_parse,
     js_quote,
+    js_string,
     js_stringify,
     js_utf8,
     js_value,
@@ -115,6 +116,15 @@ def test_lone_surrogates_and_boundary_characters_match_node(text: str, expected:
     assert js_quote(text) == expected
     # Whatever the input held, the output can always be hashed.
     assert sha256_hex(js_quote(text))
+
+
+@pytest.mark.parametrize(("text", "expected"), SEMANTICS["as_text"])
+def test_a_value_is_joined_into_text_as_javascript_joins_it(text: str, expected: str | None) -> None:
+    if expected is None:
+        with pytest.raises(TypeError, match=r"^Cannot convert object to primitive value$"):
+            js_string(js_parse(text))
+    else:
+        assert js_string(js_parse(text)) == expected
 
 
 @pytest.mark.parametrize(("unsorted", "expected"), SEMANTICS["sort"])

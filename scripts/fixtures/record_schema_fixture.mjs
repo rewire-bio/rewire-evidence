@@ -6,7 +6,7 @@
 //
 // It runs inside the data repository, because the schema needs zod, the vocabulary loader
 // needs n3, and both read data/ontology and data/vocab from the working directory. CI does
-// that in the `fixtures` job and fails if any of the three files changes. It is not run on a
+// that in the `fixtures` job and fails if any of the four files changes. It is not run on a
 // developer machine: nothing here installs the data repository's dependencies.
 //
 //   tests/fixtures/record-schema.json   recordSchema.safeParse on accepted and rejected input,
@@ -16,6 +16,8 @@
 //                                       the link rules of validateRecords.
 //   tests/fixtures/vocabularies.json    loadSchemes and validateVocabularies on small
 //                                       vocabularies written for the purpose.
+//   tests/fixtures/turtle.json          What n3 makes of the Turtle documents in
+//                                       turtle_cases.mjs: the statements or the refusal.
 //   scripts/expected/store-schema.json  What the TypeScript measures on the pinned store: the
 //                                       records loadRecords accepts, their links, the public
 //                                       records, every scheme's concepts, every controlled
@@ -52,6 +54,7 @@ const { relationRules, relations, relationAllows, currentRelation, normalizeReco
 const { loadSchemes, validateVocabularies, controlledValues, schemeIri } = await load("scripts/omics/vocab.ts");
 const { loadRecords, kindFiles, evidenceKinds, shardedKinds } = await load("scripts/omics/records.ts");
 const { Parser } = require("n3");
+const { recordTurtle, blankLabels } = await import("./turtle_cases.mjs");
 
 const sha256 = (text) => crypto.createHash("sha256").update(text).digest("hex");
 const version = (name) =>
@@ -477,31 +480,76 @@ const concept = (name, key, extra = "") =>
   `:${key} a skos:Concept ; skos:inScheme <${schemeIri(name)}> ; skos:prefLabel "${key} label"@en${extra} .\n`;
 const scheme = (name, body) => head(name) + body;
 
-function vocabularyRoot(files) {
+// `files` maps a file name in data/vocab to its text, to { hex } for bytes that are not
+// text, or to null for a folder of that name. `files` itself is null where there is no
+// data/vocab at all, and `vocabIsFile` puts a file where that folder belongs.
+function vocabularyRoot(files, vocabIsFile = false) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "vocab-"));
+  if (vocabIsFile) {
+    fs.mkdirSync(path.join(root, "data"));
+    fs.writeFileSync(path.join(root, "data/vocab"), "a file where the folder belongs\n");
+  }
   if (files === null) return root;
   fs.mkdirSync(path.join(root, "data/vocab"), { recursive: true });
   for (const [name, body] of Object.entries(files)) {
     const file = path.join(root, "data/vocab", name);
     if (body === null) fs.mkdirSync(file);
-    else fs.writeFileSync(file, body);
+    else fs.writeFileSync(file, typeof body === "string" ? body : Buffer.from(body.hex, "hex"));
   }
   return root;
 }
+const hex = (text) => ({ hex: Buffer.from(text, "latin1").toString("hex") });
+// Where n3's two blank node counters stand for the next vocabulary the loader reads. They
+// are global to the process and the loader's copy of n3 is not reachable from here, so they
+// are read from two refusals that name a blank node. Each moves the document counter on by
+// one, and the second moves the other.
+function loaderLabels() {
+  const refusal = (body) => {
+    const root = vocabularyRoot({ "x.ttl": scheme("x", body) });
+    const message = thrown(() => loadSchemes(root));
+    fs.rmSync(root, { recursive: true });
+    return message;
+  };
+  const named = /<b(\d+)_q>/.exec(refusal(`_:q skos:inScheme <${schemeIri("x")}> .\n`))[1];
+  const anonymous = /<n3-(\d+)>/.exec(refusal(`[] skos:inScheme <${schemeIri("x")}> .\n`))[1];
+  return { documents: Number(named) + 2, anonymous: Number(anonymous) + 1 };
+}
 const dumpSchemes = (schemes) =>
   Object.fromEntries([...schemes].map(([name, held]) => [name, { iri: held.iri, concepts: [...held.concepts.values()].map((c) => [c.key, c.iri, c.label]) }]));
-// `files` maps a file name in data/vocab to its text, or to null for a folder of that name.
-// `files` itself is null where there is no data/vocab at all.
-function loadCase(name, files, comparable = true) {
-  const root = vocabularyRoot(files);
+function loadCase(name, files, { comparable = true, vocabIsFile = false } = {}) {
+  const labels = loaderLabels();
+  const root = vocabularyRoot(files, vocabIsFile);
   let schemes = null;
-  const error = thrown(() => {
+  let failure = null;
+  try {
     schemes = dumpSchemes(loadSchemes(root));
+  } catch (error) {
+    failure = error;
+  }
+  fs.rmSync(root, { recursive: true });
+  // `comparable` is false where the refusal is the operating system's. Node's message for
+  // one names a temporary path, so its code is recorded, and only the refusal is compared.
+  // `labels` is where n3's blank node counters stood.
+  const error = failure === null ? null : comparable ? failure.message : failure.code;
+  return { name, files, vocab_is_file: vocabIsFile, labels, error, schemes, message_comparable: comparable };
+}
+// A chain of concepts, each with the next as its broader one, so the search for loops goes
+// down the whole of it from the first. The last has none, or the first again to close a
+// loop. The text is long, so the case records how to write it and a digest of what was written.
+function chainText(length, loop) {
+  const broader = (index) => (index < length - 1 ? ` ; skos:broader :c${index + 1}` : loop ? " ; skos:broader :c0" : "");
+  const lines = Array.from({ length }, (_, index) => `:c${index} skos:inScheme <${schemeIri("metric")}> ; skos:prefLabel "${index}"${broader(index)} .\n`);
+  return scheme("metric", lines.join(""));
+}
+function chainCase(length, loop) {
+  const text = chainText(length, loop);
+  const root = vocabularyRoot({ "metric.ttl": text });
+  let concepts = null;
+  const error = thrown(() => {
+    concepts = loadSchemes(root).get("metric").concepts.size;
   });
   fs.rmSync(root, { recursive: true });
-  // `comparable` is false where the message is the Turtle parser's own, which no other
-  // parser words the same way. The refusal is what is compared there.
-  return { name, files, error, schemes, message_comparable: comparable };
+  return { length, loop, text_sha256: sha256(text), concepts, error };
 }
 const direction = { "direction.ttl": scheme("direction", concept("direction", "higher") + concept("direction", "lower")) };
 const metric = (body) => ({ ...direction, "metric.ttl": scheme("metric", body) });
@@ -567,9 +615,47 @@ const loadCases = [
   loadCase("more than twenty problems", metric(concept("metric", "a") + many)),
   loadCase("a missing reference and a loop together", metric(concept("metric", "a", " ; skos:broader :a ; skos:related :gone"))),
   loadCase("the first file's fault is the one reported", { "alpha.ttl": scheme("alpha", concept("alpha", "Bad")), "beta.ttl": "" }),
-  loadCase("text that is not Turtle", { "metric.ttl": "this is not turtle" }, false),
-  loadCase("a statement left unfinished", { "metric.ttl": `${scheme("metric", "")}:a skos:prefLabel "a" ;\n` }, false),
+  loadCase("text that is not Turtle", { "metric.ttl": "this is not turtle" }),
+  loadCase("a statement left unfinished", { "metric.ttl": `${scheme("metric", "")}:a skos:prefLabel "a" ;\n` }),
+  // What n3 refuses and a stricter reading of Turtle would not, or the other way about.
+  loadCase("an IRI with a pipe, a caret and a backtick", metric("<http://e/a|b^c`d> skos:note \"x\" .\n")),
+  loadCase("an IRI with a space", metric("<http://e/a b> skos:note \"x\" .\n")),
+  loadCase("an IRI with braces", metric("<http://e/{a}> skos:note \"x\" .\n")),
+  loadCase("a keyword where a predicate belongs", metric(":a @a skos:Concept .\n")),
+  loadCase("a path, which only N3 has", metric(":a!skos:broader skos:note \"x\" .\n")),
+  loadCase("text as a subject", metric("\"lit\" skos:note \"x\" .\n")),
+  loadCase("a boolean as a subject", metric("true skos:note \"x\" .\n")),
+  loadCase("a variable", metric("?x skos:prefLabel \"v\" .\n")),
+  loadCase("a fault of spelling below a fault of grammar is the one reported", metric(":a :a .\n:b skos:note ?x .\n")),
+  loadCase("a syntax error in the second file, on its third line", { ...direction, "metric.ttl": `${scheme("metric", "")}\n\n:a skos:note "x" "y" .\n` }),
+  loadCase(
+    "labels that are numbers and booleans keep the spelling they were written in",
+    metric(
+      ["01", "1e0", "1.e3", "-.50", "true", '"01"^^<http://www.w3.org/2001/XMLSchema#integer>', '"TRUE"^^<http://www.w3.org/2001/XMLSchema#boolean>', '"x"@EN-gb']
+        .map((label, index) => `:n${index} skos:inScheme <${schemeIri("metric")}> ; skos:prefLabel ${label} .\n`)
+        .join(""),
+    ),
+  ),
+  loadCase("a label escaped as a surrogate pair, and as half of one", metric(`:a skos:inScheme <${schemeIri("metric")}> ; skos:prefLabel "\\uD83D\\uDE00" .\n:b skos:inScheme <${schemeIri("metric")}> ; skos:prefLabel "\\uD83D" .\n`)),
+  loadCase("a relative IRI placed in the scheme", metric(`<rel> skos:inScheme <${schemeIri("metric")}> ; skos:prefLabel "r" .\n`)),
+  loadCase("a relative IRI that is the concept, under a declared base", metric(`@base <${schemeIri("metric")}> .\n<rel> skos:inScheme <> ; skos:prefLabel "r" ; skos:broader <../direction/higher> .\n`)),
+  loadCase("lists and blank nodes inside a concept", metric(concept("metric", "a", ` ; skos:member ( :a [ skos:note "n" ; skos:related :a ] ( ) ) ; skos:related [ skos:member ( "x" 1 ) ]`))),
+  loadCase("a list that holds a concept that does not exist", metric(concept("metric", "a", " ; skos:member ( :a :gone )"))),
+  loadCase("an unlabelled blank node placed in the scheme", metric(`[] skos:inScheme <${schemeIri("metric")}> ; skos:prefLabel "b" .\n`)),
+  loadCase("a labelled blank node placed in the scheme, in the second file", metric(`[] skos:note "first" .\n_:q skos:inScheme <${schemeIri("metric")}> ; skos:prefLabel "b" .\n`)),
+  loadCase("a blank node that is broader than a concept does not resolve as one", metric(concept("metric", "a", " ; skos:broader _:x , [ ]"))),
+  // Bytes, and what is on disk where a file should be.
+  loadCase("a byte order mark before the first directive", { "metric.ttl": hex("\u00ef\u00bb\u00bf" + scheme("metric", concept("metric", "a"))) }),
+  loadCase("a byte order mark in the middle", { "metric.ttl": hex(scheme("metric", "") + "\u00ef\u00bb\u00bf" + concept("metric", "a")) }),
+  loadCase("a byte that is not UTF-8 in a label", { "metric.ttl": hex(scheme("metric", `:a skos:inScheme <${schemeIri("metric")}> ; skos:prefLabel "caf\u00e9 \u00f0\u009f\u0098 \u00e2\u0082" .\n`)) }),
+  loadCase("a byte that is not UTF-8 in a name, where U+FFFD is a letter n3 allows", { "metric.ttl": hex(scheme("metric", ":a\u00ff skos:note \"x\" .\n")) }),
+  loadCase("a folder with the name of a scheme file", { ...direction, "metric.ttl": null }, { comparable: false }),
+  loadCase("a file where data/vocab belongs", null, { comparable: false, vocabIsFile: true }),
+  loadCase("a byte that is not UTF-8 where a statement should end", { "metric.ttl": hex(scheme("metric", ":a skos:note \"x\" \u00ff\u00fe.\n")) }),
+  loadCase("a file named .ttl and nothing more", { ".ttl": scheme("", `<${schemeIri("")}a> skos:inScheme <${schemeIri("")}> ; skos:prefLabel "a" .\n`) }),
 ];
+// Deeper than a recursive walk in Python can go, and well inside what Node can.
+const chainCases = [chainCase(1500, false), chainCase(1500, true)];
 
 // validateVocabularies against a mapping and a vocabulary small enough to read here.
 const smallMapping = {
@@ -591,6 +677,7 @@ const smallRoot = vocabularyRoot(smallVocabulary);
 const smallSchemes = loadSchemes(smallRoot);
 fs.rmSync(smallRoot, { recursive: true });
 const held = (id, extra = {}) => ({ id, facets: {}, attributes: {}, ...extra });
+const odd = (attributes) => ({ fields: {}, facets: {}, attributes, review: {} });
 // `raw` gives the records as JSON text where the spelling of a number is the point.
 const controlledCase = (name, records, mapping = smallMapping, raw = null) => {
   const input = raw ?? JSON.stringify(records);
@@ -669,12 +756,38 @@ const controlledCases = [
   controlledCase("numbers as JavaScript prints them, and one beyond any double", null, smallMapping, '[{"id":"r","facets":{},"attributes":{"metric":[1.0,-0,1e21,0.00001,12345678901234567890,1e400,[-1e400],{"a":1e400}]}}]'),
   controlledCase("integer-like keys inside a value are listed first", null, smallMapping, '[{"id":"r","facets":{},"attributes":{"metric":{"b":1,"10":2,"2":3}}}]'),
   controlledCase("a mapping with no controlled field", [held("r", { status: "x", attributes: { metric: "x" } })], { fields: { status: { property: "p" } }, facets: {}, attributes: {}, review: {} }),
+  // mapping.json is read as it is and never checked for shape. A scheme is tested for truth
+  // only, looked up as the value it is, and printed as text.
+  controlledCase(
+    "schemes that are not text are never found, and are printed as JavaScript prints them",
+    [held("r", { attributes: { a: "x", b: "x", c: "x", d: "x", e: "x", f: "x", g: "x", h: "x", i: "x" } })],
+    odd({ a: { scheme: 5 }, b: { scheme: true }, c: { scheme: ["metric"] }, d: { scheme: [] }, e: { scheme: {} }, f: { scheme: [null, 1.5, "a", [2, null], {}] }, g: { scheme: 1e21 }, h: { scheme: 1e-7 }, i: { scheme: -1 } }),
+  ),
+  controlledCase(
+    "schemes that JavaScript counts as false are no scheme",
+    [held("r", { attributes: { a: "x", b: "x", c: "x", d: "x", e: "x" } })],
+    odd({ a: { scheme: 0 }, b: { scheme: false }, c: { scheme: null }, d: { scheme: "" }, e: {} }),
+  ),
+  controlledCase(
+    "a term that is not an object has no scheme",
+    [held("r", { attributes: { a: "x", b: "x", c: "x", d: "x", e: "x" } })],
+    odd({ a: 5, b: "metric", c: ["metric"], d: true, e: [{ scheme: "metric" }] }),
+  ),
+  controlledCase("a section that is a list is read by position", [held("r", { status: "x", attributes: { 0: "nope", 1: "auprc", 2: "x" } })], {
+    fields: [{ scheme: "status" }],
+    facets: [],
+    attributes: [{ scheme: "metric" }, { scheme: "metric" }, { property: "p" }],
+    review: [],
+  }),
+  controlledCase("a section that is text, a number or a boolean holds no field", [held("r", { status: "x", attributes: { 0: "x", metric: "x" } })], { fields: "status", facets: 7, attributes: true, review: "" }),
 ];
 
 write("tests/fixtures/vocabularies.json", {
   recorded_from: recordedFrom,
   // Each concept is its key, its IRI and its label, in the order loadSchemes holds them.
   load_schemes: loadCases,
+  // Each chain is written by the rule in this script's chainText, which the test follows.
+  chains: chainCases,
   mapping: smallMapping,
   vocabulary: smallVocabulary,
   schemes: dumpSchemes(smallSchemes),
@@ -713,6 +826,9 @@ const term = (node) =>
   node.termType === "Literal"
     ? `Literal ${JSON.stringify(node.value)} ${node.language} ${plainTypes.has(node.datatype.value) ? "" : node.datatype.value}`
     : `${node.termType} ${node.value}`;
+// Where n3's blank node counters stand as the files are read again here, so a blank node in
+// one of them has a label the gate can give it too.
+const storeLabels = blankLabels(Parser);
 const schemeFacts = {};
 for (const [name, held] of schemes) {
   const quads = new Parser({ format: "Turtle" }).parse(fs.readFileSync(path.join("data/vocab", `${name}.ttl`), "utf8"));
@@ -751,8 +867,18 @@ write("scripts/expected/store-schema.json", {
   controlled_values: [...controlledByField.values()].reduce((sum, count) => sum + count, 0),
   // Keyed by the field and the scheme it is held to.
   controlled_values_by_field: sorted(controlledByField),
+  blank_labels: storeLabels,
   schemes: schemeFacts,
   seeded: seeds,
 });
 
-console.log(`recorded ${cases.length} parse cases, ${moved.length} moved-key cases, ${loadCases.length} vocabulary loads, ${controlledCases.length} controlled-value cases, and ${records.length} store records`);
+// ---------------------------------------------------------------------------------------
+// 5. Turtle, as n3 reads it
+// ---------------------------------------------------------------------------------------
+
+const turtle = recordTurtle(Parser, sha256);
+write("tests/fixtures/turtle.json", { recorded_from: { ...recordedFrom, cases: "scripts/fixtures/turtle_cases.mjs" }, ...turtle });
+
+console.log(
+  `recorded ${cases.length} parse cases, ${moved.length} moved-key cases, ${loadCases.length} vocabulary loads, ${controlledCases.length} controlled-value cases, ${turtle.documents.length} Turtle documents with ${turtle.mutations.length} damaged ones, and ${records.length} store records`,
+);

@@ -9,6 +9,8 @@ run. The real vocabularies are held to the same code by the schema gate.
 from __future__ import annotations
 
 import json
+import os
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
@@ -16,19 +18,24 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
-from rewire_evidence.canonical import JsonObject, js_parse, js_stringify
+from rewire_evidence.canonical import JsonObject, js_parse, js_stringify, sha256_hex
 from rewire_evidence.jsonl import StoreError
+from rewire_evidence.turtle import BlankLabels
 from rewire_evidence.vocab import (
     MAPPING_FILE,
+    VOCAB_BASE,
     VOCAB_DIR,
     Concept,
     ControlledFields,
     Scheme,
     VocabularyError,
+    _loops,
     controlled_values,
+    decode,
     load_schemes,
     mapping_of,
     read_mapping,
+    read_scheme_file,
     read_turtle,
     scheme_files,
     scheme_iri,
@@ -36,9 +43,9 @@ from rewire_evidence.vocab import (
     vocabulary_problems,
 )
 
-FIXTURE: dict[str, Any] = json.loads(
-    (Path(__file__).parent / "fixtures" / "vocabularies.json").read_text("utf-8")
-)
+FIXTURES = Path(__file__).parent / "fixtures"
+FIXTURE: dict[str, Any] = json.loads((FIXTURES / "vocabularies.json").read_text("utf-8"))
+TURTLE: dict[str, Any] = json.loads((FIXTURES / "turtle.json").read_text("utf-8"))
 MAPPING = mapping_of(FIXTURE["mapping"])
 
 
@@ -46,18 +53,36 @@ def named(cases: list[dict[str, Any]]) -> list[Any]:
     return [pytest.param(case, id=case["name"]) for case in cases]
 
 
-def write_vocabulary(root: Path, files: dict[str, str | None] | None) -> Path:
-    """Lay out a `data/vocab` as a fixture case describes it. None is a folder, or no vocabulary."""
+def write_vocabulary(
+    root: Path,
+    files: dict[str, str | dict[str, str] | None] | None,
+    *,
+    vocab_is_file: bool = False,
+) -> Path:
+    """Lay out a `data/vocab` as a fixture case describes it.
+
+    A name maps to its text, to `{"hex": ...}` for bytes that are not text, or to None for
+    a folder of that name. No files at all is no vocabulary, or a file where it belongs.
+    """
+    folder = root / VOCAB_DIR
+    if vocab_is_file:
+        folder.parent.mkdir(parents=True)
+        folder.write_bytes(b"a file where the folder belongs\n")
     if files is None:
         return root
-    folder = root / VOCAB_DIR
     folder.mkdir(parents=True)
     for name, body in files.items():
         if body is None:
             (folder / name).mkdir()
-        else:
+        elif isinstance(body, str):
             (folder / name).write_bytes(body.encode("utf-8"))
+        else:
+            (folder / name).write_bytes(bytes.fromhex(body["hex"]))
     return root
+
+
+def laid_out(case: dict[str, Any], root: Path) -> Path:
+    return write_vocabulary(root, case["files"], vocab_is_file=case["vocab_is_file"])
 
 
 def dumped(schemes: dict[str, Scheme]) -> dict[str, Any]:
@@ -76,14 +101,20 @@ def schemes(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Scheme]:
 
 
 def test_the_fixture_is_the_size_it_is_meant_to_be() -> None:
-    assert len(FIXTURE["load_schemes"]) == 40
-    assert len(FIXTURE["controlled"]) >= 31
+    assert len(FIXTURE["load_schemes"]) == 67
+    assert len(FIXTURE["controlled"]) == 36
+    assert len(FIXTURE["chains"]) == 2
     assert FIXTURE["recorded_from"]["n3"] == "1.17.4"
+    # All but the two refusals the operating system words are compared word for word.
+    assert [case["error"] for case in FIXTURE["load_schemes"] if not case["message_comparable"]] == [
+        "EISDIR",
+        "ENOTDIR",
+    ]
 
 
 @pytest.mark.parametrize("case", named([case for case in FIXTURE["load_schemes"] if case["error"] is None]))
 def test_schemes_load_as_the_typescript_loads_them(case: dict[str, Any], tmp_path: Path) -> None:
-    loaded = load_schemes(write_vocabulary(tmp_path, case["files"]))
+    loaded = load_schemes(laid_out(case, tmp_path), BlankLabels(**case["labels"]))
     assert dumped(loaded) == case["schemes"]
     assert list(loaded) == list(case["schemes"])
 
@@ -93,12 +124,83 @@ def test_schemes_load_as_the_typescript_loads_them(case: dict[str, Any], tmp_pat
 )
 def test_a_vocabulary_is_refused_as_the_typescript_refuses_it(case: dict[str, Any], tmp_path: Path) -> None:
     with pytest.raises(VocabularyError) as refused:
-        load_schemes(write_vocabulary(tmp_path, case["files"]))
+        load_schemes(laid_out(case, tmp_path), BlankLabels(**case["labels"]))
     if case["message_comparable"]:
         assert str(refused.value) == case["error"]
     else:
-        # The message is the Turtle parser's own. The file is named and the cause is a parser's.
-        assert str(refused.value).startswith("metric.ttl is not Turtle: ")
+        # Node and Python each word what the operating system said. Both refuse.
+        assert " cannot be read: " in str(refused.value)
+
+
+@pytest.mark.parametrize("case", FIXTURE["chains"], ids=["a chain", "a chain closed into a loop"])
+def test_a_chain_deeper_than_python_recurses_is_walked(case: dict[str, Any], tmp_path: Path) -> None:
+    metric = scheme_iri("metric")
+    text = (
+        "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n"
+        "@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n"
+        f"@prefix : <{metric}> .\n<{metric}> a skos:ConceptScheme .\n"
+    )
+    last = case["length"] - 1
+    for index in range(case["length"]):
+        broader = (
+            f" ; skos:broader :c{index + 1}"
+            if index < last
+            else " ; skos:broader :c0"
+            if case["loop"]
+            else ""
+        )
+        text += f':c{index} skos:inScheme <{metric}> ; skos:prefLabel "{index}"{broader} .\n'
+    # The document is written here by the recorder's rule, and is the one it recorded.
+    assert sha256_hex(text) == case["text_sha256"]
+    root = write_vocabulary(tmp_path, {"metric.ttl": text})
+    if case["error"] is None:
+        assert len(load_schemes(root)["metric"].concepts) == case["concepts"] == case["length"]
+    else:
+        with pytest.raises(VocabularyError) as refused:
+            load_schemes(root)
+        assert str(refused.value) == case["error"]
+
+
+def test_a_refusal_names_a_blank_node_as_a_fresh_process_would() -> None:
+    # The recorder had parsed other documents first, so its labels start where its counters
+    # stood. `records check` is a process that has parsed nothing, and that is the default.
+    (case,) = [
+        case
+        for case in FIXTURE["load_schemes"]
+        if case["name"] == "a labelled blank node placed in the scheme, in the second file"
+    ]
+    assert f"<b{case['labels']['documents'] + 1}_q>" in case["error"]
+
+
+def test_blank_nodes_are_numbered_from_nothing_by_default(tmp_path: Path) -> None:
+    metric = scheme_iri("metric")
+    head = f"@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n<{metric}> a skos:ConceptScheme .\n"
+    root = write_vocabulary(
+        tmp_path,
+        {"alpha.ttl": "", "metric.ttl": f'{head}[] skos:note "first" .\n_:q skos:inScheme <{metric}> .\n'},
+    )
+    message = f"metric.ttl: concept <b1_q> is not <{metric}key> with a lowercase key"
+    with pytest.raises(VocabularyError) as refused:
+        load_schemes(root)
+    assert (
+        str(refused.value)
+        == "alpha.ttl does not declare the concept scheme <https://benchmarks.rewire.it/vocab/alpha/>"
+    )
+    (root / VOCAB_DIR / "alpha.ttl").unlink()
+    (root / VOCAB_DIR / "a.txt").write_text("not a scheme file", "utf-8")
+    for _ in range(2):
+        with pytest.raises(VocabularyError) as refused:
+            load_schemes(root)
+        assert str(refused.value) == message.replace("b1_q", "b0_q")
+    statements = read_scheme_file(root / VOCAB_DIR / "metric.ttl")
+    assert [statement.subject for statement in statements[1:]] == ["n3-0", "b0_q"]
+
+
+@pytest.mark.parametrize(
+    "case", TURTLE["decoding"], ids=[case["hex"] or "empty" for case in TURTLE["decoding"]]
+)
+def test_bytes_are_decoded_as_node_decodes_them(case: dict[str, str]) -> None:
+    assert decode(bytes.fromhex(case["hex"])) == case["text"]
 
 
 def test_the_refusals_cover_every_message_the_loader_has() -> None:
@@ -163,19 +265,33 @@ def test_more_than_twenty_problems_can_be_reported() -> None:
     assert case["error"].count("\n  ") == 40
 
 
-def test_scheme_files_are_the_turtle_files_of_the_folder_in_name_order(tmp_path: Path) -> None:
-    assert scheme_files(tmp_path) == []
-    (tmp_path / "data").mkdir()
-    (tmp_path / VOCAB_DIR).write_text("a file where the folder belongs", "utf-8")
+def test_no_vocabulary_folder_is_no_schemes_and_a_file_in_its_place_is_refused(tmp_path: Path) -> None:
     assert scheme_files(tmp_path) == []
     assert load_schemes(tmp_path) == {}
+    write_vocabulary(tmp_path, None, vocab_is_file=True)
+    with pytest.raises(VocabularyError, match=r"^data/vocab cannot be read: .*Not a directory"):
+        scheme_files(tmp_path)
 
 
-def test_a_scheme_file_that_is_not_utf8_is_refused_by_name(tmp_path: Path) -> None:
-    write_vocabulary(tmp_path, {})
-    (tmp_path / VOCAB_DIR / "metric.ttl").write_bytes(b"\xff\xfe")
-    with pytest.raises(VocabularyError, match=r"metric\.ttl is not UTF-8"):
-        load_schemes(tmp_path)
+def test_a_scheme_file_that_cannot_be_opened_is_refused_by_name(tmp_path: Path) -> None:
+    root = write_vocabulary(tmp_path, {"metric.ttl": None})
+    with pytest.raises(VocabularyError, match=r"^metric\.ttl cannot be read: .*Is a directory"):
+        load_schemes(root)
+    (root / VOCAB_DIR / "metric.ttl").rmdir()
+    file = root / VOCAB_DIR / "metric.ttl"
+    file.write_text("", "utf-8")
+    file.chmod(0)
+    if os.access(file, os.R_OK):
+        pytest.skip("this user reads files whatever their mode")
+    with pytest.raises(VocabularyError, match=r"^metric\.ttl cannot be read: .*Permission denied"):
+        load_schemes(root)
+
+
+def test_a_refusal_to_read_turtle_is_n3s_and_notes_the_file() -> None:
+    with pytest.raises(VocabularyError) as refused:
+        read_turtle("<a:s> <a:p> .\nnot turtle", "metric.ttl")
+    assert str(refused.value) == 'Unexpected "not" on line 2.'
+    assert refused.value.__notes__ == ["in metric.ttl"]
 
 
 def test_statements_come_in_the_order_they_are_written() -> None:
@@ -198,9 +314,10 @@ def test_statements_come_in_the_order_they_are_written() -> None:
     )
     assert statements[2].line.endswith("\tNamedNode https://example.org/c\n")
     assert statements[3].line.endswith('\tLiteral "one"  \n')
-    assert "\tBlankNode " in statements[4].line or "BlankNode " in statements[4].line.split("\t")[0]
-    with pytest.raises(VocabularyError, match="here is not Turtle"):
-        read_turtle("not turtle", "here")
+    assert statements[4].line == 'BlankNode n3-0\thttps://example.org/r\tLiteral "blank"  \n'
+    assert statements[5].line == "NamedNode https://example.org/a\thttps://example.org/q\tBlankNode n3-0\n"
+    counted = read_turtle("_:x <a:p> [] .", "here", BlankLabels(documents=7, anonymous=3))
+    assert counted[0].line == "BlankNode b7_x\ta:p\tBlankNode n3-3\n"
 
 
 def test_a_literal_typed_as_a_string_is_a_plain_literal() -> None:
@@ -240,15 +357,48 @@ def test_a_mapping_that_cannot_be_read_is_refused_by_name(tmp_path: Path) -> Non
 @pytest.mark.parametrize(
     ("change", "message"),
     [
-        ({"facets": None}, "here has no object 'facets'"),
-        ({"review": []}, "here has no object 'review'"),
-        ({"fields": {"status": "status"}}, r"here: fields\.status is not an object"),
-        ({"attributes": {"metric": {"scheme": 7}}}, r"here: the scheme of attributes\.metric is not text"),
+        ({"facets": None}, "^here has no 'facets'$"),
+        ({"fields": {"status": None}}, r"^here: fields\.status is null$"),
+        ({"review": [{"scheme": "agent"}, None]}, r"^here: review\.1 is null$"),
     ],
 )
-def test_a_mapping_of_the_wrong_shape_is_refused(change: JsonObject, message: str) -> None:
+def test_a_mapping_javascript_cannot_read_is_refused(change: JsonObject, message: str) -> None:
+    # The TypeScript throws a TypeError for each of these at the first record it checks.
     with pytest.raises(VocabularyError, match=message):
         mapping_of({**FIXTURE["mapping"], **change}, "here")
+    missing = {name: held for name, held in FIXTURE["mapping"].items() if name != "review"}
+    with pytest.raises(VocabularyError, match=r"^here has no 'review'$"):
+        mapping_of(missing, "here")
+
+
+def test_a_mapping_of_any_other_shape_is_read_as_javascript_reads_it() -> None:
+    # Recorded in full among the controlled cases. This is the shape those are read into.
+    mapping = mapping_of(
+        {
+            "fields": [{"scheme": "status"}, 5],
+            "facets": "areas",
+            "attributes": {"a": {"scheme": 5}, "b": {"scheme": 0}, "c": "metric", "d": {"scheme": []}},
+            "review": 7,
+        }
+    )
+    assert mapping == ControlledFields(
+        {"0": "status", "1": None}, {}, {"a": 5, "b": None, "c": None, "d": []}, {}
+    )
+    row: JsonObject = {"id": "r", "0": "x", "facets": {}, "attributes": {"a": "x", "d": "x"}}
+    assert vocabulary_problems(mapping, [row], {}) == [
+        '0 uses scheme "status", which has no data/vocab/status.ttl',
+        'attributes.a uses scheme "5", which has no data/vocab/5.ttl',
+        'attributes.d uses scheme "", which has no data/vocab/.ttl',
+    ]
+
+
+def test_a_scheme_javascript_cannot_print_stops_the_check() -> None:
+    mapping = mapping_of(
+        {"fields": {}, "facets": {}, "attributes": {"a": {"scheme": {"toString": 1}}}, "review": {}}
+    )
+    row: JsonObject = {"id": "r", "facets": {}, "attributes": {"a": "x"}}
+    with pytest.raises(VocabularyError, match=r"^the scheme of attributes\.a has no name: Cannot convert"):
+        vocabulary_problems(mapping, [row], {})
 
 
 def test_an_empty_scheme_is_no_scheme() -> None:
@@ -280,6 +430,38 @@ def test_a_bad_value_on_a_row_with_no_id_is_refused_as_a_row(schemes: dict[str, 
 
 
 # --- Properties ------------------------------------------------------------------------
+
+
+def loops_by_recursion(parents: Mapping[str, Mapping[str, None]]) -> list[str]:
+    """The search for loops as the TypeScript writes it: a function that calls itself."""
+    problems: list[str] = []
+    state: dict[str, str] = {}
+
+    def visit(node: str, trail: list[str]) -> None:
+        if state.get(node) == "done":
+            return
+        if state.get(node) == "open":
+            loop = [*trail[trail.index(node) :], node]
+            problems.append(f"skos:broader cycle: {', then '.join(iri[len(VOCAB_BASE) :] for iri in loop)}")
+            return
+        state[node] = "open"
+        for parent in parents.get(node, {}):
+            visit(parent, [*trail, node])
+        state[node] = "done"
+
+    for node in parents:
+        visit(node, [])
+    return problems
+
+
+nodes = st.integers(0, 7).map(lambda number: f"{VOCAB_BASE}m/c{number}")
+graphs = st.dictionaries(nodes, st.lists(nodes, max_size=4).map(dict.fromkeys), max_size=8)
+
+
+@given(graphs)
+def test_loops_are_found_as_the_recursive_search_finds_them(parents: dict[str, dict[str, None]]) -> None:
+    assert _loops(parents) == loops_by_recursion(parents)
+
 
 concepts = st.sampled_from(["auprc", "constructor", "1"])
 strangers = st.text(max_size=6).filter(lambda text: text not in {"auprc", "constructor", "1"})

@@ -263,6 +263,29 @@ def _stringify(value: object) -> str:
     raise TypeError(f"{type(value).__name__} has no JSON.stringify form")
 
 
+def js_string(value: JsonValue) -> str:
+    """A JSON value as JavaScript makes text of it: `String(value)`, as a template does.
+
+    Text is itself. A number is written as `JSON.stringify` writes it, and one beyond every
+    double as `Infinity`. A list is its items joined by commas, with nothing for a null
+    among them, and an object is `[object Object]`.
+
+    Raises `TypeError`, as JavaScript does, for an object with a member named `toString`,
+    alone or inside a list: the member is found where the function should be.
+    """
+    if isinstance(value, str):
+        return value
+    if isinstance(value, dict):
+        if "toString" in value:
+            raise TypeError("Cannot convert object to primitive value")
+        return "[object Object]"
+    if isinstance(value, list):
+        return ",".join("" if item is None else js_string(item) for item in value)
+    if isinstance(value, float) and math.isinf(value):
+        return "Infinity" if value > 0 else "-Infinity"
+    return _stringify(value)
+
+
 def _js_integer(value: int) -> str:
     """A Python integer as JavaScript would write the number nearest to it."""
     if abs(value) <= EXACT_INTEGER_LIMIT:

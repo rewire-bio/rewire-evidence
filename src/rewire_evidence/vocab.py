@@ -6,30 +6,38 @@ concept's key, the last segment of its IRI: `auprc` for
 scheme of each controlled field, and `validate_vocabularies` refuses a value that is not a
 key of its field's scheme.
 
-The TypeScript reads Turtle with n3, which hands back the statements of a file in the order
-they are written, and three things depend on that order: which label a concept gets when it
-has two, the order of a scheme's concepts, and the order problems are reported in. rdflib
-reads the same files into a graph, which has no order, so the statements are caught as its
-parser emits them. That the two parsers emit the same statements in the same order is
-measured, not assumed: the schema gate compares a digest of every file's statements with
-the one n3 gave.
+The TypeScript reads Turtle with n3, and what a vocabulary holds is what n3 makes of the
+file: which documents it refuses, the order it hands statements back in, how it spells a
+number or a language tag, how it names a blank node. Another Turtle parser agrees with n3
+on the files the store holds today and not on those, so the files are read by
+`rewire_evidence.turtle`, a port of n3's own lexer and parser, and a file n3 refuses is
+refused here in n3's words. The schema gate compares a digest of every file's statements
+with the one n3 gave.
 
-What is not reproduced is the wording of a refusal to read a file that is not Turtle. That
-message is the parser's own, so here it is rdflib's.
+What is not reproduced is the wording of a refusal that comes from the operating system: a
+scheme file that is a folder or cannot be opened. Node words those and Python words them
+differently. Both refuse.
 """
 
 from __future__ import annotations
 
+import os
 import re
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
-from rdflib import Graph
-from rdflib.term import BNode, Literal, Node, URIRef
-
-from rewire_evidence.canonical import JsonObject, JsonValue, js_parse, js_quote, js_stringify, utf16_key
+from rewire_evidence.canonical import (
+    JsonObject,
+    JsonValue,
+    js_parse,
+    js_quote,
+    js_string,
+    js_stringify,
+    utf16_key,
+)
 from rewire_evidence.jsonl import text_field
+from rewire_evidence.turtle import BlankLabels, Term, TurtleError, parse
 
 VOCAB_BASE = "https://benchmarks.rewire.it/vocab/"
 VOCAB_DIR = "data/vocab"
@@ -45,7 +53,6 @@ _IN_SCHEME = f"{_SKOS}inScheme"
 _PREF_LABEL = f"{_SKOS}prefLabel"
 _BROADER = f"{_SKOS}broader"
 _NARROWER = f"{_SKOS}narrower"
-_XSD_STRING = "http://www.w3.org/2001/XMLSchema#string"
 
 # Keys are lowercase words joined by hyphens, or by underscores where a closed list already
 # used them in code (source_checked, author_reported). Matched whole: see schema._RECORD_ID.
@@ -96,13 +103,15 @@ class Scheme:
 class ControlledFields:
     """The controlled fields `mapping.json` names: field to scheme, or to None if it has none.
 
-    Each section keeps the order of the file, which is the order values are checked in.
+    Each section keeps the order of the file, which is the order values are checked in. A
+    scheme is whatever the file holds there that JavaScript counts as true. One that is not
+    text names no vocabulary, and is kept so the report can say so as the TypeScript does.
     """
 
-    fields: Mapping[str, str | None]
-    facets: Mapping[str, str | None]
-    attributes: Mapping[str, str | None]
-    review: Mapping[str, str | None]
+    fields: Mapping[str, JsonValue]
+    facets: Mapping[str, JsonValue]
+    attributes: Mapping[str, JsonValue]
+    review: Mapping[str, JsonValue]
 
 
 @dataclass(frozen=True)
@@ -110,7 +119,7 @@ class Controlled:
     """One controlled value on a record: where it is, the scheme it is held to, and the value."""
 
     field: str
-    scheme: str
+    scheme: JsonValue
     value: JsonValue
 
 
@@ -119,68 +128,73 @@ def scheme_iri(name: str) -> str:
     return f"{VOCAB_BASE}{name}/"
 
 
-class _Ordered(Graph):
-    """A graph that also keeps its statements in the order the parser gave them."""
-
-    def __init__(self) -> None:
-        super().__init__()
-        self.seen: list[tuple[Node, Node, Node]] = []
-
-    def add(self, triple: tuple[Node, Node, Node]) -> _Ordered:
-        self.seen.append(triple)
-        super().add(triple)
-        return self
-
-
-def _term(node: Node) -> str:
+def _term(term: Term) -> str:
     """A subject or object as the recorded digests write it: its kind, then its value."""
-    if isinstance(node, Literal):
-        datatype = "" if node.datatype is None or str(node.datatype) == _XSD_STRING else str(node.datatype)
-        return f"Literal {js_quote(str(node))} {node.language or ''} {datatype}"
-    return f"{'NamedNode' if isinstance(node, URIRef) else 'BlankNode'} {node}"
+    if term.kind == "Literal":
+        return f"Literal {js_quote(term.value)} {term.language} {term.datatype}"
+    return f"{term.kind} {term.value}"
 
 
-def read_turtle(text: str, where: str) -> list[Statement]:
-    """Every statement of a Turtle document, in the order it is written.
+def read_turtle(text: str, where: str, labels: BlankLabels | None = None) -> list[Statement]:
+    """Every statement of a Turtle document, in the order n3 hands them back.
 
-    Raises `VocabularyError`, naming `where`, for text that is not Turtle.
+    `labels` is where n3's blank node counters stand, and None is a process that has parsed
+    nothing. Raises `VocabularyError` with n3's own message for text n3 refuses. The
+    TypeScript lets that message through as it is, so it does not name the file. `where`
+    is added as a note, which the gates print after the message.
     """
-    graph = _Ordered()
     try:
-        graph.parse(data=text, format="turtle")
-    except SyntaxError as error:
-        raise VocabularyError(f"{where} is not Turtle: {error}") from error
+        triples = parse(text, labels)
+    except TurtleError as error:
+        refusal = VocabularyError(str(error))
+        refusal.add_note(f"in {where}")
+        raise refusal from error
     return [
         Statement(
-            str(subject),
-            str(predicate),
-            str(held),
-            isinstance(held, URIRef),
-            isinstance(subject, BNode) or isinstance(held, BNode),
-            f"{_term(subject)}\t{predicate}\t{_term(held)}\n",
+            subject.value,
+            predicate.value,
+            held.value,
+            held.kind == "NamedNode",
+            "BlankNode" in {subject.kind, held.kind},
+            f"{_term(subject)}\t{predicate.value}\t{_term(held)}\n",
         )
-        for subject, predicate, held in graph.seen
+        for subject, predicate, held in triples
     ]
 
 
 def scheme_files(root: Path) -> list[Path]:
-    """The scheme files of a checkout in name order: `*.ttl` directly in `data/vocab`."""
+    """The scheme files of a checkout in name order: `*.ttl` directly in `data/vocab`.
+
+    No `data/vocab` is no schemes. Raises `VocabularyError` where it exists and cannot be
+    listed, a file of that name for one, as the TypeScript throws there.
+    """
     folder = root / VOCAB_DIR
-    if not folder.is_dir():
+    # `fs.existsSync` answers false for anything it cannot reach, where Path.exists raises.
+    if not os.path.exists(folder):  # noqa: PTH110
         return []
-    return sorted(
-        (path for path in folder.iterdir() if path.name.endswith(".ttl")),
-        key=lambda path: utf16_key(path.name),
-    )
-
-
-def read_scheme_file(path: Path) -> list[Statement]:
-    """The statements of one scheme file."""
     try:
-        text = path.read_bytes().decode("utf-8")
-    except UnicodeDecodeError as error:
-        raise VocabularyError(f"{path.name} is not UTF-8: {error}") from error
-    return read_turtle(text, path.name)
+        found = [path for path in folder.iterdir() if path.name.endswith(".ttl")]
+    except OSError as error:
+        raise VocabularyError(f"{VOCAB_DIR} cannot be read: {error}") from error
+    return sorted(found, key=lambda path: utf16_key(path.name))
+
+
+def decode(data: bytes) -> str:
+    """Bytes as Node reads a file with `readFileSync(path, "utf8")`.
+
+    Whatever is not UTF-8 becomes U+FFFD, one for each run of bytes that cannot begin or
+    continue a character, and a byte order mark is kept for the parser to drop.
+    """
+    return data.decode("utf-8", errors="replace")
+
+
+def read_scheme_file(path: Path, labels: BlankLabels | None = None) -> list[Statement]:
+    """The statements of one scheme file. `labels` is as for `read_turtle`."""
+    try:
+        data = path.read_bytes()
+    except OSError as error:
+        raise VocabularyError(f"{path.name} cannot be read: {error}") from error
+    return read_turtle(decode(data), path.name, labels)
 
 
 def _concepts(file: str, iri: str, statements: Sequence[Statement]) -> dict[str, Concept]:
@@ -204,21 +218,26 @@ def _concepts(file: str, iri: str, statements: Sequence[Statement]) -> dict[str,
     return concepts
 
 
-def load_schemes(root: Path) -> dict[str, Scheme]:
+def load_schemes(root: Path, labels: BlankLabels | None = None) -> dict[str, Scheme]:
     """Every scheme of a checkout by name: `loadSchemes`.
 
     A concept belongs to the scheme whose IRI prefixes its own. Raises `VocabularyError`,
-    in the TypeScript's words, for a file that does not declare its scheme, a concept
-    whose key is not lowercase words, a concept with no label, a reference to a concept
-    that does not exist, a concept placed in another scheme than its IRI, and a loop of
-    `skos:broader`.
+    in the TypeScript's words, for a file n3 does not read, a file that does not declare
+    its scheme, a concept whose key is not lowercase words, a concept with no label, a
+    reference to a concept that does not exist, a concept placed in another scheme than
+    its IRI, and a loop of `skos:broader`.
+
+    A refusal can name a blank node, and n3 names those from counters that run for the life
+    of the process. `labels` is where they stand. None is a process that has parsed nothing
+    before, which is what `records check` is, and gives the labels it prints.
     """
+    counters = BlankLabels() if labels is None else labels
     schemes: dict[str, Scheme] = {}
     parsed: list[tuple[str, list[Statement]]] = []
     for path in scheme_files(root):
         name = path.name.removesuffix(".ttl")
         iri = scheme_iri(name)
-        statements = read_scheme_file(path)
+        statements = read_scheme_file(path, counters)
         parsed.append((path.name, statements))
         declared = any(
             statement.subject == iri
@@ -242,24 +261,33 @@ def _concept_parts(iri: str) -> tuple[str, str] | None:
 
 
 def _loops(parents: Mapping[str, Mapping[str, None]]) -> list[str]:
-    """Every loop of `skos:broader`, found depth first as the TypeScript finds them."""
+    """Every loop of `skos:broader`, found depth first as the TypeScript finds them.
+
+    The TypeScript recurses. This keeps its own stack, so a chain of any length is walked:
+    a recursive walk in Python gives out near a thousand concepts deep, where Node goes on
+    for several thousand more.
+    """
     problems: list[str] = []
-    state: dict[str, str] = {}
-
-    def visit(node: str, trail: list[str]) -> None:
-        if state.get(node) == "done":
-            return
-        if state.get(node) == "open":
-            loop = [*trail[trail.index(node) :], node]
-            problems.append(f"skos:broader cycle: {', then '.join(iri[len(VOCAB_BASE) :] for iri in loop)}")
-            return
-        state[node] = "open"
-        for parent in parents.get(node, {}):
-            visit(parent, [*trail, node])
-        state[node] = "done"
-
-    for node in parents:
-        visit(node, [])
+    closed: set[str] = set()
+    for start in parents:
+        if start in closed:
+            continue
+        # The concepts on the way down from `start`, each with the parents it has left.
+        trail: list[str] = [start]
+        waiting: list[Iterator[str]] = [iter(parents[start])]
+        while trail:
+            parent = next(waiting[-1], None)
+            if parent is None:
+                closed.add(trail.pop())
+                waiting.pop()
+            elif parent in trail:
+                loop = [*trail[trail.index(parent) :], parent]
+                problems.append(
+                    f"skos:broader cycle: {', then '.join(iri[len(VOCAB_BASE) :] for iri in loop)}"
+                )
+            elif parent not in closed:
+                trail.append(parent)
+                waiting.append(iter(parents.get(parent, {})))
     return problems
 
 
@@ -304,20 +332,40 @@ def _check_references(
         raise VocabularyError(f"Vocabulary references do not resolve:\n  {listed}")
 
 
-def _section(mapping: JsonObject, name: str, where: str) -> dict[str, str | None]:
+def _entries(section: JsonValue) -> Iterable[tuple[str, JsonValue]]:
+    """What `Object.entries` lists of a section: the members of an object, the items of a list."""
+    if isinstance(section, dict):
+        return section.items()
+    if isinstance(section, list):
+        return ((str(index), item) for index, item in enumerate(section))
+    # The characters of text have no scheme, and a number or a boolean has no entries.
+    return ()
+
+
+def _section(mapping: JsonObject, name: str, where: str) -> dict[str, JsonValue]:
+    """One section as field to scheme, read the way `controlledValues` reads it.
+
+    The TypeScript asks each term for its `scheme` and tests that for truth, and never
+    checks a shape. So a term that is not an object has no scheme, and a scheme that is
+    false, zero or empty text is none. Only what JavaScript cannot read is refused: a
+    section or a term that is null or missing, where the TypeScript throws a `TypeError`
+    at the first record it checks.
+    """
     section = mapping.get(name)
-    if not isinstance(section, dict):
-        raise VocabularyError(f"{where} has no object {name!r}")
-    terms: dict[str, str | None] = {}
-    for field, term in section.items():
-        if not isinstance(term, dict):
-            raise VocabularyError(f"{where}: {name}.{field} is not an object")
-        scheme = term.get("scheme")
-        if scheme is not None and not isinstance(scheme, str):
-            raise VocabularyError(f"{where}: the scheme of {name}.{field} is not text")
-        # An empty scheme is no scheme, as the TypeScript's test of it is for truth.
-        terms[field] = scheme or None
+    if section is None:
+        raise VocabularyError(f"{where} has no {name!r}")
+    terms: dict[str, JsonValue] = {}
+    for field, term in _entries(section):
+        if term is None:
+            raise VocabularyError(f"{where}: {name}.{field} is null")
+        scheme = term.get("scheme") if isinstance(term, dict) else None
+        terms[field] = scheme if _truthy(scheme) else None
     return terms
+
+
+def _truthy(value: JsonValue) -> bool:
+    """Whether JavaScript counts a JSON value as true: all but null, false, zero and no text."""
+    return isinstance(value, list | dict) or bool(value)
 
 
 def mapping_of(value: JsonValue, where: str = MAPPING_FILE) -> ControlledFields:
@@ -364,7 +412,7 @@ def controlled_values(mapping: ControlledFields, row: Mapping[str, JsonValue]) -
     attributes = _object(row, "attributes", where)
     found: list[Controlled] = []
 
-    def add(field: str, scheme: str | None, value: JsonValue) -> None:
+    def add(field: str, scheme: JsonValue, value: JsonValue) -> None:
         if scheme is None or value is None:
             return
         found.extend(
@@ -410,11 +458,16 @@ def vocabulary_problems(
     problems: list[str] = []
     for row in rows:
         for found in controlled_values(mapping, row):
-            scheme = schemes.get(found.scheme)
+            # A scheme is looked up as it is and printed as text, so one that is not text
+            # is never found, whatever it prints as.
+            scheme = schemes.get(found.scheme) if isinstance(found.scheme, str) else None
             if scheme is None:
-                problems.append(
-                    f'{found.field} uses scheme "{found.scheme}", which has no {VOCAB_DIR}/{found.scheme}.ttl'
-                )
+                try:
+                    name = js_string(found.scheme)
+                except TypeError as error:
+                    # The TypeScript throws here too, and reports nothing else.
+                    raise VocabularyError(f"the scheme of {found.field} has no name: {error}") from error
+                problems.append(f'{found.field} uses scheme "{name}", which has no {VOCAB_DIR}/{name}.ttl')
             elif not isinstance(found.value, str) or found.value not in scheme.concepts:
                 shown = js_stringify(_without_infinity(found.value))
                 record_id = text_field(row, "id", "a record")
