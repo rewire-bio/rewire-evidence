@@ -29,7 +29,7 @@ from rewire_evidence.jsonl import StoreError, join_lines, write_text
 from rewire_evidence.schema import Checked, check_record, parse_record
 from rewire_evidence.store import provenance_file_for, record_file
 from rewire_evidence.turtle import BlankLabels
-from rewire_evidence.vocab import VOCAB_DIR, load_schemes, read_mapping, scheme_iri
+from rewire_evidence.vocab import VOCAB_DIR, load_schemes, mapping_of, read_mapping, scheme_iri
 from tests.test_records import RECORDS, build, link, provenance_of, record
 
 SCRIPTS = Path(__file__).parent.parent / "scripts"
@@ -381,6 +381,11 @@ def test_seeded_concepts_must_be_refused_as_recorded_and_cover_the_mapping(tmp_p
     build(tmp_path)
     mapping, schemes = read_mapping(tmp_path), load_schemes(tmp_path)
     assert controlled_fields(mapping) == list(SEEDS)
+    # A scheme JavaScript counts as true is a controlled field, an empty list among them.
+    odd = mapping_of(
+        {"fields": {"a": {"scheme": []}, "b": {"scheme": 0}}, "facets": {}, "attributes": {}, "review": {}}
+    )
+    assert controlled_fields(odd) == ["a", "attributes.derivation.method"]
 
     held = seeds()
     first = held[0]
@@ -549,6 +554,29 @@ def test_the_schema_gate_exits_2_when_the_run_cannot_be_made(
     assert capsys.readouterr().err == 'Cannot verify: Unexpected "?x" on line 1. (in broken.ttl)\n'
     (root / VOCAB_DIR / "broken.ttl").unlink()
 
+    # An expectation that does not say where n3's counters stood.
+    unlabelled = tmp_path / "unlabelled.json"
+    held = json.loads(expected.read_text("utf-8"))
+    del held["blank_labels"]
+    unlabelled.write_text(json.dumps(held), "utf-8")
+    assert schema_gate([str(root)], unlabelled) == 2
+    assert "does not say where n3's blank node counters stood" in capsys.readouterr().err
+
+    # A store with a mapping and vocabularies and no records proves nothing.
+    empty = tmp_path / "empty"
+    build(empty, [])
+    assert schema_gate([str(empty)], write_recorded(empty, tmp_path)) == 2
+    out = capsys.readouterr()
+    assert out.err.endswith("Cannot verify: the record files hold no records\n")
+
+
+def test_the_schema_gate_exits_2_for_what_cannot_be_opened_or_written(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = tmp_path / "store"
+    build(root)
+    expected = write_recorded(root, tmp_path)
+
     # A folder where a scheme file belongs.
     (root / VOCAB_DIR / "zz.ttl").mkdir()
     assert schema_gate([str(root)], expected) == 2
@@ -565,27 +593,28 @@ def test_the_schema_gate_exits_2_when_the_run_cannot_be_made(
     models.unlink()
     models.write_bytes(kept)
 
+    # The provenance, which only the loader uses: one shard that cannot be opened, and one
+    # that is not JSON. Neither is the loader refusing the store.
+    shard = provenance_file_for("dataset-a", root)
+    listed = shard.read_bytes()
+    shard.unlink()
+    shard.symlink_to(shard)
+    assert schema_gate([str(root)], expected) == 2
+    assert capsys.readouterr().err.startswith(f"Cannot verify: {shard} cannot be read: ")
+    shard.unlink()
+    shard.write_text("{\n", "utf-8")
+    assert schema_gate([str(root)], expected) == 2
+    assert capsys.readouterr().err.startswith(f"Cannot verify: {shard}:1 is not JSON: ")
+    shard.write_bytes(listed)
+    assert schema_gate([str(root)], expected) == 0
+    capsys.readouterr()
+
     # A report that cannot be written, after a run that found nothing wrong.
     assert schema_gate([str(root), "--json", str(tmp_path / "no-folder" / "report.json")], expected) == 2
     out = capsys.readouterr()
     assert "seeded bad concepts refused" in out.out
     assert "records are accepted" not in out.out
     assert out.err.startswith("Cannot verify: [Errno 2] No such file or directory: ")
-
-    # An expectation that does not say where n3's counters stood.
-    unlabelled = tmp_path / "unlabelled.json"
-    held = json.loads(expected.read_text("utf-8"))
-    del held["blank_labels"]
-    unlabelled.write_text(json.dumps(held), "utf-8")
-    assert schema_gate([str(root)], unlabelled) == 2
-    assert "does not say where n3's blank node counters stood" in capsys.readouterr().err
-
-    # A store with a mapping and vocabularies and no records proves nothing.
-    empty = tmp_path / "empty"
-    build(empty, [])
-    assert schema_gate([str(empty)], write_recorded(empty, tmp_path)) == 2
-    out = capsys.readouterr()
-    assert out.err.endswith("Cannot verify: the record files hold no records\n")
 
 
 def test_the_script_is_the_gate(tmp_path: Path) -> None:

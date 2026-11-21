@@ -59,7 +59,7 @@ from rewire_evidence.schema import (
     public_records,
     validate_references,
 )
-from rewire_evidence.store import record_files
+from rewire_evidence.store import read_provenance, record_files
 from rewire_evidence.turtle import BlankLabels
 from rewire_evidence.vocab import (
     ControlledFields,
@@ -208,10 +208,10 @@ def scheme_facts(root: Path, schemes: dict[str, Scheme], labels: BlankLabels) ->
 def controlled_fields(mapping: ControlledFields) -> list[str]:
     """Every controlled field a record can hold, by the name a refusal gives it."""
     return [
-        *(name for name, scheme in mapping.fields.items() if scheme),
-        *(f"facets.{name}" for name, scheme in mapping.facets.items() if scheme),
-        *(f"attributes.{name}" for name, scheme in mapping.attributes.items() if scheme),
-        *(f"attributes.review.{name}" for name, scheme in mapping.review.items() if scheme),
+        *(name for name, scheme in mapping.fields.items() if scheme is not None),
+        *(f"facets.{name}" for name, scheme in mapping.facets.items() if scheme is not None),
+        *(f"attributes.{name}" for name, scheme in mapping.attributes.items() if scheme is not None),
+        *(f"attributes.review.{name}" for name, scheme in mapping.review.items() if scheme is not None),
         "attributes.derivation.method",
     ]
 
@@ -326,7 +326,8 @@ def check_loader(root: Path, records: list[Record], report: SchemaReport) -> Non
     """Hold `load_records` to the store: it must return the accepted records, in ID order.
 
     A store it refuses is a problem and not a run that could not be made, because every
-    file it reads has been read once already by the time it is called.
+    file it reads has been read once already by the time it is called: the record files by
+    `read_store`, and the provenance, the mapping and the vocabularies by `verify_schema`.
     """
     try:
         loaded = load_records(root)
@@ -350,6 +351,9 @@ def verify_schema(root: Path, recorded: JsonObject) -> SchemaReport:
     """
     report = SchemaReport()
     labels = recorded_labels(recorded)
+    # Only the loader uses the provenance, and what the loader refuses is reported as a
+    # problem. So it is read here first, where one that cannot be read stops the run.
+    read_provenance(root)
     mapping = read_mapping(root)
     schemes = load_schemes(root)
     report.schemes = len(schemes)
