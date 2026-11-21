@@ -10,6 +10,12 @@ The rules are JavaScript patterns, and three things about them are JavaScript's.
 and `\s` is JavaScript's white space. And a pattern counts UTF-16 units, so the text is
 matched in that form. `tests/fixtures/validation.json` holds each pattern's source as the
 TypeScript declares it and what the rules make of a list of descriptions.
+
+The rules are asked of two things. `validateDescriptions` is handed records the schema has
+parsed. `records -- descriptions` is handed the lines of the store files as `JSON.parse`
+read them, with no schema between, so that it still lists what is wrong in a store that
+does not load. `row_problems` is the one implementation, written for the second, where an
+ID may be any value or absent and a row may be no object at all.
 """
 
 from __future__ import annotations
@@ -18,8 +24,20 @@ import re
 from collections.abc import Sequence
 from dataclasses import dataclass
 
+from rewire_evidence.attributes import JsTypeError, said
 from rewire_evidence.canonical import JsonObject, JsonValue
-from rewire_evidence.js import DOT, SPACE_CLASS, trim, unit_text
+from rewire_evidence.js import (
+    DOT,
+    SPACE_CLASS,
+    Held,
+    Missing,
+    join,
+    lower,
+    member,
+    strictly_equal,
+    trim,
+    unit_text,
+)
 from rewire_evidence.schema import Record, RecordError
 
 DESCRIBED_KINDS = ("model", "method", "pipeline", "service", "configuration")
@@ -146,76 +164,141 @@ DESCRIPTION_RULES = (
 
 @dataclass(frozen=True)
 class DescriptionProblem:
-    """One fault in one record's description."""
+    """One fault in one row's description."""
 
-    id: str
+    #: The row's ID, which is text in a record and anything or nothing in a row that is not one.
+    id: Held
     kind: str
     rule: str
     message: str
     description: str
-    #: For a shared description, the records it is shared with.
-    shared_with: tuple[str, ...] | None = None
+    #: For a shared description, the IDs of the rows it is shared with.
+    shared_with: tuple[Held, ...] | None = None
 
     def row(self) -> JsonObject:
-        """The problem as `records -- descriptions --json` writes it."""
-        row: JsonObject = {
-            "id": self.id,
+        """The problem as `records -- descriptions --json` writes it.
+
+        `JSON.stringify` leaves out a member that is absent and writes null for an absent
+        item of a list.
+        """
+        row: JsonObject = {}
+        if not isinstance(self.id, Missing):
+            row["id"] = self.id
+        row |= {
             "kind": self.kind,
             "description": self.description,
             "rule": self.rule,
             "message": self.message,
         }
         if self.shared_with is not None:
-            shared: list[JsonValue] = list(self.shared_with)
+            shared: list[JsonValue] = [
+                None if isinstance(other, Missing) else other for other in self.shared_with
+            ]
             row["shared_with"] = shared
         return row
 
 
 def normalise_description(text: str) -> str:
     """A description as it is compared: trimmed, runs of white space as one space, lowercase."""
-    return _RUNS_OF_SPACE.sub(" ", trim(text)).lower()
+    return lower(_RUNS_OF_SPACE.sub(" ", trim(text)))
 
 
-def description_problems(records: Sequence[Record]) -> list[DescriptionProblem]:
-    """Problems with the descriptions of described kinds, in record order: `descriptionProblems`.
+@dataclass(frozen=True)
+class _Described:
+    """A row whose description is checked: its kind is a described one and its description is text."""
 
-    Excluded records are not published, so they are not checked.
+    row: JsonValue
+    id: Held
+    kind: str
+    description: str
+
+    def name(self) -> str:
+        """The row's name as it is compared. Raises `JsTypeError` for a name that is not text."""
+        name = member(self.row, "name")
+        if not isinstance(name, str):
+            raise JsTypeError(f"the name of {said(self.id)} is not text, and only text can be compared")
+        return normalise_description(name)
+
+
+def _described(row: JsonValue) -> _Described | None:
+    """A row as the rules see it, or None for one they pass over.
+
+    A row that is not an object has no kind, so it is passed over. Null has no members at
+    all, and reading its kind is a `TypeError` in JavaScript.
     """
-    described = [
-        record for record in records if record.kind in DESCRIBED_KINDS and record.status != "excluded"
-    ]
-    by_text: dict[str, list[Record]] = {}
-    for record in described:
-        if record.kind in DISTINCT_KINDS and trim(record.description):
-            by_text.setdefault(normalise_description(record.description), []).append(record)
+    try:
+        kind = member(row, "kind")
+    except TypeError as error:
+        raise JsTypeError(f"a row is null, which has no kind: {error}") from error
+    description = member(row, "description")
+    if not isinstance(kind, str) or kind not in DESCRIBED_KINDS or not isinstance(description, str):
+        return None
+    # Excluded records are not published, so they are not checked.
+    return (
+        None if member(row, "status") == "excluded" else _Described(row, member(row, "id"), kind, description)
+    )
+
+
+def row_problems(rows: Sequence[JsonValue]) -> list[DescriptionProblem]:
+    """Problems with the descriptions of described kinds, in row order: `descriptionProblems`.
+
+    `rows` are values as JavaScript holds them, each in the one form `js_value` gives, and
+    two rows are the same row only if they are the same object. A row whose description is
+    absent or is not text is the schema's to report, and is passed over here.
+
+    Raises `JsTypeError` where the TypeScript fails with a `TypeError`: for a row that is
+    null, and for a name that is not text on a row that shares its description with a row
+    of another ID.
+    """
+    described = [found for found in map(_described, rows) if found is not None]
+    by_text: dict[str, list[_Described]] = {}
+    for found in described:
+        if found.kind in DISTINCT_KINDS and trim(found.description):
+            by_text.setdefault(normalise_description(found.description), []).append(found)
     problems: list[DescriptionProblem] = []
-    for record in described:
-        seen = unit_text(record.description)
+    for found in described:
+        seen = unit_text(found.description)
         problems.extend(
-            DescriptionProblem(record.id, record.kind, rule.id, rule.message, record.description)
+            DescriptionProblem(found.id, found.kind, rule.id, rule.message, found.description)
             for rule in DESCRIPTION_RULES
             if rule.pattern.search(seen)
         )
-        if record.kind not in DISTINCT_KINDS:
+        if found.kind not in DISTINCT_KINDS:
             continue
-        name = normalise_description(record.name)
+        # The names are read only for a row of another ID, and the other row's first.
         others = [
             other.id
-            for other in by_text.get(normalise_description(record.description), [])
-            if other.id != record.id and normalise_description(other.name) != name
+            for other in by_text.get(normalise_description(found.description), [])
+            if not strictly_equal(other.id, found.id) and other.name() != found.name()
         ]
         if others:
             problems.append(
                 DescriptionProblem(
-                    record.id,
-                    record.kind,
+                    found.id,
+                    found.kind,
                     "shared-description",
                     "shares its description with a differently named entity",
-                    record.description,
+                    found.description,
                     tuple(others),
                 )
             )
     return problems
+
+
+def description_problems(records: Sequence[Record]) -> list[DescriptionProblem]:
+    """Problems with the descriptions of records the schema has parsed, in record order."""
+    return row_problems(
+        [
+            {
+                "id": record.id,
+                "kind": record.kind,
+                "name": record.name,
+                "description": record.description,
+                "status": record.status,
+            }
+            for record in records
+        ]
+    )
 
 
 def validate_descriptions(records: Sequence[Record]) -> None:
@@ -227,8 +310,8 @@ def validate_descriptions(records: Sequence[Record]) -> None:
     if not problems:
         return
     shown = [
-        f"{problem.id}: {problem.message}"
-        + (f" ({', '.join(problem.shared_with)})" if problem.shared_with is not None else "")
+        f"{said(problem.id)}: {problem.message}"
+        + (f" ({join(problem.shared_with, ', ')})" if problem.shared_with is not None else "")
         for problem in problems[:PROBLEM_LIMIT]
     ]
     more = len(problems) - PROBLEM_LIMIT
