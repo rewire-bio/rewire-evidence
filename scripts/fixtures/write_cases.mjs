@@ -188,6 +188,10 @@ export function writeCases(tiny) {
   add("a derivation whose script is not there, on sources the store holds", false, { files: noResult, input: batch(derivedResult) });
   add("a scoped concern naming a record that is not there", false, { files: without(...chain), input: brought(concerned("no-such-record")) });
   add("a scoped concern naming a record the store holds", true, { files: without(...chain), input: brought(concerned(dataset.id)) });
+  add("an attribute its kind does not declare and a description the batch has under two names", false, {
+    files: without(...chain),
+    input: brought({ ...result, attributes: { ...result.attributes, made_up: 1 } }, again),
+  });
   add("a description the batch has under two names and a derivation whose script is not there", false, { files: without(...chain), input: brought(again, derivedResult) });
   add("a derivation whose script is not there and a scoped concern naming a record that is not there", false, { files: without(...chain), input: brought(derivedResult, concerned("no-such-record")) });
   add("a scoped concern naming a record that is not there and a link to a record that is not there", false, { files: without(...chain), input: brought(concerned("no-such-record"), dangling) });

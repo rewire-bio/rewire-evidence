@@ -26,7 +26,12 @@ wrote to the SHACL shapes through the data repository's own `npm run kg -- subse
 `npm run kg:build -- --shapes-only`, so ROOT has to be a checkout of it with its
 dependencies installed. They print the line the TypeScript prints and exit 0. If the batch,
 the change or the shapes are refused, the refusal and one more line saying the store is
-unchanged go to standard error, every file is as it was, and the status is 1.
+unchanged go to standard error, every store file is as it was, including any the shapes
+commands touched, and the status is 1.
+
+REVIEW, BATCH-DIR and each ID are read as Node reads an argument: bytes that are not UTF-8
+become U+FFFD. The paths of files are used as given. A ROOT with no `data` folder is refused
+by name, before anything is read.
 
 With `--dry-run` they write nothing and run no shapes. They print the lines each store file
 would lose and gain, as a unified diff with no context, and then what the write would do.
@@ -36,12 +41,16 @@ a URL whose host needs IDNA mapping (`weburl.UndecidedHost`). The TypeScript jud
 is also what a command line that cannot be read exits with.
 
 What is printed is written as Node writes it, in UTF-8 whatever the terminal says, with
-U+FFFD where the text holds half a character.
+U+FFFD where the text holds half a character. Started with its output closed, a command
+prints nothing and is otherwise the same. If the result cannot be printed, a write that was
+made stays made and the status is 0, with a line on standard error saying so, and any other
+command exits 1.
 """
 
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from collections import Counter
 from collections.abc import Callable, Sequence
@@ -125,20 +134,31 @@ def _descriptions(root: Path, *, as_json: bool) -> str:
     return "\n".join([*lines, *_tally(problems, "kind", "kind"), *_tally(problems, "rule", "rule")])
 
 
-def _write(stream: TextIO, text: str) -> None:
+def _write(stream: TextIO | None, text: str) -> bool:
     """One line as `console.log` writes it: UTF-8, with U+FFFD for half a character.
 
     The bytes go to the stream's own binary stream, so that the terminal's encoding has no
     say. A stream that has none, such as one that collects text in memory, is given the text.
+
+    Returns whether the line was written or there was nowhere to write it. Python has no
+    stream where the command was started with that output closed, and Node opens the null
+    device in its place, so nothing is written and nothing is wrong. False is for a stream
+    that refused the line: a pipe nobody reads, a full disk, a stream closed since.
     """
+    if stream is None:
+        return True
     line = js_utf8(f"{text}\n")
     binary = getattr(stream, "buffer", None)
-    if binary is None:
-        stream.write(line.decode("utf-8"))
-        return
-    stream.flush()
-    binary.write(line)
-    binary.flush()
+    try:
+        if binary is None:
+            stream.write(line.decode("utf-8"))
+            return True
+        stream.flush()
+        binary.write(line)
+        binary.flush()
+    except (OSError, ValueError):
+        return False
+    return True
 
 
 def _refusal(error: Exception) -> str:
@@ -152,6 +172,9 @@ def _written(root: Path, planned: Callable[[], Plan], said: Callable[[int], str]
     `said` is the line the TypeScript prints for a number of records, which starts with
     what was done to them.
     """
+    if not (root / "data").is_dir():
+        # Without this a change to a folder that holds no store is refused as an unknown record.
+        raise StoreError(f"{root} holds no store: it has no folder named data")
     plan = planned()
     done = said(len(plan.ids))
     if not dry_run:
@@ -165,26 +188,43 @@ def _written(root: Path, planned: Callable[[], Plan], said: Callable[[int], str]
     return "\n".join([*diff(changes, root), summary])
 
 
+def _as_node_reads(argument: str) -> str:
+    """An argument as Node reads its bytes: U+FFFD wherever they are not UTF-8.
+
+    Python keeps each byte it cannot decode as a lone surrogate, and would write it into a
+    provenance row as an escape where the TypeScript writes U+FFFD. The bytes are taken
+    back and decoded as Node decodes them, which `tests/fixtures/argv.json` records. Text
+    that was not made from bytes, and holds a surrogate no byte stands for, is left as it is.
+    """
+    try:
+        return os.fsencode(argument).decode("utf-8", errors="replace")
+    except UnicodeEncodeError:
+        return argument
+
+
 def _add(args: argparse.Namespace) -> str:
+    batch_dir = _as_node_reads(args.batch_dir)
     return _written(
         args.root,
-        lambda: plan_add(args.batch, args.batch_dir, args.root),
+        lambda: plan_add(args.batch, batch_dir, args.root),
         lambda count: f"Added {count} records.",
         dry_run=args.dry_run,
     )
 
 
 def _change(args: argparse.Namespace) -> str:
+    batch_dir, review = _as_node_reads(args.batch_dir), _as_node_reads(args.review)
     if args.changes is not None:
         return _written(
             args.root,
-            lambda: plan_changes_file(args.changes, args.batch_dir, args.review, args.root),
+            lambda: plan_changes_file(args.changes, batch_dir, review, args.root),
             lambda count: f"Recorded changes to {count} records from {args.changes}.",
             dry_run=args.dry_run,
         )
+    ids = [_as_node_reads(record_id) for record_id in args.ids]
     return _written(
         args.root,
-        lambda: plan_change(args.ids, args.batch_dir, args.review, args.root),
+        lambda: plan_change(ids, batch_dir, review, args.root),
         lambda count: f"Recorded changes to {count} records.",
         dry_run=args.dry_run,
     )
@@ -222,5 +262,12 @@ def main(arguments: Sequence[str] | None = None) -> int:
         if args.action in _WRITTEN:
             _write(sys.stderr, f"{_WRITTEN[args.action]} failed validation; the store is unchanged.")
         return REFUSED
-    _write(sys.stdout, printed)
-    return 0
+    if _write(sys.stdout, printed):
+        return 0
+    # The work is done and only the saying of it failed. A write is made and checked by now,
+    # and stays: it is not a refusal. For anything else what is printed is the result.
+    made = args.action in _WRITTEN and not args.dry_run
+    _write(
+        sys.stderr, "What the command did could not be printed." + (" The store was written." if made else "")
+    )
+    return 0 if made else REFUSED

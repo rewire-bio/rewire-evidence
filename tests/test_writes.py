@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+import contextlib
 import datetime as dt
+import json
 import os
 import stat
+import subprocess
 import sys
 import tempfile
 from collections import Counter
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -21,7 +24,15 @@ from rewire_evidence.canonical import JsonObject, js_stringify, record_sha256
 from rewire_evidence.cli import main
 from rewire_evidence.jsonl import StoreError, read_rows
 from rewire_evidence.schema import RecordError, SchemaError, parse_record
-from rewire_evidence.store import load_store, read_provenance, record_file, write_store
+from rewire_evidence.store import (
+    load_store,
+    provenance_files,
+    read_provenance,
+    record_file,
+    record_files,
+    write_store,
+)
+from rewire_evidence.vocab import VocabularyError
 from rewire_evidence.writes import (
     Change,
     Plan,
@@ -80,9 +91,9 @@ def configuration(tmp_path_factory: pytest.TempPathFactory) -> Path:
 def test_the_cases_are_the_ones_recorded() -> None:
     assert WRITES["recorded_from"]["script"] == "scripts/fixtures/record_write_fixture.mjs"
     assert (WRITES["clock"], DATE) == ("2026-02-04T04:30:00.000Z", "2026-02-04")
-    assert Counter(case["command"] for case in CASES) == {"add": 32, "change": 24, "changes": 54}
+    assert Counter(case["command"] for case in CASES) == {"add": 39, "change": 24, "changes": 54}
     assert Counter(case["command"] for case in CASES if case["error"] is None) == {
-        "add": 12,
+        "add": 13,
         "change": 14,
         "changes": 9,
     }
@@ -95,7 +106,7 @@ def test_the_cases_are_the_ones_recorded() -> None:
         for case in CASES
         if case["error"] is not None
     )
-    assert kinds == {"Error": 50, "zod": 13, "TypeError": 6, "SyntaxError": 4, "ENOENT": 2}
+    assert kinds == {"Error": 56, "zod": 13, "TypeError": 6, "SyntaxError": 4, "ENOENT": 2}
 
 
 @pytest.mark.parametrize("case", cases())
@@ -729,3 +740,438 @@ def test_a_record_error_is_what_a_refusal_is(tmp_path: Path, configuration: Path
     root, file = lay_out(case, tmp_path)
     with pytest.raises(RecordError, match="Batch cannot replace or duplicate record: "):
         plan_add(file, "a-batch", root, configuration)
+
+
+# ---- what a failed write leaves, and what the command says of it ----------------------------
+
+
+def edited_store(tmp_path: Path) -> tuple[dict[str, Any], Path, Plan]:
+    """A small store with one record edited, and the plan that records the change."""
+    case = case_named("change: one record edited in place")
+    root, _ = lay_out(case, tmp_path / "work")
+    return case, root, plan_change(case["ids"], "a-batch", "a-review", root, DATE)
+
+
+def test_a_refused_write_puts_back_every_store_file_and_not_only_the_ones_it_wrote(tmp_path: Path) -> None:
+    # writeCheckedAgainstShapes keeps every store file and puts each back, and removes a store
+    # file that was not there. The check runs other programs in the store.
+    _, root, plan = edited_store(tmp_path)
+    everything = bytes_under(root)
+    written = {change.file for change in plan.changes()}
+    other, gone = [file for file in record_files(root) if file not in written][:2]
+    shard = next(file for file in provenance_files(root) if file not in written)
+    made = [root / "data/entities/made-by-the-check.jsonl", root / "data/provenance/records/z.jsonl"]
+
+    def meddle(_: Sequence[str]) -> None:
+        other.write_bytes(other.read_bytes() + b"{}\n")
+        shard.write_bytes(b"")
+        gone.unlink()
+        for file in made:
+            file.write_bytes(b"{}\n")
+        raise ShapesError("the shapes say no")
+
+    with pytest.raises(ShapesError, match="the shapes say no") as failure:
+        write(plan, meddle)
+    assert not isinstance(failure.value, RestoreError)
+    assert bytes_under(root) == everything
+
+
+def test_a_write_with_no_check_reads_and_puts_back_only_its_own_files(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Nothing but the write itself runs, so the rest of the store is not read. A replay of a
+    # whole store depends on that for the memory it holds.
+    _, root, plan = edited_store(tmp_path)
+    everything = bytes_under(root)
+    (first, *_rest) = plan.changes()
+    monkeypatch.setattr(writes, "_store_files", lambda _: pytest.fail("the store was listed"))
+    monkeypatch.setattr(writes, "_put", torn_once([]))
+    with pytest.raises(OSError, match="No space left on device"):
+        write(plan)
+    assert bytes_under(root) == everything
+    assert first.file.read_bytes() == first.before
+
+
+def torn_once(calls: list[Path]) -> Callable[[Path, bytes], None]:
+    """A writer whose first write leaves part of a file and fails, and which works after that."""
+
+    def put(file: Path, data: bytes) -> None:
+        calls.append(file)
+        if len(calls) == 1:
+            file.write_bytes(data[:3])
+            raise OSError(28, "No space left on device", str(file))
+        file.write_bytes(data)
+
+    return put
+
+
+def test_a_file_half_written_is_put_back(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    _, root, plan = edited_store(tmp_path)
+    everything = bytes_under(root)
+    first = plan.changes()[0].file
+    calls: list[Path] = []
+    monkeypatch.setattr(writes, "_put", torn_once(calls))
+    with pytest.raises(OSError, match="No space left on device") as failure:
+        write(plan, lambda _: pytest.fail("the check ran on a store that was not written"))
+    assert not isinstance(failure.value, RestoreError)
+    # The one file the write tore was written again, and no other.
+    assert calls == [first, first]
+    assert bytes_under(root) == everything
+
+
+def test_a_write_that_fails_before_it_changes_anything_leaves_a_store_that_is_unchanged(
+    tmp_path: Path, npm: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    case, root, plan = edited_store(tmp_path)
+    write_configuration(root)
+    everything = bytes_under(root)
+
+    def unwritable(file: Path, _: bytes) -> None:
+        raise PermissionError(13, "Permission denied", str(file))
+
+    # Nothing was written, so there is nothing to put back, and a disk that takes no writes
+    # is not asked to take one. The error is the write's own.
+    monkeypatch.setattr(writes, "_put", unwritable)
+    with pytest.raises(PermissionError) as failure:
+        write(plan, shapes_check(root))
+    assert not isinstance(failure.value, RestoreError)
+    assert bytes_under(root) == everything
+
+    assert main(["records", "change", "--root", str(root), "a-review", "a-batch", *case["ids"]]) == 1
+    said = capsys.readouterr()
+    first = plan.changes()[0].file
+    assert said.err == (
+        f"[Errno 13] Permission denied: '{first}'\n"
+        "The changed records failed validation; the store is unchanged.\n"
+    )
+    assert bytes_under(root) == everything
+    assert not npm.exists()
+
+
+def test_a_store_that_cannot_be_listed_again_is_said_to_be_neither(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _, root, plan = edited_store(tmp_path)
+    everything = bytes_under(root)
+
+    def refuse(_: Sequence[str]) -> None:
+        monkeypatch.setattr(writes, "_store_files", unlistable)
+        raise ShapesError("the shapes say no")
+
+    def unlistable(folder: Path) -> list[Path]:
+        raise PermissionError(13, "Permission denied", str(folder))
+
+    with pytest.raises(RestoreError) as failure:
+        write(plan, refuse)
+    # The files that were there are put back all the same. What cannot be known is whether
+    # the check left a new one.
+    assert str(failure.value) == (
+        "the shapes say no. The store was then not put back as it was: "
+        f"{root}: [Errno 13] Permission denied: '{root}'"
+    )
+    assert bytes_under(root) == everything
+
+
+def test_a_folder_that_holds_no_store_is_refused_by_name(
+    tmp_path: Path, npm: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    case = case_named("add: a result, into a shard file that is not there yet")
+    _, file = lay_out(case, tmp_path / "work")
+    nowhere = tmp_path / "nowhere"
+    for command, what in [
+        (["change", "--root", str(nowhere), "a-review", "a-batch", "an-id"], "The changed records"),
+        (
+            ["change", "--root", str(nowhere), "a-review", "a-batch", "--changes", str(file)],
+            "The changed records",
+        ),
+        (["add", "--root", str(nowhere), str(file), "a-batch"], "The batch"),
+    ]:
+        for more in ([], ["--dry-run"]):
+            assert main(["records", *command, *more]) == 1
+            said = capsys.readouterr()
+            assert said.out == ""
+            assert said.err == (
+                f"{nowhere} holds no store: it has no folder named data\n"
+                f"{what} failed validation; the store is unchanged.\n"
+            )
+    assert not nowhere.exists()
+    assert not npm.exists()
+
+
+class Refusing:
+    """A stream that takes nothing, as a pipe does once nobody reads it."""
+
+    def __init__(self, error: Exception) -> None:
+        self.error = error
+        self.buffer = self
+
+    def flush(self) -> None:
+        pass
+
+    def write(self, _: bytes) -> int:
+        raise self.error
+
+
+@pytest.mark.parametrize(
+    "error", [BrokenPipeError(32, "Broken pipe"), ValueError("I/O operation on closed file")]
+)
+def test_a_result_that_cannot_be_printed_does_not_end_in_a_traceback_or_undo_a_write(
+    error: Exception,
+    tmp_path: Path,
+    npm: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    case, root, _ = edited_store(tmp_path)
+    write_configuration(root)
+    given = ["records", "change", "--root", str(root), case["review"], case["batch_dir"], *case["ids"]]
+    everything = store_files(root)
+
+    # A dry run's result is what it prints, so one that cannot print has failed.
+    monkeypatch.setattr(sys, "stdout", Refusing(error))
+    assert main([*given, "--dry-run"]) == 1
+    assert capsys.readouterr().err == "What the command did could not be printed.\n"
+    assert store_files(root) == everything
+
+    # A write is made and checked before anything is printed. It stays, and is not a refusal.
+    assert main(given) == 0
+    assert capsys.readouterr().err == "What the command did could not be printed. The store was written.\n"
+    assert store_files(root) == left(case)
+    assert len(npm.read_text("utf-8").rstrip("\n").split("\n")) == 2
+    # The store now checks, and a check that cannot say so has failed too.
+    assert main(["records", "check", str(root)]) == 1
+    assert capsys.readouterr().err == "What the command did could not be printed.\n"
+
+    # With standard error gone too there is nothing to say and nothing more to do.
+    monkeypatch.setattr(sys, "stderr", Refusing(error))
+    assert main([*given, "--dry-run"]) == 1
+
+
+def test_a_command_started_with_its_output_closed_prints_nothing_and_is_otherwise_the_same(
+    tmp_path: Path, npm: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Python has no stream at all then. Node opens the null device in its place.
+    case, root, _ = edited_store(tmp_path)
+    write_configuration(root)
+    given = ["records", "change", "--root", str(root), case["review"], case["batch_dir"]]
+    monkeypatch.setattr(sys, "stdout", None)
+    monkeypatch.setattr(sys, "stderr", None)
+    assert main([*given, "--dry-run", *case["ids"]]) == 0
+    assert main([*given, "no-such-record"]) == 1
+    assert store_files(root) == before(case)
+    assert main([*given, *case["ids"]]) == 0
+    assert store_files(root) == left(case)
+    assert npm.exists()
+
+    # The real thing: a process whose standard output is closed before it starts.
+    done = subprocess.run(  # noqa: S603 - this interpreter, running this library
+        [
+            *COMMAND,
+            "records",
+            "change",
+            "--dry-run",
+            "--root",
+            str(root),
+            "a-review",
+            "a-batch",
+            *case["ids"],
+        ],
+        check=False,
+        capture_output=True,
+        close_fds=True,
+        preexec_fn=lambda: os.close(1),
+    )
+    assert (done.returncode, done.stderr) == (0, b"")
+
+
+#: The command as a process: this interpreter, running this library's entry point.
+COMMAND = [sys.executable, "-c", "import sys; from rewire_evidence.cli import main; sys.exit(main())"]
+
+ARGV: dict[str, Any] = json.loads((Path(__file__).parent / "fixtures" / "argv.json").read_text("utf-8"))
+
+
+def test_the_arguments_are_the_ones_recorded() -> None:
+    assert ARGV["source"] == "node scripts/fixtures/record_argv_fixture.mjs"
+    assert len(ARGV["cases"]) == 19
+    assert sum("�" in case["read"] for case in ARGV["cases"]) == 16
+
+
+@pytest.mark.parametrize("case", [pytest.param(case, id=case["name"]) for case in ARGV["cases"]])
+def test_an_argument_that_is_not_utf8_is_written_as_node_reads_it(
+    case: dict[str, str], tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    held, root, _ = edited_store(tmp_path)
+    # What Python makes of the bytes of an argument: a lone surrogate for each it cannot decode.
+    given = os.fsdecode(bytes.fromhex(case["bytes"]))
+    assert main(["records", "change", "--dry-run", "--root", str(root), given, given, *held["ids"]]) == 0
+    (gained,) = [line[1:] for line in capsys.readouterr().out.split("\n") if line.startswith("+{")]
+    (entry,) = json.loads(gained)["changed_by"]
+    assert (entry["review"], entry["inputs"]) == (case["read"], case["read"])
+    assert "\\ud" not in gained
+
+    # An ID is read the same way, so one that is not UTF-8 names no record, as it names none to Node.
+    assert main(["records", "change", "--dry-run", "--root", str(root), "a-review", "a-batch", given]) == 1
+    assert capsys.readouterr().err.startswith(f"Unknown record: {case['read']}\n")
+
+
+def test_a_batch_folder_that_is_not_utf8_is_written_as_node_reads_it(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    case = case_named("add: a result, into a shard file that is not there yet")
+    root, file = lay_out(case, tmp_path / "work")
+    write_configuration(root)
+    given = ["records", "add", "--dry-run", "--root", str(root), str(file), os.fsdecode(b"a-batch\xff")]
+    assert main(given) == 0
+    rows = [json.loads(line[1:]) for line in capsys.readouterr().out.split("\n") if line.startswith("+{")]
+    assert [row["added_in"] for row in rows if "added_in" in row] == ["a-batch�"]
+
+
+def test_text_that_no_bytes_stand_for_is_left_as_it_is(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # A caller in Python can hand over any text. A surrogate that is not a byte kept by the
+    # decoder is written as JSON.stringify writes one: as an escape.
+    held, root, _ = edited_store(tmp_path)
+    given = ["records", "change", "--dry-run", "--root", str(root), "half \ud83d", "a-batch", *held["ids"]]
+    assert main(given) == 0
+    (gained,) = [line[1:] for line in capsys.readouterr().out.split("\n") if line.startswith("+{")]
+    assert '"review":"half \\ud83d"' in gained
+
+
+def test_the_bytes_of_an_argument_reach_the_provenance_row_as_node_reads_them(tmp_path: Path) -> None:
+    # The command itself, started with an argument that is not UTF-8.
+    held, root, _ = edited_store(tmp_path)
+    done = subprocess.run(  # noqa: S603 - this interpreter, running this library
+        [
+            *COMMAND,
+            "records",
+            "change",
+            "--dry-run",
+            "--root",
+            str(root),
+            b"rev\xff",
+            "a-batch",
+            *held["ids"],
+        ],
+        check=True,
+        capture_output=True,
+    )
+    assert b'"review":"rev\xef\xbf\xbd"' in done.stdout
+
+
+# ---- nesting too deep to walk ---------------------------------------------------------------
+
+
+@pytest.mark.parametrize("depth", [150, 400, 900, 990, 1000, 1100, 2000, 5000, 20000, 200000])
+@pytest.mark.parametrize("command", ["add", "change", "changes"])
+def test_a_line_nested_to_any_depth_is_accepted_or_refused_and_never_a_traceback(
+    command: str, depth: int, tmp_path: Path, configuration: Path
+) -> None:
+    case = case_named(
+        {
+            "add": "add: a result, into a shard file that is not there yet",
+            "change": "change: one record edited in place",
+            "changes": "changes: one changed record",
+        }[command]
+    )
+    root, file = lay_out(case, tmp_path)
+    deep = f"{'[' * depth}{']' * depth}"
+    if command == "change":
+        # The record itself is nested: the line of it in the store.
+        (target,) = [
+            path for path in record_files(root) if f'"id":"{case["ids"][0]}"' in path.read_text("utf-8")
+        ]
+        target.write_text(
+            target.read_text("utf-8").replace('"attributes":{', f'"attributes":{{"deep":{deep},', 1), "utf-8"
+        )
+    else:
+        file.write_text(
+            file.read_text("utf-8").replace('"attributes":{', f'"attributes":{{"deep":{deep},', 1), "utf-8"
+        )
+    everything = files_under(root)
+    # Whatever is raised is one of the refusals the command prints in a line.
+    with contextlib.suppress(StoreError, RecordError, SchemaError):
+        planned(case, root, file, configuration)
+    assert files_under(root) == everything
+
+
+def test_a_record_the_schema_reads_and_the_writer_cannot_follow_is_refused_by_name(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    case, root, _ = edited_store(tmp_path)
+
+    def too_deep(_: object) -> bytes:
+        raise RecursionError
+
+    monkeypatch.setattr(writes, "js_written", too_deep)
+    with pytest.raises(StoreError) as refusal:
+        plan_change(case["ids"], "a-batch", "a-review", root, DATE)
+    assert str(refusal.value) == f"{case['ids'][0]} cannot be written: it is nested too deeply"
+    assert isinstance(refusal.value.__cause__, RecursionError)
+
+
+# ---- the order addBatch runs its validators in ----------------------------------------------
+
+#: A batch with two faults, and the validator the TypeScript answered with, which runs first.
+FIRST_OF_TWO = {
+    "a value outside its vocabulary and an attribute its kind does not declare": "Uncontrolled values:",
+    "an attribute its kind does not declare and a description the batch has under two names": (
+        "1 attribute problems:"
+    ),
+    "a description the batch has under two names and a derivation whose script is not there": (
+        "2 descriptions are not functional."
+    ),
+    "a derivation whose script is not there and a scoped concern naming a record that is not there": (
+        "1 derivation problems:"
+    ),
+    "a scoped concern naming a record that is not there and a link to a record that is not there": (
+        "Invalid evidence concerns:"
+    ),
+}
+#: The same faults alone, so that each of a pair is known to be refused by its own validator.
+ALONE = {
+    "a value outside its vocabulary": "Uncontrolled values:",
+    "an attribute its kind does not declare": "1 attribute problems:",
+    "a description the store already has under another name": "2 descriptions are not functional.",
+    "a derivation whose script is not there, on sources the store holds": "1 derivation problems:",
+    "a scoped concern naming a record that is not there": "Invalid evidence concerns:",
+    "a link to a record that is not there": "Dangling ",
+}
+
+
+@pytest.mark.parametrize("name", [*FIRST_OF_TWO, *ALONE])
+def test_an_add_runs_its_validators_in_the_order_the_typescript_runs_them(
+    name: str, tmp_path: Path, configuration: Path
+) -> None:
+    # Vocabularies, attributes, descriptions, derivations, concerns, then validateRecords.
+    # Each pair of neighbours has a batch that fails both, and the earlier one answers.
+    case = case_named(f"add: {name}")
+    start = {**FIRST_OF_TWO, **ALONE}[name]
+    assert case["error"]["message"].startswith(start)
+    root, file = lay_out(case, tmp_path)
+    with pytest.raises((RecordError, VocabularyError)) as refusal:
+        plan_add(file, case["batch_dir"], root, configuration)
+    assert str(refusal.value) == case["error"]["message"]
+
+
+def test_an_add_holds_a_concern_to_the_store_and_not_to_the_batch_alone(
+    tmp_path: Path, configuration: Path
+) -> None:
+    # The concern is on a source the batch adds and names a dataset the store holds. Checked
+    # against the batch alone, the dataset would not exist.
+    case = case_named("add: a scoped concern naming a record the store holds")
+    assert case["error"] is None
+    root, file = lay_out(case, tmp_path)
+    named = {
+        each
+        for line in case["input"].split("\n")
+        if line
+        for entry in json.loads(line)["attributes"].get("evidence_concerns", [])
+        for each in entry["applies_to"]
+    }
+    held = {row["id"] for path in record_files(root) for row in read_rows(path)}
+    assert len(named) == 1
+    assert named <= held
+    plan = plan_add(file, case["batch_dir"], root, configuration)
+    write(plan)
+    assert files_under(root) == left(case)

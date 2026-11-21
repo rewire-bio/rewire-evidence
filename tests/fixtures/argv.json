@@ -1,0 +1,100 @@
+{
+ "source": "node scripts/fixtures/record_argv_fixture.mjs",
+ "cases": [
+  {
+   "name": "plain text",
+   "bytes": "726576",
+   "read": "rev"
+  },
+  {
+   "name": "two, three and four byte characters",
+   "bytes": "c3a9e282acf09f9880",
+   "read": "é€😀"
+  },
+  {
+   "name": "a byte that starts nothing",
+   "bytes": "726576ff",
+   "read": "rev�"
+  },
+  {
+   "name": "a continuation byte alone",
+   "bytes": "80",
+   "read": "�"
+  },
+  {
+   "name": "two continuation bytes",
+   "bytes": "8080",
+   "read": "��"
+  },
+  {
+   "name": "a two byte character cut short",
+   "bytes": "c3",
+   "read": "�"
+  },
+  {
+   "name": "a three byte character cut after one byte",
+   "bytes": "e2",
+   "read": "�"
+  },
+  {
+   "name": "a three byte character cut after two bytes",
+   "bytes": "e282",
+   "read": "�"
+  },
+  {
+   "name": "a four byte character cut after three bytes",
+   "bytes": "f09f98",
+   "read": "�"
+  },
+  {
+   "name": "a cut character and then text",
+   "bytes": "e28261",
+   "read": "�a"
+  },
+  {
+   "name": "a cut character between text",
+   "bytes": "61f09f9862",
+   "read": "a�b"
+  },
+  {
+   "name": "an overlong slash",
+   "bytes": "c0af",
+   "read": "��"
+  },
+  {
+   "name": "an overlong null",
+   "bytes": "e08080",
+   "read": "���"
+  },
+  {
+   "name": "a high surrogate written as three bytes",
+   "bytes": "eda080",
+   "read": "���"
+  },
+  {
+   "name": "a surrogate pair written as six bytes",
+   "bytes": "eda0bdedb880",
+   "read": "������"
+  },
+  {
+   "name": "a code point beyond the last",
+   "bytes": "f4908080",
+   "read": "����"
+  },
+  {
+   "name": "a byte no character starts with",
+   "bytes": "f8888080",
+   "read": "����"
+  },
+  {
+   "name": "Latin-1 text",
+   "bytes": "636166e9",
+   "read": "caf�"
+  },
+  {
+   "name": "a byte order mark",
+   "bytes": "efbbbf61",
+   "read": "﻿a"
+  }
+ ]
+}

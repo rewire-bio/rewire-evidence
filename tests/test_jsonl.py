@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from rewire_evidence.canonical import JsonObject, js_stringify
+from rewire_evidence.canonical import JsonObject, JsonValue, js_stringify
 from rewire_evidence.jsonl import (
     StoreError,
     append_text,
@@ -14,6 +14,7 @@ from rewire_evidence.jsonl import (
     parse_row,
     read_lines,
     read_rows,
+    read_values,
     text_field,
     write_text,
     write_text_atomically,
@@ -113,3 +114,44 @@ def test_appending_adds_to_the_end_and_makes_the_file(tmp_path: Path) -> None:
     append_text(file, "first\n")
     append_text(file, "second\n")
     assert file.read_bytes() == b"first\nsecond\n"
+
+
+def test_a_line_the_parser_reads_and_the_walk_cannot_is_refused_by_name(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # The parser and the walk that puts a value in JavaScript's form give up at different
+    # depths, so a line can pass the first and fail the second.
+    file = tmp_path / "rows.jsonl"
+    file.write_bytes(b'{"id":"a"}\n[1]\n')
+
+    def too_deep(_: object) -> None:
+        raise RecursionError
+
+    monkeypatch.setattr("rewire_evidence.jsonl.js_value", too_deep)
+    with pytest.raises(StoreError) as refusal:
+        read_values(file)
+    assert str(refusal.value) == f"{file}:1 is nested too deeply to read"
+    assert isinstance(refusal.value.__cause__, RecursionError)
+
+
+@pytest.mark.parametrize("depth", [1, 100, 400, 900, 990, 1000, 1100, 2000, 5000, 20000, 200000])
+def test_nesting_of_any_depth_is_read_or_refused_by_name(depth: int, tmp_path: Path) -> None:
+    file = tmp_path / "rows.jsonl"
+    file.write_bytes(b"[" * depth + b"]" * depth + b"\n")
+    refused = None
+    values: list[JsonValue] = []
+    try:
+        values = read_values(file)
+    except StoreError as refusal:
+        refused = str(refusal)
+    if refused is not None:
+        assert refused == f"{file}:1 is nested too deeply to read"
+        assert depth > 400
+        return
+    (value,) = values
+    nested = 0
+    while value:
+        assert isinstance(value, list)
+        (value,) = value
+        nested += 1
+    assert nested == depth - 1

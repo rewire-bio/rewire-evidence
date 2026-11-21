@@ -47,6 +47,18 @@ def parse_line(line: str, where: str) -> JsonValue:
         raise StoreError(f"{where} is nested too deeply to read") from error
 
 
+def parse_value(line: str, where: str) -> JsonValue:
+    """One line as the value JavaScript holds once `JSON.parse` has read it: `js_value` of it.
+
+    The parser and the walk that follows it give up at different depths, so a line the
+    parser reads may still be nested too deeply to walk. Both are refused in the same words.
+    """
+    try:
+        return js_value(parse_line(line, where))
+    except RecursionError as error:
+        raise StoreError(f"{where} is nested too deeply to read") from error
+
+
 def parse_row(line: str, where: str) -> JsonObject:
     """One line as the object it holds. `where` names the line in the error."""
     value = parse_line(line, where)
@@ -66,7 +78,7 @@ def read_values(path: Path) -> list[JsonValue]:
     Each is in the one form JavaScript holds it in, so two numbers that are one number to
     JavaScript are one here.
     """
-    return [js_value(parse_line(line, f"{path}:{number}")) for number, line in enumerate(read_lines(path), 1)]
+    return [parse_value(line, f"{path}:{number}") for number, line in enumerate(read_lines(path), 1)]
 
 
 def text_field(row: object, field: str, where: str) -> str:

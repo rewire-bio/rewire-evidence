@@ -24,7 +24,8 @@ too. `write` puts the plan on disk, writing only the files whose bytes differ, w
 the disk as the TypeScript leaves it.
 
 `write` takes a check to run once the files are written. If the check or a write fails,
-every file is put back as it was and a file the write created is removed, which is
+every store file is put back as it was and a store file that was not there is removed,
+whether the write or the check's own commands made the difference, which is
 `writeCheckedAgainstShapes`. `shapes_check` is the check the TypeScript runs: the SHACL
 shapes over the records written, the records that link to them and their targets, through
 the data repository's own `npm run kg -- subset` and `npm run kg:build -- --shapes-only`.
@@ -51,10 +52,10 @@ from rewire_evidence.concerns import validate_concerns
 from rewire_evidence.derivations import validate_derivations
 from rewire_evidence.descriptions import validate_descriptions
 from rewire_evidence.js import MISSING, truthy
-from rewire_evidence.jsonl import read_values
+from rewire_evidence.jsonl import StoreError, read_values
 from rewire_evidence.records import load_records
 from rewire_evidence.schema import Record, RecordError, SchemaError, parse_record
-from rewire_evidence.store import read_provenance, record_files, store_bodies
+from rewire_evidence.store import provenance_files, read_provenance, record_files, store_bodies
 from rewire_evidence.validation import validate_records
 from rewire_evidence.vocab import load_schemes, read_mapping, validate_vocabularies
 
@@ -113,8 +114,15 @@ def today(now: dt.datetime | None = None) -> str:
 
 
 def record_digest(record: Record) -> str:
-    """`recordSha256(record)`: the digest of the record as `JSON.stringify` writes it."""
-    return sha256_hex(js_written(record.row()))
+    """`recordSha256(record)`: the digest of the record as `JSON.stringify` writes it.
+
+    Raises `StoreError` for a record nested too deeply to write. The schema reads a little
+    deeper than the writer can follow, so a record can be parsed and still not be written.
+    """
+    try:
+        return sha256_hex(js_written(record.row()))
+    except RecursionError as error:
+        raise StoreError(f"{record.id} cannot be written: it is nested too deeply") from error
 
 
 def _parsed(value: JsonValue, where: str) -> Record:
@@ -319,21 +327,43 @@ class RestoreError(Exception):
     """A write failed or was refused, and the store could not be put back as it was."""
 
 
-def _restore(changes: Sequence[Change]) -> list[str]:
+def _store_files(root: Path) -> list[Path]:
+    """Every file `writeCheckedAgainstShapes` keeps a copy of: the record files and the provenance shards."""
+    return [*record_files(root), *provenance_files(root)]
+
+
+def _held(file: Path) -> bytes | None:
+    """A file's bytes, or None for no file."""
+    return file.read_bytes() if file.exists() else None
+
+
+def _restore(root: Path, before: Mapping[Path, bytes | None], *, whole: bool) -> list[str]:
     """Put every file back as it was, and remove a file that was not there.
 
-    Every file is tried, whatever happens to the one before it. Returns the files that
-    could not be put back, each with the reason.
+    `before` holds each file's bytes, or None for a file that was not there. With `whole`,
+    a store file it does not name was not there either, and is removed. A file that is as
+    it was is left alone, so a write that failed before it changed anything asks nothing
+    of a disk that may refuse. Every file is tried, whatever happens to the one before it.
+    Returns the files that could not be put back, each with the reason.
     """
     failed: list[str] = []
-    for change in changes:
+    wanted = dict(before)
+    if whole:
         try:
-            if change.before is not None:
-                _put(change.file, change.before)
-            elif change.file.exists():
-                change.file.unlink()
+            for file in _store_files(root):
+                wanted.setdefault(file, None)
         except OSError as error:
-            failed.append(f"{change.file}: {error}")
+            failed.append(f"{root}: {error}")
+    for file, held in wanted.items():
+        try:
+            if _held(file) == held:
+                continue
+            if held is None:
+                file.unlink()
+            else:
+                _put(file, held)
+        except OSError as error:
+            failed.append(f"{file}: {error}")
     return failed
 
 
@@ -342,22 +372,33 @@ def write(plan: Plan, check: Check | None = None) -> list[Change]:
 
     Only the files whose bytes differ are written. `check` is given the IDs written, once
     every file is in place, and refuses by raising. Whatever is raised, by a write or by the
-    check, every file is put back as it was first and the error is then raised again, so the
+    check, the store is put back as it was first and the error is then raised again, so the
     store is either as planned and checked or unchanged. Returns the files written.
+
+    What is put back is what `writeCheckedAgainstShapes` puts back. With a check, that is
+    every record file and provenance shard under the plan's root, whether the plan writes
+    it or not, and a store file that was not there before is removed: the check runs other
+    programs in the store, and whatever they did to it is undone with the write. Without a
+    check nothing but this function writes, so only the plan's own files are kept and put
+    back, and the rest of the store is not read.
 
     Raises `RestoreError` from the first error if a file could not be put back, which is
     the one case in which the store is neither.
     """
     changes = plan.changes()
-    started: list[Change] = []
+    whole = check is not None
+    before: dict[Path, bytes | None] = {change.file: change.before for change in changes}
+    if whole:
+        for file in _store_files(plan.root):
+            if file not in before:
+                before[file] = file.read_bytes()
     try:
         for change in changes:
-            started.append(change)
             _put(change.file, change.after)
         if check is not None:
             check(plan.ids)
     except BaseException as error:
-        failed = _restore(started)
+        failed = _restore(plan.root, before, whole=whole)
         if failed:
             raise RestoreError(
                 f"{error}. The store was then not put back as it was: {'; '.join(failed)}"
