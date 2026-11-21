@@ -143,7 +143,7 @@ jobs:
   # TypeScript produces. Nothing is installed anywhere but this runner.
   fixtures:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/checkout@v4
@@ -162,6 +162,11 @@ jobs:
       - name: Record from the TypeScript
         working-directory: store
         run: node_modules/.bin/tsx ../scripts/fixtures/record_schema_fixture.mjs
+      # The validators, on cases written for them and on the pinned store itself. Each fault
+      # seeded into the whole store runs a validator over every record, which is most of the time.
+      - name: Record the validators
+        working-directory: store
+        run: node_modules/.bin/tsx ../scripts/fixtures/record_validation_fixture.mjs
       - name: Keep what was recorded
         if: always()
         uses: actions/upload-artifact@v4
@@ -171,14 +176,17 @@ jobs:
             tests/fixtures/record-schema.json
             tests/fixtures/vocabularies.json
             tests/fixtures/turtle.json
+            tests/fixtures/validation.json
             scripts/expected/store-schema.json
+            scripts/expected/store-validation.json
+            src/rewire_evidence/data/attribute-registry.json
           if-no-files-found: ignore
       - name: Fixtures are what the TypeScript produces
         run: |
-          changed=$(git status --porcelain -- tests/fixtures scripts/expected)
+          changed=$(git status --porcelain -- tests/fixtures scripts/expected src/rewire_evidence/data)
           if [ -n "$changed" ]; then
             echo "::error::The recorded fixtures differ from the committed ones. Download the schema-fixtures artifact and commit it."
             echo "$changed"
-            git diff --stat -- tests/fixtures scripts/expected
+            git diff --stat -- tests/fixtures scripts/expected src/rewire_evidence/data
             exit 1
           fi
