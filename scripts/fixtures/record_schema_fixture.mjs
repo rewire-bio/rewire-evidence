@@ -241,6 +241,19 @@ add("an unknown key and a bad status", text({ ...base, status: "x", extra: 1 }))
 add("an unknown key with an empty name", text({ ...base, "": 1 }));
 add("a key that differs only in case", text({ ...Object.fromEntries(Object.entries(base).filter(([key]) => key !== "id")), ID: "model-a" }));
 add("everything wrong at once", text({ id: "A", kind: "x", name: "", description: 1, status: "y", facets: { a: 1 }, source_ids: [1], links: [{ relation: "z" }], attributes: [], extra: 1 }));
+// zod's length check looks at anything that has a `length`, whatever its type, and compares
+// it as JavaScript compares: these settle what it reports beside the wrong type.
+const lengths = ['0', '1', '2', '0.5', '-1', '1e400', 'null', 'true', 'false', '"0"', '"1"', '" 2 "', '"abc"', '""', '" "', '"0x10"', '"0X1f"', '"-0x10"', '"0b11"', '"0o7"', '"1e3"', '"1E0"', '".5"', '"5."', '"."', '"+1"', '"-1"', '"1_000"', '"Infinity"', '"-Infinity"', '"+Infinity"', '"infinity"', '"NaN"', '"1n"', '"1 1"', '"\\t1\\n"', '"\\u00a01\\ufeff"', '"\\u200b1"', '"0.9999999999999999"', '[]', '[5]', '[1,2]', '[[3]]', '[null]', '["2"]', '[true]', '[1.5]', '[[]]', '[{}]', '{}', '{"a":1}'];
+for (const raw of lengths) add(`name has the length ${raw}`, rawField("name", `{"length":${raw}}`));
+for (const raw of ['["x"]', '[1,2]', '[[]]']) add(`name is the list ${raw}`, rawField("name", raw));
+for (const raw of ['[]', '["x"]', '{"length":0}', '{"length":3}', '{}']) add(`a link target is ${raw}`, rawField("links", `[{"relation":"source","target_id":${raw}}]`));
+for (const raw of ['[]', '{"length":0}']) add(`a link relation is ${raw}`, rawField("links", `[{"relation":${raw},"target_id":"x"}]`));
+for (const raw of ['{"length":0}', '1e400', '1.5', '-0']) add(`id is ${raw}`, rawField("id", raw));
+add("source_ids is an object with a length", rawField("source_ids", '{"length":0}'));
+add("kind is a number beyond any double", rawField("kind", "1e400"));
+add("the record is a number beyond any double", "1e400");
+add("unknown keys holding quotes, a backslash, a line break and other scripts", `${text(base).slice(0, -1)},"a\\"b":1,"a\\\\b":2,"line\\nbreak":3,"\u00e9\u{1f9ec}":4}`);
+add("a facet key holding a quote with a bad value", rawField("facets", '{"a\\"b":1}'));
 add("every member null", text(Object.fromEntries(keys.map((key) => [key, null]))));
 add("every member a number, in reverse order", text(Object.fromEntries([...keys].reverse().map((key) => [key, 1]))));
 
@@ -578,8 +591,9 @@ const smallRoot = vocabularyRoot(smallVocabulary);
 const smallSchemes = loadSchemes(smallRoot);
 fs.rmSync(smallRoot, { recursive: true });
 const held = (id, extra = {}) => ({ id, facets: {}, attributes: {}, ...extra });
-const controlledCase = (name, records, mapping = smallMapping) => {
-  const input = JSON.stringify(records);
+// `raw` gives the records as JSON text where the spelling of a number is the point.
+const controlledCase = (name, records, mapping = smallMapping, raw = null) => {
+  const input = raw ?? JSON.stringify(records);
   return {
     name,
     input,
@@ -650,6 +664,8 @@ const controlledCases = [
     held("second", { attributes: { metric: "auprc", unit: "bad-unit" } }),
     held("third", { attributes: { metric: "auprc", unit: "percent" } }),
   ]),
+  controlledCase("numbers as JavaScript prints them, and one beyond any double", null, smallMapping, '[{"id":"r","facets":{},"attributes":{"metric":[1.0,-0,1e21,0.00001,12345678901234567890,1e400,[-1e400],{"a":1e400}]}}]'),
+  controlledCase("integer-like keys inside a value are listed first", null, smallMapping, '[{"id":"r","facets":{},"attributes":{"metric":{"b":1,"10":2,"2":3}}}]'),
   controlledCase("a mapping with no controlled field", [held("r", { status: "x", attributes: { metric: "x" } })], { fields: { status: { property: "p" } }, facets: {}, attributes: {}, review: {} }),
 ];
 
