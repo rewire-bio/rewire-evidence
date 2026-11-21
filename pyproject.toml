@@ -5,6 +5,9 @@ description = "Turn primary literature into checkable benchmark records, each bo
 requires-python = ">=3.12"
 dependencies = []
 
+[project.scripts]
+rewire-evidence = "rewire_evidence.cli:main"
+
 [dependency-groups]
 dev = [
   "hypothesis>=6.120.0",

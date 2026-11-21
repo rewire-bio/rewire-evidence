@@ -97,7 +97,7 @@ def test_a_store_that_conforms_is_measured_in_full(tmp_path: Path) -> None:
         "result": 1,
         "source": 1,
     }
-    assert measured["source_ids"] == 1
+    assert measured["source_ids"] == 2
     assert measured["links"] == 6
     assert measured["links_by_relation"] == {
         "assessment": 1,
@@ -147,7 +147,7 @@ def test_what_the_typescript_recorded_differently_is_named(tmp_path: Path) -> No
     problems = verify_schema(tmp_path, changed).problems
     digest, counts = recorded["public_ids_sha256"], "1 items measured and 1 recorded by the TypeScript"
     assert problems == [
-        "source_ids: measured 1, the TypeScript recorded null",
+        "source_ids: measured 2, the TypeScript recorded null",
         "links: measured 6, the TypeScript recorded 7",
         f'public_ids_sha256: measured "{digest}", the TypeScript recorded "{"0" * 64}"',
         f"schemes.metric.concepts: {counts}, first differing at position 0",
@@ -468,7 +468,7 @@ def test_the_schema_gate_passes_the_store_it_was_recorded_on(
         "  restored to the committed line with their keys moved: 8\n"
         "  returned by load_records, in ID order: 8\n"
         "links allowed by the relation rules: 6\n"
-        "source IDs naming a source: 1\n"
+        "source IDs naming a source: 2\n"
         "records a public release may hold: 7\n"
         "vocabularies: 5 schemes, 7 concepts\n"
         "controlled values, each a concept of its scheme: 11\n"

@@ -49,7 +49,11 @@ def link(relation: str, target_id: str) -> JsonObject:
 
 
 RECORDS = [
-    record("source-a", "source"),
+    record(
+        "source-a",
+        "source",
+        attributes={"url": "https://example.org/a", "retrieved_at": "2026-01-01", "version": "1"},
+    ),
     record("model-b", "model", source_ids=["source-a"], facets={"areas": ["dna-genomes"]}),
     record("model-a", "model", links=[link("family", "model-b")]),
     record("dataset-a", "dataset"),
@@ -63,8 +67,18 @@ RECORDS = [
         "result-a",
         "result",
         status="source_checked",
+        source_ids=["source-a"],
         links=[link("evaluation", "eval-a")],
-        attributes={"metric": "auprc", "z": 1, "a": 0.00001, "review": {"method": "span-check"}},
+        attributes={
+            "printed_value": "0.5",
+            "numeric_value": "0.5",
+            "metric": "auprc",
+            "unit": "unitless",
+            "source_locator": "Table 1",
+            # Keys out of alphabetical order and a number JavaScript writes its own way.
+            "scoring_conditions": {"z": 1, "a": 0.00001},
+            "review": {"method": ["span-check"]},
+        },
     ),
     record("claim-a", "claim", status="excluded", links=[link("subject", "model-a")]),
 ]

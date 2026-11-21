@@ -1,0 +1,183 @@
+"""What JavaScript does with a value `JSON.parse` returned, where the validators rely on it.
+
+The TypeScript validators are written in JavaScript's terms: a value is used if it is
+"truthy", text is trimmed of JavaScript's white space, anything can be compared with a
+number, and a member that is absent is `undefined` and still has a printed form. Each of
+those is a rule Python does not share, so each is written out here once. `canonical.py`
+holds the forms a value is written in. This holds what a value counts as.
+
+Everything here is held to recordings from Node: `tests/fixtures/js-semantics.json` for the
+built-ins, and the zod and validator fixtures for the places they are used.
+"""
+
+from __future__ import annotations
+
+import enum
+import math
+import re
+from typing import cast
+
+from rewire_evidence.canonical import JsonValue, js_number, js_string
+
+
+class Missing(enum.Enum):
+    """A member that is not there, which JavaScript calls `undefined`."""
+
+    MISSING = enum.auto()
+
+
+MISSING = Missing.MISSING
+#: A JSON value, or the absence of one.
+type Held = JsonValue | Missing
+
+#: What `String.prototype.trim` removes and `\s` matches: JavaScript's white space and line
+#: terminators. Python's `str.strip()` and `\s` take U+001C to U+001F and U+0085 as well,
+#: and leave U+FEFF.
+SPACE = (
+    "\t\n\v\f\r "
+    "\u00a0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a"
+    "\u2028\u2029\u202f\u205f\u3000\ufeff"
+)
+#: The same characters as a class body for a pattern, so `[{SPACE_CLASS}]` is `\s`.
+SPACE_CLASS = r"\t\n\v\f\r \u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff"
+#: JavaScript's `.` without the `s` flag, which stops at four line terminators where
+#: Python's stops at one.
+DOT = r"[^\n\r\u2028\u2029]"
+
+_DECIMAL = re.compile(r"[+-]?(?:Infinity|(?:[0-9]+\.?[0-9]*|\.[0-9]+)(?:[eE][+-]?[0-9]+)?)")
+_RADIX = re.compile(r"0[xX][0-9a-fA-F]+|0[oO][0-7]+|0[bB][01]+")
+
+
+def received(value: Held) -> str:
+    """The name zod gives the type of a value in an `invalid_type` message."""
+    if isinstance(value, Missing):
+        return "undefined"
+    if value is None:
+        return "null"
+    if isinstance(value, bool):
+        return "boolean"
+    if isinstance(value, str):
+        return "string"
+    if isinstance(value, list):
+        return "array"
+    if isinstance(value, dict):
+        return "object"
+    if isinstance(value, float) and math.isinf(value):
+        # A number beyond every double, which JSON.parse reads as infinity and zod names.
+        return "Infinity" if value > 0 else "-Infinity"
+    return "number"
+
+
+def trim(text: str) -> str:
+    """`text.trim()`."""
+    return text.strip(SPACE)
+
+
+def truthy(value: object) -> bool:
+    """Whether JavaScript takes the value as true in a condition.
+
+    Nothing, null, false, zero and empty text are false. Everything else is true, an empty
+    list and an empty object included, which is where Python differs.
+    """
+    if isinstance(value, Missing) or value is None:
+        return False
+    if isinstance(value, (bool, int, float, str)):
+        return bool(value)
+    return True
+
+
+def joined(items: list[JsonValue]) -> str:
+    """`String(items)` for a list `JSON.parse` returned, which is `items.join(",")`."""
+    return ",".join(_element(item) for item in items)
+
+
+def _element(item: JsonValue) -> str:
+    """One element as `Array.prototype.join` writes it: nothing for null, `String(item)` otherwise."""
+    if item is None:
+        return ""
+    if isinstance(item, bool):
+        return "true" if item else "false"
+    if isinstance(item, str):
+        return item
+    if isinstance(item, list):
+        return joined(item)
+    if isinstance(item, dict):
+        return "[object Object]"
+    if math.isinf(item):
+        return "Infinity" if item > 0 else "-Infinity"
+    return js_number(item)
+
+
+def number_of_text(text: str) -> float:
+    """`Number(text)`: the number JavaScript reads from text, or NaN."""
+    trimmed = trim(text)
+    if not trimmed:
+        return 0.0
+    if _RADIX.fullmatch(trimmed):
+        try:
+            return float(int(trimmed, 0))
+        except OverflowError:
+            return math.inf
+    if _DECIMAL.fullmatch(trimmed):
+        return float(trimmed.replace("Infinity", "inf"))
+    return math.nan
+
+
+def number_of(value: JsonValue) -> float:
+    """`Number(value)` for a value `JSON.parse` returned, as a comparison converts it."""
+    if value is None:
+        return 0.0
+    if isinstance(value, (bool, int, float)):
+        return float(value)
+    if isinstance(value, dict):
+        return math.nan
+    return number_of_text(value if isinstance(value, str) else joined(value))
+
+
+def text_of(value: object) -> str:
+    """`String(value)`, as a template writes a value into a message: `undefined` for nothing.
+
+    `value` is a JSON value or `MISSING`. Raises `TypeError` where JavaScript does, for an
+    object with a member named `toString`.
+    """
+    return "undefined" if isinstance(value, Missing) else js_string(cast("JsonValue", value))
+
+
+def units(text: str) -> int:
+    """`text.length`: the number of UTF-16 units, so two for a character beyond U+FFFF."""
+    return len(text.encode("utf-16-le", "surrogatepass")) // 2
+
+
+def is_integer(value: JsonValue) -> bool:
+    """`Number.isInteger(value)`. A whole number too large for an `int` here is still one."""
+    if isinstance(value, bool):
+        return False
+    return isinstance(value, int) or (isinstance(value, float) and value.is_integer())
+
+
+def slice_units(text: str, end: int) -> str:
+    """`text.slice(0, end)`, which counts UTF-16 units and can cut a character in half."""
+    return text.encode("utf-16-le", "surrogatepass")[: end * 2].decode("utf-16-le", "surrogatepass")
+
+
+def strictly_equal(left: object, right: object) -> bool:
+    """`left === right` for two values `JSON.parse` returned, or the absence of one.
+
+    Text, numbers, booleans and null are equal by value, and a boolean is never a number.
+    A list or an object is equal only to itself, however alike another one is.
+    """
+    if isinstance(left, (dict, list)) or isinstance(right, (dict, list)):
+        return left is right
+    return type(left) is type(right) and left == right
+
+
+def unit_text(text: str) -> str:
+    """The text with one character for each UTF-16 unit, which is what a JavaScript pattern sees.
+
+    A pattern without the `u` flag counts a character beyond U+FFFF as two, so `.{0,60}`
+    spans thirty of them. Matching against this form counts as JavaScript counts.
+    """
+    if text.isascii():
+        return text
+    data = text.encode("utf-16-le", "surrogatepass")
+    return "".join(chr(int.from_bytes(data[at : at + 2], "little")) for at in range(0, len(data), 2))

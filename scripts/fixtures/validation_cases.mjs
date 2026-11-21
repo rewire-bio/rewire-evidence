@@ -139,7 +139,7 @@ export function selectBase(all) {
 const hex = "a".repeat(64);
 export const palette = [
   null, true, false, 0, 1, -1, 1.5, 3, 4, 0.5, 1e21, -2, 9007199254740993,
-  "", " ", "x", " x ", "1", "1.5", "-1e3", ".5", "5.", "1e", "+", "Infinity", "0x10", "１", "1\n",
+  "", " ", "x", " x ", "1", "1.5", "-1e3", ".5", "5.", "1e", "+", "Infinity", "0x10", "\uff11", "1\n",
   "2026-01-01", "2026-02-30", "2026-1-1", "2026-01-01\n", "2026-11-18", "2026-11-17",
   "2026-01-01T00:00:00Z", "2026-01-01T00:00:00+01:00", "2026-01-01T00:00:00", "2026-01-01T00:00Z", "2026-01-01T00:00:00.123456Z", "2026-01-01T24:00:00Z", "2026-01-01t00:00:00z",
   "https://example.org/a", "http://example.org", " https://example.org ", "https://exa mple.org", "ftp://example.org/a", "mailto:a@example.org", "example.org", "/a/b.txt", "/a b", "//example.org", "https://", "http:example.org", "c:/x",
@@ -423,11 +423,11 @@ export function validatorCases({ records, roles }) {
   add("a result with no evaluation", set(result, ["links"], []));
   add("a result with two evaluations", set(result, ["links"], [...at(result).links, ...at(result).links]));
   add("a result with no printed value", del(result, [A, "printed_value"]));
-  add("a result whose printed value is spaces", set(result, [A, "printed_value"], " \t ﻿"));
+  add("a result whose printed value is spaces", set(result, [A, "printed_value"], " \t\u00a0\ufeff"));
   add("a result whose printed value is a number", set(result, [A, "printed_value"], 0.5));
   add("a result with no metric", del(result, [A, "metric"]));
   add("a result with an empty unit", set(result, [A, "unit"], ""));
-  for (const value of [0.5, "", "  ", "abc", "Infinity", "-Infinity", "NaN", "0x10", " 1e3 ", "1,5", "1e400", true, [], ["5"], {}, "0b101", "1_000", ".5", "5.", "+.5e-3", " 1 "])
+  for (const value of [0.5, "", "  ", "abc", "Infinity", "-Infinity", "NaN", "0x10", " 1e3 ", "1,5", "1e400", true, [], ["5"], {}, "0b101", "1_000", ".5", "5.", "+.5e-3", "\u00a01\u2028"])
     add(`a result whose numeric value is ${JSON.stringify(value)}`, set(result, [A, "numeric_value"], value));
   add("a result with no numeric value at all", del(result, [A, "numeric_value"]));
   add("a result whose numeric value is null", set(result, [A, "numeric_value"], null));
@@ -571,6 +571,18 @@ export function validatorCases({ records, roles }) {
   add("a checked claim whose field has a member named toString", set(backing, [A, "field"], { toString: 1 }));
   add("an unchecked claim whose field has a member named toString", set(backing, [A, "field"], { toString: 1 }), set(backing, ["status"], "needs_review"));
   add("a protocol under a task with panels that are zero", set(panel2.protocol_id, panels, 0));
+  // Results roll up one evaluates_task link from where they were measured and no further, so
+  // a panel is not shown on a task two such links away, where it would clash with that task's own.
+  const claimFor = (id, subject, field) => ["add", { ...clone(at(backing)), id, links: [{ relation: "subject", target_id: subject }], attributes: { ...clone(at(backing).attributes), field } }];
+  const further = [
+    ["add", { ...clone(at(owner2)), id: "another-task", name: "Another task", attributes: { ...clone(at(owner2).attributes), comparison_panels: [{ ...panel2, title: "Another title" }] } }],
+    set(owner2, ["links"], [...at(owner2).links, { relation: "evaluates_task", target_id: "another-task" }]),
+    claimFor("another-claim", owner2, "links:evaluates_task:another-task"),
+  ];
+  add("a task two evaluates_task links from a protocol, with its own panel of the protocol's panel's ID", set(panel2.protocol_id, panels, [panel2]), del(owner2, panels), ...further);
+  add("a task one part_of link and one evaluates_task link from a protocol, with a clashing panel", set(panel2.protocol_id, panels, [panel2]), del(owner2, panels), further[0], set(owner2, ["links"], [...at(owner2).links, { relation: "part_of", target_id: "another-task" }]), claimFor("another-claim", owner2, "links:part_of:another-task"));
+  add("a task one evaluates_task link from a task with panels, with a clashing panel", ...further);
+  add("a protocol linked to its task twice", set(panel2.protocol_id, ["links"], [...at(panel2.protocol_id).links, { relation: "part_of", target_id: owner2 }]), claimFor("another-claim", panel2.protocol_id, `links:part_of:${owner2}`), set(panel2.protocol_id, panels, [panel2]));
   add("an excluded protocol under a task with panels that are not panels", set(panel2.protocol_id, panels, "x"), set(panel2.protocol_id, ["status"], "excluded"));
 
   // ---- validateConcerns ----
@@ -731,7 +743,7 @@ export function examples({ records, roles }) {
     "missing-metadata": [{ a: { reason: "unreported" }, "b.c": { reason: "conflicting", note: "two values" } }],
     uncertainty: [
       attribute("covered", "uncertainty"),
-      { type: "standard_deviation", printed: "± 0.1", value: "0.1", center: "0.5", n: 3, scope: "seeds", unit: "percent", source_column: "sd", note: "n" },
+      { type: "standard_deviation", printed: "\u00b1 0.1", value: "0.1", center: "0.5", n: 3, scope: "seeds", unit: "percent", source_column: "sd", note: "n" },
       { type: "confidence_interval", half_width: "0.05", level: 0.9, method: "analytic" },
       { type: "credible_interval", lower: "-1", upper: "+1.5e3", method: "propagated", resamples: 100 },
     ],
@@ -771,10 +783,10 @@ export function examples({ records, roles }) {
 export const descriptionTexts = [
   "Predicts the effect of a variant on splicing.",
   "Named prediction model family", "named prediction model family.", "A named prediction model family", "Named prediction model familyx", "NAMED PREDICTION MODEL FAMILY ", "\nNamed prediction model family",
-  "Model identity as reported.", "identity as reportedly", "Identity  as reported", "identity\tas reported", "ıdentıty as reported", "identitY aS reporteD", "Identity as reported",
+  "Model identity as reported.", "identity as reportedly", "Identity  as reported", "identity\tas reported", "\u0131dent\u0131ty as reported", "identitY aS reporteD", "Identity as reported",
   "Source-reported configuration", "source-labelled configuration", "source-label configuration", "source-labeled configuration", "a source-reported configuration or submission label.", "xsource-reported configuration", "source-reported configurations",
   "Candidate catalogue entry", "candidate catalogue entry for review", "candidate catalog entry",
-  "The model as run in the paper.", "As evaluated by the authors.", "as reported to us", "as scored for the leaderboard", "as listed on the page", "as used\nin the paper", "as used in the paper", "as used\rin the paper",
+  "The model as run in the paper.", "As evaluated by the authors.", "as reported to us", "as scored for the leaderboard", "as listed on the page", "as used\nin the paper", "as used\u2028in the paper", "as used\rin the paper",
   `as printed ${"x".repeat(60)} in the table`, `as printed ${"x".repeat(59)} in the table`, `as printed ${"x".repeat(58)} in the table`, "as selected in", "as submitted byx", "as implementedin", "as benchmarked in", "as quoted for", "as trained and evaluated in the study", "as evaluated and reported on the site", "has run in", "as runs in", "as run within", "As Run In", "as run. In the paper",
   "Scores quoted in the paper.", "quoted from", "quotedin", "unquoted in",
   "not a new execution", "Not a newly executed run", "not a newly-executed run", "not a new-execution", "not a new executed", "not a newly execution",
@@ -783,9 +795,9 @@ export const descriptionTexts = [
   "source-reported", "Source-Reported label", "sourcereported", "source reported", "re-source-reported",
   "comparator reported by X", "evaluated by the Foo et al authors", "evaluated by the authors", "evaluated by the  authors", `evaluated by the ${"x".repeat(60)} authors`, `evaluated by the ${"x".repeat(61)} authors`, "evaluated by the Foo. Bar authors", "is the configuration evaluated in", "This is the configuration evaluated in the paper.", "evaluated by the Foo authorship",
   "cited in the source as X", "the method record names it", "Cited In The Source As",
-  "A model (Table 2).", "A model (see Table S3 for details).", "A model (table 2).", "A model (Fig. 3).", "A model (Figure 2a).", "A model (Supplementary Note).", "A model (Section 3.1).", "A model (Introduction).", "A model (Appendix B).", "A model (Tables 2 and 3).", "A model (Fig 3).", "A model (Tablet 2).", "A model (see (Table 2)).", "A model (a (b) Table 2).", "A model Table 2.", "(Table\n2)", "(Supplementary S1)", "(Figure S12, right)", "(xTable 2)", "(Table S)", "(TABLE 2)", "(Section)", "(SectionS1)",
+  "A model (Table 2).", "A model (see Table S3 for details).", "A model (table 2).", "A model (Fig. 3).", "A model (Figure 2a).", "A model (Supplementary Note).", "A model (Section 3.1).", "A model (Introduction).", "A model (Appendix B).", "A model (Tables 2 and 3).", "A model (Fig 3).", "A model (Tablet 2).", "A model (see (Table 2)).", "A model (a (b) Table 2).", "A model Table 2.", "(Table\n2)", "(Supplementary\u00a0S1)", "(Figure S12, right)", "(xTable 2)", "(Table S)", "(TABLE 2)", "(Section)", "(SectionS1)",
   "A model (Smith et al. 2020).", "A model (Smith et al 2020).", "A model (et al)", "A model (Smith ET AL.)", "A model Smith et al. 2020", "(Smith et alia)", "(et al.)", "(Smith et al., 2020; Jones et al., 2021)", "(Smith (2020) et al.)", "(setal)", "(x et\nal.)",
-  "", " ", " ",
+  "", " ", "\u00a0",
 ];
 
 // ---------------------------------------------------------------------------------------
@@ -794,16 +806,16 @@ export const descriptionTexts = [
 
 export const uncertaintyValues = [
   null, "", "x", 5, true, [], ["x"],
-  "95% CI 0.1-0.2", "95% CI 10%–20%", "95% CI 0.1-0.2 from 1,000 bootstrap replicates", "95% CI 0.1 - 0.2", "95% CI .1-.2", "95% CI 1.2.3-4", "95% ci 0.1-0.2", " 95% CI 0.1-0.2", "95% CI 0.1-0.2\n12 bootstrap replicates", "95% CI 1-2; 1,2,,3 bootstrap replicates",
-  "± 0.05", "±0.05 standard deviation", "±  0.05 over seeds ", "± 0.05standard deviation over 3 seeds", "±", "± x", "±0.05\nacross runs", "± 1.2.3",
-  {}, { status: "unreported" }, { status: "unreported", note: "n" }, { status: "unreported", note: 5 }, { type: "unreported" }, { type: "unreported", value: 1 }, { type: "unreported", reported_spread: "x" }, { type: "unreported", printed_spread: "±1" }, { type: "unreported", note: "n", printed: "p" },
+  "95% CI 0.1-0.2", "95% CI 10%\u201320%", "95% CI 0.1-0.2 from 1,000 bootstrap replicates", "95% CI 0.1 - 0.2", "95% CI .1-.2", "95% CI 1.2.3-4", "95% ci 0.1-0.2", " 95% CI 0.1-0.2", "95% CI 0.1-0.2\n12 bootstrap replicates", "95% CI 1-2; 1,2,,3 bootstrap replicates",
+  "\u00b1 0.05", "\u00b10.05 standard deviation", "\u00b1  0.05 over seeds ", "\u00b1 0.05standard deviation over 3 seeds", "\u00b1", "\u00b1 x", "\u00b10.05\nacross runs", "\u00b1 1.2.3",
+  {}, { status: "unreported" }, { status: "unreported", note: "n" }, { status: "unreported", note: 5 }, { type: "unreported" }, { type: "unreported", value: 1 }, { type: "unreported", reported_spread: "x" }, { type: "unreported", printed_spread: "\u00b11" }, { type: "unreported", note: "n", printed: "p" },
   { type: "standard_deviation", value: "0.1" }, { type: "standard_deviation", value: 0.1 }, { type: "standard_deviation", value: " 0.1 " }, { type: "standard_deviation", value: "abc" }, { type: "standard_deviation" },
   { type: "standard_deviation", reported_spread: 1e21 }, { type: "standard_deviation", printed_value: "0.3", note: "n" }, { kind: "standard_deviation", value: 1e-7 },
   { type: "bootstrap_summary", printed_sd: 0.1, printed_mean: "0.5" }, { type: "bootstrap_summary_standard_deviation", printed_sd: "x" },
   { type: "standard_error", value: 2 }, { type: "propagated_standard_error", reported_spread: "0.2" }, { type: "standard_error_of_the_mean", printed_value: 3, n: 5, scope: "s", unit: "percent", source_column: "c" },
   { type: "confidence_interval", lower: 1, upper: 2 }, { type: "confidence interval", low: "1", high: "2", level: "95%" }, { type: "confidence-interval", level: 0.9, reported_half_width: 0.5 }, { type: "bootstrap_confidence_interval", lower: "1", upper: "2", replicates: 100 }, { type: "bootstrap_percentile_confidence_interval", lower: "1", upper: "2", resamples: 100, confidence_level: 0.95 },
   { type: "confidence_interval", level: "x%" }, { type: "confidence_interval", level: "95", lower: "a", upper: "b" }, { type: "confidenceinterval", value: 1 },
-  { type: "range", value: "0.1" }, { type: "range", printed_spread: "±0.1" }, { type: "range", printed_spread: "0.1" }, { type: "range" }, { type: "range", printed: "x" }, { type: "range", printed: 5, printed_spread: "y" },
+  { type: "range", value: "0.1" }, { type: "range", printed_spread: "\u00b10.1" }, { type: "range", printed_spread: "0.1" }, { type: "range" }, { type: "range", printed: "x" }, { type: "range", printed: 5, printed_spread: "y" },
   { type: "reported_plus_minus_type_unresolved", value: "0.1", note: "n" }, { type: "iqr", value: "0.1", note: "n" }, { type: "iqr", value: "0.1" },
   { value: "0.1" }, { type: null, value: "0.1" }, { type: 5, value: "0.1" }, { type: ["standard_deviation"], value: "0.1" }, { type: {}, value: "0.1" },
   { type: "standard_deviation", value: "0.1", n: "5", scope: 5, aggregation: "a", unit: "same_as_metric", source_column: 5 }, { type: "standard_deviation", value: "0.1", scope: "s", aggregation: "a" }, { type: "standard_deviation", value: "0.1", aggregation: "a" },
@@ -863,12 +875,12 @@ export function normalizeCases() {
     one("a result's uncertainty note with an uncertainty that has no note", "result", { source_uncertainty_note: "n", uncertainty: { type: "standard_deviation", value: "0.1" } }),
     one("a result's uncertainty note alone", "result", { source_uncertainty_note: "n" }),
     one("a result's uncertainty note with a reason already", "result", { source_uncertainty_note: "n", missing_metadata: { uncertainty: { reason: "inapplicable", note: "old" } } }),
-    one("a result's uncertainty note that is null", "result", { source_uncertainty_note: null, uncertainty: "± 0.1" }),
+    one("a result's uncertainty note that is null", "result", { source_uncertainty_note: null, uncertainty: "\u00b1 0.1" }),
     one("a result's uncertainty that is null", "result", { uncertainty: null }),
     one("a result's uncertainty that is null with a reason already", "result", { uncertainty: null, missing_metadata: { uncertainty: "inapplicable" } }),
-    one("a result's stated uncertainty beats a stale reason", "result", { uncertainty: "± 0.1", missing_metadata: { uncertainty: "unreported", other: "unreported" } }),
+    one("a result's stated uncertainty beats a stale reason", "result", { uncertainty: "\u00b1 0.1", missing_metadata: { uncertainty: "unreported", other: "unreported" } }),
     one("a result's uncertainty that is a number", "result", { uncertainty: 5, a: 1 }),
-    one("an evaluation's uncertainty is left alone", "evaluation", { uncertainty: "± 0.1" }),
+    one("an evaluation's uncertainty is left alone", "evaluation", { uncertainty: "\u00b1 0.1" }),
     one("coverage as a fraction", "result", { coverage: "5 / 10" }),
     one("coverage as other text", "result", { coverage: "most" }),
     one("coverage with counts as text", "result", { coverage: { scored: "5", eligible: "unreported", note: "n" } }),
@@ -927,7 +939,7 @@ export function normalizeCases() {
 
 export const privateValues = [
   null, 0, "", "email", ["email"], {}, { name: "x" }, { email: null }, { EMAIL: 1 }, { Token_Hash: 1 }, { a: { b: [{ c: { password: 1 } }] } }, [{ id_token: 1 }], { "e-mail": 1 }, { emails: 1 }, { " email": 1 },
-  { İd_token: 1 }, { "PRİVATE_NOTES": 1 }, { private_correspondence: {} }, { owner_uid: 1, a: 1 }, { session_token: 1 }, { access_token: 1 }, { verification_token: 1 }, { contact_email: 1 }, { ok: "x", nested: { ok: ["token", { Token: 1 }] } },
+  { "\u0130d_token": 1 }, { "PR\u0130VATE_NOTES": 1 }, { private_correspondence: {} }, { owner_uid: 1, a: 1 }, { session_token: 1 }, { access_token: 1 }, { verification_token: 1 }, { contact_email: 1 }, { ok: "x", nested: { ok: ["token", { Token: 1 }] } },
 ];
 
 // ---------------------------------------------------------------------------------------
