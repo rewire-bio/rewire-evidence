@@ -678,6 +678,37 @@ export function validatorCases({ records, roles }) {
   // validateRecords stops at the first record in ID order, and at the first rule within it.
   add("two records with faults, the later in ID order listed first", set(result, [A, "printed_value"], ""), set(model, ["source_ids"], ["no-such-record"]));
   add("one record with a private field, a missing source and a dangling link", set(model, [A, "provenance_note"], { token: 1 }), set(model, ["source_ids"], ["no-such-record"]), set(model, ["links"], [{ relation: "family", target_id: "no-such-record" }]));
+
+  // ---- values JavaScript reads in a way that is easy to miss ----
+  // Text has a method named split, so a comparison that is text has a split and no subset.
+  const rowEvaluations = [...new Set(panel1.result_ids.map((id) => linked(id, "evaluation")))];
+  for (const text of ["x", ""])
+    add(`one panel result whose evaluation has the comparison ${JSON.stringify(text)}`, set(rowEvaluation, [A, "comparison"], text));
+  add("panel results whose evaluations all have the comparison \"x\"", ...rowEvaluations.map((id) => set(id, [A, "comparison"], "x")));
+  add("panel results whose comparisons are text, but for one that is a number", ...rowEvaluations.map((id, index) => set(id, [A, "comparison"], index ? "x" : 5)));
+  add("panel results whose comparisons are text, but for one that is a list", ...rowEvaluations.map((id, index) => set(id, [A, "comparison"], index ? "x" : ["x"])));
+  // An aggregation source of the wrong kind is reported, and its DOI is still the one compared.
+  const derivedEvaluation = linked(derived, "evaluation");
+  const inputDoi = at(input).attributes.doi;
+  add("a derivation whose aggregation source is its evaluation, which has the input's DOI", set(derived, [...derivation, "aggregation_source_id"], derivedEvaluation), set(derivedEvaluation, [A, "doi"], inputDoi));
+  add("a derivation whose aggregation source is its evaluation, with the input's DOI, among the result's sources", set(derived, [...derivation, "aggregation_source_id"], derivedEvaluation), set(derivedEvaluation, [A, "doi"], inputDoi), set(derived, ["source_ids"], [...at(derived).source_ids, derivedEvaluation]));
+  add("a derivation whose aggregation source is a model with another DOI", set(derived, [...derivation, "aggregation_source_id"], model), set(model, [A, "doi"], "10.1000/other"));
+  add("a derivation whose aggregation source is a model with an empty DOI", set(derived, [...derivation, "aggregation_source_id"], model), set(model, [A, "doi"], ""));
+  // A script no file system can hold is a script that does not exist.
+  add("a derivation whose script has a name too long for a file", set(derived, [...derivation, "script"], `scripts/${"a".repeat(300)}.py`));
+  add("a derivation whose script has a path too long for a file", set(derived, [...derivation, "script"], `${"scripts/".repeat(900)}a.py`));
+  add("a derivation whose script name holds a null character", set(derived, [...derivation, "script"], "scripts/a\u0000b.py"));
+  add("a derivation whose script name holds half a character", set(derived, [...derivation, "script"], "scripts/a\ud800b.py"));
+  // A port and an address are numbers however many digits write them.
+  for (const [what, url] of [
+    ["a port of 4,400 zeros and 80", `http://example.org:${"0".repeat(4400)}80/`], ["a port of 4,400 ones", `http://example.org:${"1".repeat(4400)}/`],
+    ["an address that ends in 4,400 ones", `http://1.2.3.${"1".repeat(4400)}/`], ["an address that ends in 4,400 zeros and 4", `http://1.2.3.${"0".repeat(4400)}4/`],
+  ])
+    add(`a source whose URL has ${what}`, set(source, [A, "url"], url));
+  // Lowercase follows the Unicode version of the runtime. U+1C89 and U+1C8A came with Unicode 16.
+  add("two descriptions that differ in the case of a letter Unicode 16 added", set(model, ["description"], "Scores a sequence \u1c89."), set(method, ["description"], "Scores a sequence \u1c8a."));
+  add("two descriptions that differ in the form of a sigma", set(model, ["description"], "\u0391\u03a3 scores."), set(method, ["description"], "\u03b1\u03c2 scores."));
+  add("two descriptions with a sigma that is final in one and not in the other", set(model, ["description"], "\u0391\u03a3 scores."), set(method, ["description"], "\u03b1\u03c3 scores."));
   return cases;
 }
 
@@ -798,6 +829,57 @@ export const descriptionTexts = [
   "A model (Table 2).", "A model (see Table S3 for details).", "A model (table 2).", "A model (Fig. 3).", "A model (Figure 2a).", "A model (Supplementary Note).", "A model (Section 3.1).", "A model (Introduction).", "A model (Appendix B).", "A model (Tables 2 and 3).", "A model (Fig 3).", "A model (Tablet 2).", "A model (see (Table 2)).", "A model (a (b) Table 2).", "A model Table 2.", "(Table\n2)", "(Supplementary\u00a0S1)", "(Figure S12, right)", "(xTable 2)", "(Table S)", "(TABLE 2)", "(Section)", "(SectionS1)",
   "A model (Smith et al. 2020).", "A model (Smith et al 2020).", "A model (et al)", "A model (Smith ET AL.)", "A model Smith et al. 2020", "(Smith et alia)", "(et al.)", "(Smith et al., 2020; Jones et al., 2021)", "(Smith (2020) et al.)", "(setal)", "(x et\nal.)",
   "", " ", "\u00a0",
+  // Lowercase as the runtime's Unicode version has it, and the sigma that depends on its neighbours.
+  "\u1c89", "\ua7cb \ua7cc \ua7da \ua7dc", "\ud803\udd50\ud803\udd65", "\u0391\u03a3", "\u0391\u03a3.\u0391", "\u0391\u03a3\u02b0", "\u0391\u03a3\u0301 \u03a3", "\u0130stanbul", "\ud801\udc00 \ud83a\udd00", "\u1e9e \u212a \u2126",
+];
+
+// ---------------------------------------------------------------------------------------
+// Stores for `records -- descriptions`, each as its files. The command reads the lines as
+// they are and asks the record schema nothing, so most of these rows are not records.
+// ---------------------------------------------------------------------------------------
+
+const rowLines = (...rows) => rows.map((row) => `${JSON.stringify(row)}\n`).join("");
+const entity = (id, kind, description, more = {}) => ({ id, kind, name: `Name of ${id}`, description, status: "needs_review", ...more });
+export const descriptionStores = [
+  ["no files", {}],
+  ["nothing to report", { "data/entities/models.jsonl": rowLines(entity("m1", "model", "Predicts the effect of a variant on splicing.")) }],
+  ["problems of several rules in several kinds", {
+    "data/entities/configurations.jsonl": rowLines(entity("c1", "configuration", "source-reported configuration"), entity("c2", "configuration", "Shared text."), entity("c3", "configuration", "Shared text.")),
+    "data/entities/methods.jsonl": rowLines(entity("t1", "method", "Shared  TEXT."), entity("t2", "method", "As run in the paper (Table 2).")),
+    "data/entities/models.jsonl": rowLines(entity("m1", "model", "candidate catalogue entry"), entity("m2", "model", "Shared text."), entity("m3", "model", "  shared text.  ", { name: "name of M2" }), entity("m4", "model", "candidate catalogue entry", { status: "excluded" })),
+    "data/entities/notes.txt": "not a store file\n",
+    "data/entities/pipelines.jsonl": rowLines(entity("p1", "pipeline", "A model (Smith et al. 2020), quoted in the paper.")),
+    "data/entities/services.jsonl": rowLines(entity("s1", "service", "not a new execution")),
+    "data/entities/sources.jsonl": rowLines(entity("x1", "source", "candidate catalogue entry")),
+    "data/evidence/results/0.jsonl": rowLines(entity("r1", "result", "candidate catalogue entry")),
+    "data/evidence/results/1.jsonl": rowLines(entity("m9", "model", "identity as reported")),
+    "data/evidence/results/notes.txt": "not a store file\n",
+    "data/provenance/records/0.jsonl": rowLines(entity("m8", "model", "candidate catalogue entry")),
+  }],
+  ["half a character in a description", { "data/entities/models.jsonl": rowLines(entity("m1", "model", "candidate catalogue entry \ud800"), entity("m2", "model", "\udc00 candidate catalogue entry \ud83e\uddec")) }],
+  ["rows the record schema refuses", {
+    "data/entities/models.jsonl": rowLines(
+      entity("m1", "model", "candidate catalogue entry", { status: "nonsense", extra: 1 }), entity("m2", "model", 5), { id: "m3", kind: "model" }, entity("m4", 5, "candidate catalogue entry"), entity("m5", ["model"], "candidate catalogue entry"),
+      entity("m6", "model", "candidate catalogue entry", { status: 5 }), { id: "m7", kind: "model", description: "candidate catalogue entry" }, entity("m8", "model", "candidate catalogue entry", { name: 5 }), entity("m9", "model", ""), entity("m10", "model", "   "),
+    ),
+  }],
+  ["rows whose IDs are not text", {
+    "data/entities/models.jsonl": rowLines(
+      entity(7, "model", "candidate catalogue entry"), entity("7", "model", "identity as reported"), entity(7.0, "model", "quoted in"), entity(null, "model", "candidate catalogue entry"), entity(true, "model", "candidate catalogue entry"), entity(1, "model", "candidate catalogue entry"),
+      entity(["a", "b"], "model", "candidate catalogue entry"), entity(["a", "b"], "model", "candidate catalogue entry"), entity({ a: 1 }, "model", "candidate catalogue entry"), entity([], "model", "candidate catalogue entry"), entity(1.5e21, "model", "candidate catalogue entry"), entity("a\tb\nc", "model", "candidate catalogue entry"),
+      { kind: "model", name: "No ID", description: "candidate catalogue entry" },
+    ),
+  }],
+  ["a shared description on rows whose IDs are not text", { "data/entities/models.jsonl": rowLines(entity(7, "model", "Shared text."), entity([1], "model", "Shared text."), entity({ a: 1 }, "model", "Shared text."), entity("m4", "model", "Shared text."), entity(7, "model", "Shared text.")) }],
+  ["rows that are not objects", { "data/entities/models.jsonl": `5\n[]\n"x"\ntrue\n${rowLines(entity("m1", "model", "candidate catalogue entry"))}` }],
+  ["a row that is null", { "data/entities/models.jsonl": `null\n${rowLines(entity("m1", "model", "candidate catalogue entry"))}` }],
+  ["a line that is not JSON", { "data/entities/models.jsonl": `{\n${rowLines(entity("m1", "model", "candidate catalogue entry"))}` }],
+  ["a shared description on a row with no name", { "data/entities/models.jsonl": rowLines(entity("m1", "model", "Shared text."), { id: "m2", kind: "model", description: "Shared text." }) }],
+  ["a shared description on a row whose name is a number", { "data/entities/models.jsonl": rowLines(entity("m1", "model", "Shared text."), entity("m2", "model", "Shared text.", { name: 5 })) }],
+  ["a shared description on two rows with one ID and no names", { "data/entities/models.jsonl": rowLines({ id: "m1", kind: "model", description: "Shared text." }, { id: "m1", kind: "model", description: "Shared text." }) }],
+  ["a description shared with a configuration, and one of spaces", { "data/entities/configurations.jsonl": rowLines(entity("c1", "configuration", "Shared text.")), "data/entities/models.jsonl": rowLines(entity("m1", "model", "Shared text."), entity("m2", "model", " "), entity("m3", "model", " ")) }],
+  ["a blank line, a line of spaces and no final line break", { "data/entities/models.jsonl": `${rowLines(entity("m1", "model", "candidate catalogue entry"))}\n  \n${JSON.stringify(entity("m2", "model", "quoted in"))}` }],
+  ["more problems than a check would list", { "data/entities/models.jsonl": rowLines(...Array.from({ length: 25 }, (_, index) => entity(`m${index}`, "model", "candidate catalogue entry (this paper)"))) }],
 ];
 
 // ---------------------------------------------------------------------------------------

@@ -20,14 +20,14 @@
 //       What the TypeScript measures on the pinned store: how much each validator looked at,
 //       every comparison panel as the query resolves it, and the refusal of a fault seeded
 //       into the real store for each family of rule. The validation gate holds Python to it.
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import {
-  applyOps, applyValueOps, attributeCases, closed, damage, descriptionTexts, examples, inherited, loadCases,
+  applyOps, applyValueOps, attributeCases, closed, damage, descriptionStores, descriptionTexts, examples, inherited, loadCases,
   normalizeCases, palette, privateValues, selectBase, uncertaintyValues, validatorCases, handwritten,
 } from "./validation_cases.mjs";
 
@@ -370,6 +370,32 @@ const loadRecorded = loadCases.map(([name, ops]) => {
   return { name, files: held, count, error };
 });
 
+// ---------------------------------------------------------------------------------------
+// 6b. `records -- descriptions` as a command, on stores on disk
+// ---------------------------------------------------------------------------------------
+
+// The command itself, run in a folder that holds the store, as `npm run records` runs it.
+// What it wrote is kept as text: Node writes half a character as U+FFFD, so it is all UTF-8.
+// Where it fails it leaves with a stack trace, and the name of the error is what is kept.
+const tsx = path.join(store, "node_modules/.bin/tsx");
+function described$(root, args) {
+  const done = spawnSync(tsx, [path.join(store, "scripts/omics/records.ts"), "descriptions", ...args], {
+    cwd: root,
+    env: { ...process.env, TSX_TSCONFIG_PATH: path.join(store, "tsconfig.json") },
+  });
+  if (done.error) throw done.error;
+  const failure = done.status === 0 ? null : (/\b([A-Za-z]*Error)\b/.exec(done.stderr.toString("utf8"))?.[1] ?? "unnamed");
+  return { status: done.status, stdout: done.stdout.toString("utf8"), sha256: crypto.createHash("sha256").update(done.stdout).digest("hex"), error: failure };
+}
+const commandRecorded = descriptionStores.map(([name, held]) => {
+  const root = scratch(held);
+  const out = { name, files: held, text: described$(root, []), json: described$(root, ["--json"]) };
+  fs.rmSync(root, { recursive: true });
+  return out;
+});
+const quiet = commandRecorded.find((held) => held.name === "nothing to report");
+if (quiet.text.status !== 0 || quiet.json.stdout !== "[]\n") throw new Error(`records -- descriptions did not run: ${JSON.stringify(quiet)}`);
+
 write(
   "tests/fixtures/validation.json",
   {
@@ -406,6 +432,8 @@ write(
     descriptions: descriptionRecorded,
     private: privateRecorded,
     load: loadRecorded,
+    // `records -- descriptions` and `-- descriptions --json` on each store: status and output.
+    descriptions_command: commandRecorded,
   },
   4,
 );

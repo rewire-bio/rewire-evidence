@@ -136,7 +136,12 @@ const numerals = [
   "0x", "0b101", "0B11", "0o17", "0O7", "-0x10", "+0x10", "0x1p3", "1_000", "1,5", " 12 ", "\t12\n", "\u00a012\ufeff", "\u200b12", "1 2", "\u0661\u0662", "\uff11\uff12", "0.1e-7", "00012",
   "9007199254740993", "0x20000000000001", "1e", "e5", ".", "+", "-", "++5", "5e+", "0x" + "f".repeat(300),
 ];
-const cased = ["ABC", "Named Model", "\u0130stanbul", "\u0391\u03a3", "\u0391\u03a3 \u03a3", "\u038c\u03a3\u039f\u03a3", "\u01c5", "\u1e9e", "K", "\u00c5", "\u017f", "\ud801\udc00", "\ud800A"];
+const cased = ["ABC", "Named Model", "\u0130stanbul", "\u0391\u03a3", "\u0391\u03a3 \u03a3", "\u038c\u03a3\u039f\u03a3", "\u01c5", "\u1e9e", "K", "\u00c5", "\u017f", "\ud801\udc00", "\ud800A",
+  // A capital sigma is written as a final sigma after a cased letter and before none, and
+  // characters such as a full stop, an accent or a soft hyphen are passed over on both sides.
+  "\u03a3", "\u03a3\u0391", "\u0391\u03a3\u0391", "\u0391\u03a3.", "\u0391\u03a3.\u0391", "\u0391.\u03a3", "\u0391\u0301\u03a3", "\u0391\u03a3\u0301", "\u0391\u03a3\u0301\u0391", "\u0391\u03a3\u00ad\u0391",
+  "\u0391\u03a3'\u0392", "\u0391\u03a3:\u0392", "\u0391\u03a3 \u0392", "a\u03a31", "1\u03a3", "1\u03a3a", "\u0391\u03a3\u02b0", "\u02b0\u03a3", "\ud835\udc00\u03a3", "\u03a3\u03a3", "\u03a3\u03a3\u03a3", "\u0391\u03a3\u03a3", "\u0391\ud800\u03a3", "\u0130\u03a3", "\u0130", "I\u0307", "\u00df", "\u212a", "\u2126", "\u01c4\u01c5\u01c6", "\u2160", "\u24b6", "\ud83a\udd00",
+];
 const sliced = [["2026-11-18T00:00:00Z", 10], ["2026", 10], ["", 10], ["\ud83e\uddec2026-11-18", 10], ["123456789\ud83e\uddec", 10], ["\ud800123456789", 10]];
 const equal = [
   ["1", "1.0"], ["1", "1"], ["0", "-0"], ["1", "true"], ["0", "false"], ["0", '""'], ["null", "null"], ["null", "0"], ['"a"', '"a"'], ['"a"', '"A"'],
@@ -217,12 +222,31 @@ for (let i = 0; i < 1500; i += 1) {
   const user = urlNext() < 0.12 ? urlPick(["u@", "u:p@", "@", ":@", "u@v@"]) : "";
   urls.push(urlPick(urlEdges) + urlPick(urlSchemes) + urlPick(urlSeparators) + user + host + urlPick(urlPorts) + urlPick(urlTails) + urlPick(urlEdges));
 }
+// A port and an IPv4 number are numbers however many digits write them, and Python refuses to
+// read an integer of more than 4,300 digits.
+const long = 4400;
+for (const text of [
+  `http://a:${"0".repeat(long)}80/`, `http://a:${"0".repeat(long)}65535`, `http://a:${"0".repeat(long)}65536`, `http://a:${"1".repeat(long)}`, `http://a:${"0".repeat(long)}`, `foo://a:${"0".repeat(long)}80`, `foo://a:${"9".repeat(long)}`, `http://[::1]:${"0".repeat(long)}1`,
+  `http://1.2.3.${"1".repeat(long)}`, `http://${"1".repeat(long)}`, `http://${"0".repeat(long)}1`, `http://${"0".repeat(long)}9`, `http://0${"7".repeat(long)}`, `http://0x${"f".repeat(long)}`, `http://0x${"0".repeat(long)}f`, `http://a.${"1".repeat(long)}`, `http://${"1".repeat(long)}.a`,
+  `http://1.2.3.${"0".repeat(long)}4`, `http://${"9".repeat(long)}.2.3.4`, `file://${"1".repeat(long)}/a`,
+])
+  urls.push(text);
 const protocolOf = (text) => {
   try {
     return new URL(text).protocol;
   } catch {
     return null;
   }
+};
+
+// A panel compares `comparison?.[field] ?? null` across its results, written by JSON.stringify.
+// A value that is not an object still has members: text has a method named split.
+const comparedFields = ["split", "subset", "population", "aggregation"];
+const comparedValues = ['"x"', '""', '"split"', "5", "0", "true", "false", "null", "[]", '["x"]', "{}", '{"split":"x"}', '{"split":null}', '{"subset":0}', '{"population":["x"]}', '{"aggregation":{"a":1}}'];
+const compared = (text, field) => {
+  const written = JSON.stringify(JSON.parse(text)?.[field] ?? null);
+  // undefined is what JSON.stringify answers for a function, and JSON has no word for it.
+  return written === undefined ? { undefined: true } : written;
 };
 
 const semantics = {
@@ -246,6 +270,7 @@ const semantics = {
   strictly_equal: equal.map(([left, right]) => [left, right, JSON.parse(left) === JSON.parse(right)]),
   locale_order: idLists.map((list) => [list, [...list].sort((a, b) => a.localeCompare(b))]),
   url: urls.map((text) => [text, protocolOf(text), URL.canParse(text.trim())]),
+  compared: comparedValues.map((text) => [text, comparedFields.map((field) => compared(text, field))]),
   url_idna: idnaUrls.map((text) => [text, protocolOf(text)]),
 };
 fs.mkdirSync(path.join(root, "tests/fixtures"), { recursive: true });

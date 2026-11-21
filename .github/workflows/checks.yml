@@ -206,6 +206,10 @@ jobs:
       - name: Record the validators
         working-directory: store
         run: node_modules/.bin/tsx ../scripts/fixtures/record_validation_fixture.mjs
+      # How Node writes text in lowercase, which follows the Unicode version it was built
+      # with. Built-ins only, on the Node the data repository's workflows run.
+      - name: Record the lowercase mapping
+        run: node scripts/fixtures/record_lowercase.mjs
       - name: Keep what was recorded
         if: always()
         uses: actions/upload-artifact@v4
@@ -219,6 +223,7 @@ jobs:
             scripts/expected/store-schema.json
             scripts/expected/store-validation.json
             src/rewire_evidence/data/attribute-registry.json
+            src/rewire_evidence/data/lowercase.json
           if-no-files-found: ignore
       - name: Fixtures are what the TypeScript produces
         run: |
