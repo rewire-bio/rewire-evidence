@@ -23,7 +23,7 @@ from collections.abc import Iterable, Iterator, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
-from rewire_evidence.canonical import JsonObject, js_stringify, sha256_hex, shard_of, utf16_key
+from rewire_evidence.canonical import JsonObject, js_stringify, js_written, sha256_hex, shard_of, utf16_key
 from rewire_evidence.jsonl import (
     StoreError,
     join_lines,
@@ -314,7 +314,7 @@ class RecordCheck:
         row = self.provenance.get(record_id)
         if row is None:
             raise StoreError(f"{record_id} has no provenance entry in {PROVENANCE_DIR}")
-        if row.get("sha256") != sha256_hex(serialise_row(js_stringify, record, f"{where} ({record_id})")):
+        if row.get("sha256") != sha256_hex(serialise_row(js_written, record, f"{where} ({record_id})")):
             raise StoreError(
                 f"{record_id} changed without a provenance entry. Record the change in {PROVENANCE_DIR}."
             )

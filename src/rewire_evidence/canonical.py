@@ -238,11 +238,42 @@ def js_value(value: object) -> JsonValue:
 
 
 def js_stringify(value: JsonInput) -> str:
-    """`JSON.stringify(value)`: insertion order, no whitespace, JavaScript number format."""
+    """`JSON.stringify(value)`: insertion order, no whitespace, JavaScript number format.
+
+    This is the form a store file is written in. It refuses a number beyond every double,
+    which JavaScript would write as `null`, so that a writer stops and does not store one.
+    """
     return _stringify(value)
 
 
-def _stringify(value: object) -> str:
+def js_written(value: JsonInput) -> str:
+    """`JSON.stringify(value)` to the letter: `null` for a number beyond every double.
+
+    For reading and never for writing a store file. `JSON.parse` reads `1e400` as infinity
+    and `JSON.stringify` writes infinity as `null`, so the digest the TypeScript holds for
+    such a record, and the text it compares two such values by, say `null`. A reader that
+    is to agree with it has to take the digest and make the comparison over the same text.
+    """
+    return _stringify(value, beyond_as_null=True)
+
+
+def js_indented(value: JsonInput, gap: str = "  ", margin: str = "") -> str:
+    """`JSON.stringify(value, null, 2)`: a member or an item to a line, `null` for infinity.
+
+    An empty list is `[]` and an empty object `{}`, on one line, where Python's `json`
+    would agree, and a number is written as JavaScript writes it, where it would not.
+    """
+    inner = margin + gap
+    if isinstance(value, Mapping):
+        members = [f"{inner}{js_quote(k)}: {js_indented(value[k], gap, inner)}" for k in js_key_order(value)]
+        return "{\n" + ",\n".join(members) + f"\n{margin}}}" if members else "{}"
+    if isinstance(value, (list, tuple)):
+        items = [f"{inner}{js_indented(item, gap, inner)}" for item in value]
+        return "[\n" + ",\n".join(items) + f"\n{margin}]" if items else "[]"
+    return _stringify(value, beyond_as_null=True)
+
+
+def _stringify(value: object, *, beyond_as_null: bool = False) -> str:
     """The work of `js_stringify`, on a value whose type is checked here and not assumed."""
     if value is True:
         return "true"
@@ -255,11 +286,15 @@ def _stringify(value: object) -> str:
     if isinstance(value, int):  # bool is handled above.
         return _js_integer(value)
     if isinstance(value, float):
-        return js_number(value)
+        return "null" if beyond_as_null and math.isinf(value) else js_number(value)
     if isinstance(value, Mapping):
-        return "{" + ",".join(f"{js_quote(k)}:{_stringify(value[k])}" for k in js_key_order(value)) + "}"
+        members = (
+            f"{js_quote(k)}:{_stringify(value[k], beyond_as_null=beyond_as_null)}"
+            for k in js_key_order(value)
+        )
+        return "{" + ",".join(members) + "}"
     if isinstance(value, (list, tuple)):
-        return "[" + ",".join(_stringify(item) for item in value) + "]"
+        return "[" + ",".join(_stringify(item, beyond_as_null=beyond_as_null) for item in value) + "]"
     raise TypeError(f"{type(value).__name__} has no JSON.stringify form")
 
 

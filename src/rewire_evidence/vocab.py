@@ -33,7 +33,7 @@ from rewire_evidence.canonical import (
     js_parse,
     js_quote,
     js_string,
-    js_stringify,
+    js_written,
     utf16_key,
 )
 from rewire_evidence.jsonl import text_field
@@ -435,17 +435,6 @@ def controlled_values(mapping: ControlledFields, row: Mapping[str, JsonValue]) -
     return found
 
 
-def _without_infinity(value: JsonValue) -> JsonValue:
-    """The value with null where it holds a number beyond every double, as JavaScript prints it."""
-    if isinstance(value, float) and value in (float("inf"), float("-inf")):
-        return None
-    if isinstance(value, list):
-        return [_without_infinity(item) for item in value]
-    if isinstance(value, dict):
-        return {key: _without_infinity(held) for key, held in value.items()}
-    return value
-
-
 def vocabulary_problems(
     mapping: ControlledFields, rows: Iterable[Mapping[str, JsonValue]], schemes: Mapping[str, Scheme]
 ) -> list[str]:
@@ -469,7 +458,7 @@ def vocabulary_problems(
                     raise VocabularyError(f"the scheme of {found.field} has no name: {error}") from error
                 problems.append(f'{found.field} uses scheme "{name}", which has no {VOCAB_DIR}/{name}.ttl')
             elif not isinstance(found.value, str) or found.value not in scheme.concepts:
-                shown = js_stringify(_without_infinity(found.value))
+                shown = js_written(found.value)
                 record_id = text_field(row, "id", "a record")
                 problems.append(
                     f"{record_id}: {found.field} {shown} is not a concept in the {found.scheme} vocabulary"

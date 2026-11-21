@@ -9,7 +9,9 @@ seeded and every validator has to do the same. The validator that refuses first 
 
 from __future__ import annotations
 
+import contextlib
 import copy
+import math
 from collections import Counter
 from collections.abc import Callable, Sequence
 from pathlib import Path
@@ -26,8 +28,8 @@ from rewire_evidence.canonical import JsonObject, JsonValue, js_value
 from rewire_evidence.derivations import derivation_issues
 from rewire_evidence.descriptions import DESCRIPTION_RULES, description_problems, normalise_description
 from rewire_evidence.jsonl import StoreError
-from rewire_evidence.panels import Query, Resolved, current_records, panels_of, resolve_panels
-from rewire_evidence.schema import Record, RecordError, parse_record
+from rewire_evidence.panels import Query, Resolved, compared, current_records, panels_of, resolve_panels
+from rewire_evidence.schema import Record, RecordError, SchemaError, parse_record
 from rewire_evidence.validation import (
     by_id_order,
     check_record_rules,
@@ -38,8 +40,10 @@ from rewire_evidence.validation import (
 from rewire_evidence.vocab import validate_vocabularies
 from rewire_evidence.weburl import UndecidedHost
 from tests.recorded import (
+    BASE_FILES,
     BASE_ROWS,
     ROLES,
+    SEMANTICS,
     VALIDATION,
     mapping,
     named,
@@ -323,6 +327,37 @@ def test_a_derivation_script_is_read_below_the_root_whatever_its_path(scripts: P
         derivation_issues(records_of(folder), scripts)
 
 
+def test_a_derivation_script_is_named_on_disk_as_node_names_it(tmp_path: Path) -> None:
+    # Node names a file in UTF-8 with U+FFFD for half a character, so that is the file it reads.
+    derived = ROLES["derived"]
+    held = row_of(derived)["attributes"]["derivation"]["script"]
+    write_scripts(tmp_path, {"scripts/a\ufffdb.py": BASE_FILES[held]})
+    halved = apply_ops(
+        BASE_ROWS, [["set", derived, ["attributes", "derivation", "script"], "scripts/a\ud800b.py"]]
+    )
+    assert derivation_issues(records_of(halved), tmp_path) == []
+    # A name no file system can hold is a file that does not exist, and not an error.
+    for name in ("scripts/" + "a" * 300 + ".py", "scripts/" * 900 + "a.py", "scripts/a\x00b.py"):
+        unheld = apply_ops(BASE_ROWS, [["set", derived, ["attributes", "derivation", "script"], name]])
+        assert derivation_issues(records_of(unheld), tmp_path) == [
+            f"result {derived}: derivation script {name} does not exist"
+        ]
+
+
+@pytest.mark.parametrize(("text", "written"), SEMANTICS["compared"])
+def test_a_comparison_is_read_for_a_panel_as_javascript_reads_it(text: str, written: list[Any]) -> None:
+    # JSON has no word for undefined, so the recorder wrote an object where JavaScript answered it.
+    recorded = [None if isinstance(held, dict) else held for held in written]
+    assert [
+        compared(value_of(text), field) for field in ("split", "subset", "population", "aggregation")
+    ] == recorded
+
+
+def test_a_comparison_beyond_every_double_is_compared_as_the_null_javascript_writes() -> None:
+    assert compared(value_of('{"subset":1e400}'), "subset") == "null"
+    assert compared(value_of('{"subset":[1e400,{"a":-1e400}]}'), "subset") == '[null,{"a":null}]'
+
+
 # ---- validateRecords, where the corpus is not the whole story --------------------------
 
 
@@ -439,3 +474,40 @@ def test_what_a_record_rolls_up_to_follows_checked_links_upwards_only() -> None:
     # A model's links are not followed: no assessment record can be reached through one.
     assert query.ancestors(ROLES["described"]) == {ROLES["described"]}
     assert query.ancestors("no-such-record") == {"no-such-record"}
+
+
+def _positions(value: object, at: tuple[JsonValue, ...]) -> list[tuple[JsonValue, ...]]:
+    below: list[tuple[JsonValue, ...]] = [at]
+    if isinstance(value, dict):
+        for key, held in value.items():
+            below.extend(_positions(held, (*at, key)))
+    elif isinstance(value, list):
+        for index, held in enumerate(value):
+            below.extend(_positions(held, (*at, index)))
+    return below
+
+
+#: Every place in the attributes of every record of the base store, by record and path.
+POSITIONS = [
+    (row["id"], list(path))
+    for row in BASE_ROWS
+    for path in _positions(row["attributes"], ("attributes",))
+    if len(path) > 1
+]
+
+
+@given(st.sampled_from(POSITIONS))
+def test_a_number_beyond_every_double_is_refused_or_accepted_and_never_stops_a_validator(
+    scripts: Path, position: tuple[str, list[JsonValue]]
+) -> None:
+    # JSON.parse reads 1e400 as infinity, wherever it stands, and each validator then either
+    # refuses the record or does not. None of them may fail on being unable to write it.
+    record_id, path = position
+    rows = apply_ops(BASE_ROWS, [["set", record_id, path, math.inf]])
+    try:
+        records = records_of(rows)
+    except SchemaError:
+        return
+    for runner in stage_runners(scripts).values():
+        with contextlib.suppress(RecordError, SchemaError):
+            runner(records)

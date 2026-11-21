@@ -663,11 +663,10 @@ def test_a_record_that_cannot_be_hashed_is_named(tmp_path: Path) -> None:
     write_text(models, models.read_text("utf-8").replace("0.00001", "1e400"))
     report = verify_records(tmp_path)
     assert report.matched == 4
+    # The record is read as the TypeScript reads it: its digest is taken over the null that
+    # JSON.stringify writes for the number, which is not the digest its provenance row holds.
     assert report.problems == [
-        (
-            f"{models}:1 (model-a) cannot be written: JSON.stringify writes null for inf; "
-            "it is not a number a record may hold"
-        )
+        "model-a changed without a provenance entry. Record the change in data/provenance/records."
     ]
     family = verify_family(FAMILIES[0], tmp_path)
     assert family.problems == [

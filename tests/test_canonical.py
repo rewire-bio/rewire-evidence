@@ -26,6 +26,7 @@ from rewire_evidence.canonical import (
     JsonValue,
     canonical_json,
     canonical_line,
+    js_indented,
     js_key_order,
     js_number,
     js_parse,
@@ -34,6 +35,7 @@ from rewire_evidence.canonical import (
     js_stringify,
     js_utf8,
     js_value,
+    js_written,
     object_shard,
     record_sha256,
     sha256_hex,
@@ -100,6 +102,9 @@ def test_a_number_beyond_any_double_reads_as_infinity_and_is_not_written(literal
     assert math.isinf(number)
     with pytest.raises(ValueError, match=r"JSON\.stringify writes null for"):
         js_stringify(value)
+    # A reader takes a digest and makes a comparison over what JavaScript would have written.
+    assert js_written(value) == expected
+    assert js_indented(value).replace("\n", "").replace(" ", "") == expected
 
 
 @pytest.mark.parametrize(("text", "expected"), SEMANTICS["sha256_of_text"])
@@ -423,3 +428,28 @@ def test_two_spellings_of_one_value_are_equal_once_held(value: JsonValue) -> Non
     other = respelt(value)
     assert js_stringify(other) == js_stringify(value)
     assert js_value(other) == js_value(value)
+
+
+plain_values: st.SearchStrategy[JsonValue] = st.recursive(
+    st.none() | st.booleans() | st.integers(-(10**6), 10**6) | st.text(alphabet="abc xyz", max_size=5),
+    lambda inner: (
+        st.lists(inner, max_size=3)
+        | st.dictionaries(st.text(alphabet="abcxyz", min_size=1, max_size=4), inner, max_size=3)
+    ),
+    max_leaves=10,
+)
+
+
+@given(plain_values)
+def test_indented_json_is_laid_out_as_python_lays_it_out_where_the_two_agree_on_every_value(
+    value: JsonValue,
+) -> None:
+    # Whole numbers, plain text and keys that are not numbers are written alike by both, so
+    # what is left to compare is the layout: the gap, the line breaks and the empty forms.
+    assert js_indented(value) == json.dumps(value, indent=2)
+
+
+@given(json_values)
+def test_what_a_reader_takes_is_what_a_writer_writes_for_a_value_it_can_write(value: JsonValue) -> None:
+    assert js_written(value) == js_stringify(value)
+    assert js_parse(js_indented(value)) == js_parse(js_stringify(value))
