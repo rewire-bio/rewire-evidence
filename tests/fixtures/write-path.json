@@ -4,7 +4,7 @@
   "cases": "scripts/fixtures/write_cases.mjs",
   "store_ref": "91f76cf8e61cba9d6037a01a19c9aa3051184900",
   "zod": "4.6.5",
-  "node": "v24"
+  "node": "v24.22.3"
  },
  "clock": "2026-02-04T04:30:00.000Z",
  "date": "2026-02-04",

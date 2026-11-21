@@ -65,7 +65,7 @@ const recordedFrom = {
   cases: "scripts/fixtures/validation_cases.mjs",
   store_ref: execFileSync("git", ["rev-parse", "HEAD"], { cwd: store, encoding: "utf8" }).trim(),
   zod: version("zod"),
-  node: process.version.split(".")[0],
+  node: process.version,
 };
 
 // One member or item per line down to `levels`, and one line each below that, so a file of

@@ -1,12 +1,13 @@
 """The gates as commands: arguments in, a report printed, an exit status out.
 
 `scripts/verify_store_digests.py`, `scripts/verify_store_layout.py`,
-`scripts/verify_store_schema.py`, `scripts/verify_store_validation.py` and
-`scripts/verify_store_writes.py` each call one function here and do nothing else, so
+`scripts/verify_store_schema.py`, `scripts/verify_store_validation.py`,
+`scripts/verify_store_writes.py` and `scripts/verify_store_locators.py` each call one
+function here and do nothing else, so
 everything a gate does is inside the library, where the tests and the coverage floor reach
 it.
 
-Exit status, for all five: 0 when everything reproduces, 1 on any disagreement, 2 when the run
+Exit status, for all six: 0 when everything reproduces, 1 on any disagreement, 2 when the run
 could not be made. A disagreement never exits 2, and a run that could not be made never
 exits 1, so CI can tell a store that has drifted from a job that was set up wrongly.
 
@@ -24,7 +25,7 @@ import tempfile
 from collections.abc import Callable, Sequence
 from pathlib import Path
 
-from rewire_evidence import agreement, conformance, replay
+from rewire_evidence import agreement, conformance, locators, replay
 from rewire_evidence.jsonl import StoreError
 from rewire_evidence.parity import (
     compare_content,
@@ -259,5 +260,45 @@ def _writes(root: Path, expected: Sequence[Path], report_file: Path | None, scra
     sys.stdout.write(
         f"\nAll {len(report.cases)} writes reproduce: {report.total('added'):,} records added "
         f"and {report.total('changed'):,} changes recorded, {report.total('files'):,} files byte for byte.\n"
+    )
+    return 0
+
+
+def locators_gate(arguments: Sequence[str], expected: Path, description: str | None = None) -> int:
+    """Run the locator gate and print what it found. Returns the status.
+
+    `expected` is what the TypeScript recorded of the pinned store, used when the command
+    line names no other. The lines it recorded are in the file that names, beside it.
+    """
+    parser = _parser(description)
+    parser.add_argument("--expected", type=Path, default=expected, help="what the TypeScript recorded")
+    parser.add_argument("--json", type=Path, default=None, help="write what was measured here")
+    args = parser.parse_args(arguments)
+    return _run(lambda: _locators(args.root, args.expected, args.json))
+
+
+def _locators(root: Path, expected: Path, report_file: Path | None) -> int:
+    recorded = conformance.read_recorded(expected)
+    store_ref = conformance.recorded_ref(recorded)
+    dump = locators.read_dump(expected, recorded)
+    sys.stdout.write(f"expecting every locator as the TypeScript read it at {store_ref}\n")
+    report = locators.verify_locators(root, recorded, dump)
+    sys.stdout.write(f"{locators.summary(report)}\n")
+    _write_report(report_file, locators.to_json(report, recorded))
+
+    for problem in report.problems[:PROBLEMS_SHOWN]:
+        sys.stderr.write(f"  {problem}\n")
+    if report.problems:
+        sys.stderr.write(
+            f"\n{len(report.problems):,} problems. "
+            f"{report.reproduced:,} of {report.read:,} locators are read as the TypeScript reads them.\n"
+        )
+        return 1
+    if not report.read:
+        sys.stderr.write("Cannot verify: the result files hold no locators\n")
+        return 2
+    sys.stdout.write(
+        f"\nAll {report.read:,} locators are read as the TypeScript reads them, "
+        "and the coverage report is the committed one byte for byte.\n"
     )
     return 0

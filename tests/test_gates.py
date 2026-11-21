@@ -10,10 +10,12 @@ from pathlib import Path
 import pytest
 
 from rewire_evidence.families import manifest_shard_path
-from rewire_evidence.gates import digests_gate, layout_gate, writes_gate
+from rewire_evidence.gates import digests_gate, layout_gate, locators_gate, writes_gate
 from rewire_evidence.jsonl import write_text
 from rewire_evidence.parity import verify_store
 from tests.history import build as build_history
+from tests.test_locators import RESULTS, recorded_of
+from tests.test_locators import build as build_located
 from tests.test_parity import RELEASE, build
 
 SCRIPTS = Path(__file__).parent.parent / "scripts"
@@ -267,3 +269,60 @@ def test_the_write_gate_is_a_script(tmp_path: Path) -> None:
     # With no --expected the script replays the data repository's own history, which this is not.
     assert run_script("verify_store_writes.py", str(history.repository)).returncode == 2
     assert "usage:" in run_script("verify_store_writes.py", "--help").stdout
+
+
+def test_the_locator_gate_passes_the_store_it_was_recorded_on_and_fails_another(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = build_located(tmp_path / "store")
+    recorded_of(root, tmp_path / "expected")
+    expected = tmp_path / "expected" / "expected.json"
+    measured = tmp_path / "measured.json"
+    assert locators_gate([str(root), "--json", str(measured)], expected) == 0
+    out = capsys.readouterr()
+    assert out.err == ""
+    assert out.out.startswith(
+        "expecting every locator as the TypeScript read it at abc123\nlocators read: 5\n"
+    )
+    assert out.out.endswith(
+        "\nAll 5 locators are read as the TypeScript reads them, "
+        "and the coverage report is the committed one byte for byte.\n"
+    )
+    report = json.loads(measured.read_text("utf-8"))
+    assert (report["locators_read"], report["locators_reproduced"], report["problems"]) == (5, 5, [])
+
+    thinner = build_located(tmp_path / "thinner", RESULTS[:3])
+    assert locators_gate([str(thinner), "--expected", str(expected), "--json", str(measured)], expected) == 1
+    err = capsys.readouterr().err
+    assert "  the store holds 3 locators and the TypeScript recorded 5\n" in err
+    assert err.endswith(" problems. 3 of 3 locators are read as the TypeScript reads them.\n")
+    assert json.loads(measured.read_text("utf-8"))["locators_reproduced"] == 3
+
+
+def test_the_locator_gate_cannot_be_run_on_nothing(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = build_located(tmp_path / "store", [])
+    recorded_of(root, tmp_path / "expected")
+    expected = tmp_path / "expected" / "expected.json"
+    assert locators_gate([str(root)], expected) == 2
+    assert capsys.readouterr().err == "Cannot verify: the result files hold no locators\n"
+    assert locators_gate([str(tmp_path / "nowhere")], expected) == 2
+    assert capsys.readouterr().err.startswith("Cannot verify: ")
+    assert locators_gate([str(root)], tmp_path / "missing.json") == 2
+    (tmp_path / "expected" / "lines.jsonl.gz").write_bytes(b"not gzip")
+    assert locators_gate([str(root)], expected) == 2
+    assert "lines.jsonl.gz cannot be read" in capsys.readouterr().err
+
+
+def test_the_locator_script_is_the_gate(tmp_path: Path) -> None:
+    root = build_located(tmp_path / "store")
+    recorded_of(root, tmp_path / "expected")
+    passed = run_script(
+        "verify_store_locators.py", str(root), "--expected", str(tmp_path / "expected" / "expected.json")
+    )
+    assert passed.returncode == 0, passed.stderr
+    assert "All 5 locators are read as the TypeScript reads them" in passed.stdout
+    # With no --expected the script holds the store to the committed recording, which this is not.
+    assert run_script("verify_store_locators.py", str(root)).returncode == 1
+    assert "usage:" in run_script("verify_store_locators.py", "--help").stdout

@@ -55,7 +55,7 @@ function ranges(pattern) {
 
 const lines = (items) => `[\n${items.map((item) => `  ${JSON.stringify(item)}`).join(",\n")}\n ]`;
 const body = [
-  ` "recorded_from": ${JSON.stringify({ script: "scripts/fixtures/record_lowercase.mjs", node: process.version.split(".")[0], unicode: process.versions.unicode })}`,
+  ` "recorded_from": ${JSON.stringify({ script: "scripts/fixtures/record_lowercase.mjs", node: process.version, unicode: process.versions.unicode })}`,
   ` "lower": ${lines(lower)}`,
   ` "cased": ${lines(ranges(/\p{Cased}/u))}`,
   ` "case_ignorable": ${lines(ranges(/\p{Case_Ignorable}/u))}`,
