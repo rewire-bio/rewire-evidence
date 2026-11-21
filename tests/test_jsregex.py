@@ -36,7 +36,21 @@ def named(pairs: list[tuple[dict[str, Any], dict[str, Any]]]) -> list[Any]:
     ]
 
 
-MATCHES = named(PAIRS)
+def inside_a_character(source: str, flags: str, text: str) -> bool:
+    """Whether V8 may find a match between the two units of a character, which is refused."""
+    return "u" in flags and JsPattern(source, flags).least == 0 and len(paired(text)) < len(text)
+
+
+def split(*, refused: bool) -> list[tuple[dict[str, Any], dict[str, Any]]]:
+    return [
+        (held, case)
+        for held, case in PAIRS
+        if inside_a_character(held["source"], held["flags"], unit_text(case["text"])) is refused
+    ]
+
+
+MATCHES = named(split(refused=False))
+REFUSED_INSIDE = named(split(refused=True))
 
 
 def every_pattern() -> list[tuple[str, str]]:
@@ -67,7 +81,41 @@ def test_a_pattern_matches_what_node_matches(held: dict[str, Any], case: dict[st
         assert text[found.index : found.index + len(found.text)] == found.text
 
 
-@pytest.mark.parametrize(("held", "case"), named([pair for pair in PAIRS if "replaced" in pair[1]]))
+@pytest.mark.parametrize(("held", "case"), REFUSED_INSIDE)
+def test_a_match_of_nothing_is_not_looked_for_where_v8_looks_inside_a_character(
+    held: dict[str, Any], case: dict[str, Any]
+) -> None:
+    text = unit_text(case["text"])
+    pattern = JsPattern(held["source"], held["flags"])
+    for run in (pattern.exec, pattern.test, lambda text: pattern.replace(text, "-")):
+        with pytest.raises(Unsupported, match="inside a character beyond U\\+FFFF"):
+            run(text)
+    # The same pattern runs on the same text with the character taken out.
+    plain = unit_text("".join(character for character in case["text"] if ord(character) <= 0xFFFF))
+    assert pattern.test(plain) is not None
+
+
+def test_node_finds_a_match_inside_a_character_where_the_specification_has_none() -> None:
+    # The reason for the refusal, as Node 24.22.3 recorded it: the index 2 is between the two
+    # units of U+1D400, which are at 1 and 2. The specification looks at 1 and then at 3.
+    found = {
+        (held["source"], held["flags"], case["text"]): case["found"] for held, case in split(refused=True)
+    }
+    assert found["(?![^,;])", "u", "a\U0001d400"] == {"index": 2, "text": "", "groups": {}}
+    assert re.search("(?![^,;])", "a\U0001d400").start() == 2  # type: ignore[union-attr]
+    assert len(unit_text("a\U0001d400")) == 3
+    assert len(REFUSED_INSIDE) >= 5
+    # A pattern that has to take a character runs on such text, and so does one with no u flag.
+    emoji = unit_text("\U0001f600")
+    assert JsPattern("[^x]$", "u").exec(emoji) == Found(0, emoji, {})
+    assert JsPattern("x*", "g").replace(f"a{emoji}", "-") == f"-a-{emoji[0]}-{emoji[1]}-"
+    # Half a character is one unit, with nothing inside it to find.
+    assert JsPattern("x*", "gu").replace("a\ud83d", "-") == "-a-\ud83d-"
+
+
+@pytest.mark.parametrize(
+    ("held", "case"), named([pair for pair in split(refused=False) if "replaced" in pair[1]])
+)
 def test_a_pattern_replaces_what_node_replaces(held: dict[str, Any], case: dict[str, Any]) -> None:
     replaced = JsPattern(held["source"], held["flags"]).replace(unit_text(case["text"]), held["replacement"])
     assert paired(replaced) == case["replaced"]
@@ -247,10 +295,11 @@ def test_replacing_every_match_steps_over_a_character_after_a_match_of_nothing()
     assert JsPattern("x*", "g").replace("axxb", "-") == "-a--b-"
     # A search part of the way along still sees the start of the text and what came before.
     assert JsPattern("^a|(?<=a)a", "g").replace("aaba", "-") == "--ba"
-    # With the u flag the step is a whole character, and without it one unit.
+    # Without the u flag the step is one unit, which may be half a character.
     emoji = unit_text("\U0001f600")
-    assert JsPattern("[^a]??", "gu").replace(emoji, "-") == f"-{emoji}-"
     assert JsPattern("[^a]??", "g").replace(emoji, "-") == f"-{emoji[0]}-{emoji[1]}-"
+    # With it the step is a whole character.
+    assert JsPattern("[^a]", "gu").replace(f"{emoji}b{emoji}", "-") == "---"
 
 
 def test_the_node_the_fixtures_job_runs_is_the_one_the_sets_were_recorded_with() -> None:
@@ -267,7 +316,7 @@ def test_the_node_the_fixtures_job_runs_is_the_one_the_sets_were_recorded_with()
     assert RECORDED["recorded_from"]["unicode"] == held["recorded_from"]["unicode"] == "17.0"
     # Every action is named by a commit, which a tag is not.
     used = re.findall(r"uses: (\S+)", workflow)
-    assert len(used) >= 11
+    assert len(used) == workflow.count("uses:") == 10
     assert all(re.fullmatch(r"[\w./-]+@[0-9a-f]{40}", action) for action in used)
 
 
@@ -316,6 +365,10 @@ def test_a_match_is_a_piece_of_the_text_and_replacing_it_with_itself_changes_not
 ) -> None:
     text = unit_text(written)
     once = JsPattern(held[0], held[1].replace("g", ""))
+    if inside_a_character(held[0], held[1], text):
+        with pytest.raises(Unsupported):
+            once.exec(text)
+        return
     found = once.exec(text)
     assert once.test(text) is (found is not None)
     if found is None:
@@ -335,6 +388,10 @@ def test_replacing_every_match_writes_once_for_each_and_first_where_the_first_ma
 ) -> None:
     text = unit_text(written)
     every = JsPattern(held[0], held[1] if "g" in held[1] else held[1] + "g")
+    if inside_a_character(held[0], held[1], text):
+        with pytest.raises(Unsupported):
+            every.replace(text, "")
+        return
     found = JsPattern(held[0], held[1].replace("g", "")).exec(text)
     marked = every.replace(text, "\x00")
     if found is None:

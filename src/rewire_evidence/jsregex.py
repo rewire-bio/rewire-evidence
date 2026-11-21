@@ -28,8 +28,16 @@ it and written out again as a Python pattern that says the same thing.
   lazy repeat then takes a character JavaScript would have stepped over. `replace` is
   therefore written here as JavaScript's own loop over `search`, and `re.sub` is not used.
 
+- With the `u` flag the specification looks for a match only where a character starts.
+  V8 also looks between the two units of a character beyond U+FFFF, where nothing that
+  takes a character can match and a match of nothing can: Node 24.22.3 gives
+  `/(?![^,;])/u.exec("a\u{1D400}")` the index 2, and the specification gives 3. What Node
+  does is what this library is held to, and Python cannot stand between the units of a
+  character it holds whole. So a pattern with the `u` flag that can match nothing is refused
+  on text that holds such a character, and runs on any other text.
+
 Every construct the port does not use is refused as well, and `Unsupported` names it. A
-pattern this module accepts means what JavaScript means by it.
+pattern this module accepts, on text it accepts, means what Node means by it.
 
 `tests/fixtures/js-patterns.json` holds what Node matched for a list of patterns and texts,
 written by the same recorder from `scripts/fixtures/pattern_cases.json`.
@@ -370,20 +378,30 @@ class JsPattern:
         """The fewest characters a match can hold."""
         return self._translated[1]
 
-    def _whole_characters(self, text: str) -> bool:
-        """Whether to match on paired characters: the `u` flag, and something to pair."""
-        return "u" in self.flags and _SURROGATE.search(text) is not None
+    def _characters(self, text: str) -> str:
+        """The text to match on: paired into whole characters under the `u` flag, or as it is.
+
+        Raises `Unsupported` for a pattern with the `u` flag that can match nothing, on text
+        with a character beyond U+FFFF: V8 finds such a match inside the character.
+        """
+        if "u" not in self.flags or _SURROGATE.search(text) is None:
+            return text
+        characters = paired(text)
+        if not self.least and len(characters) < len(text):
+            raise Unsupported(
+                f"/{self.source}/{self.flags} can match nothing, and V8 looks for that inside a character "
+                "beyond U+FFFF, which this text has"
+            )
+        return characters
 
     def exec(self, text: str) -> Found | None:
         """`pattern.exec(text)` from the start of the text, which is in units."""
-        pattern = self._translated[0]
-        if not self._whole_characters(text):
-            found = pattern.search(text)
-            return None if found is None else Found(found.start(), found[0], found.groupdict())
-        characters = paired(text)
-        found = pattern.search(characters)
+        characters = self._characters(text)
+        found = self._translated[0].search(characters)
         if found is None:
             return None
+        if characters is text:
+            return Found(found.start(), found[0], found.groupdict())
         groups = {name: None if held is None else unit_text(held) for name, held in found.groupdict().items()}
         return Found(units(characters[: found.start()]), unit_text(found[0]), groups)
 
@@ -397,9 +415,9 @@ class JsPattern:
         The text is in units and the replacement is written as it stands, with nothing in it
         read as a reference to the match.
         """
-        if not self._whole_characters(text):
-            return self._replaced(text, replacement)
-        return unit_text(self._replaced(paired(text), replacement))
+        characters = self._characters(text)
+        replaced = self._replaced(characters, replacement)
+        return replaced if characters is text else unit_text(replaced)
 
     def _replaced(self, text: str, replacement: str) -> str:
         """The loop of `RegExp.prototype[Symbol.replace]`, over text that is one item to a character.
