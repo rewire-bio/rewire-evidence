@@ -56,6 +56,7 @@ jobs:
       - name: Fixtures are what Node produces
         run: |
           node scripts/fixtures/record_js_fixture.mjs
+          node scripts/fixtures/record_argv_fixture.mjs
           git diff --exit-code -- tests/js-fixture.json tests/fixtures
 
       - name: Tests, at 100% line and branch coverage
@@ -219,12 +220,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
-      # What the two expectations amount to: twelve merged pull requests and one recorded
-      # write. A replay that does less fails.
-      WRITE_CASES: "13"
+      # What the two expectations amount to: twelve merged pull requests and three recorded
+      # writes. A replay that does less fails.
+      WRITE_CASES: "15"
       WRITE_RECORDS_ADDED: "2601"
-      WRITE_CHANGES_RECORDED: "1218"
-      WRITE_FILES_COMPARED: "1027"
+      WRITE_CHANGES_RECORDED: "1283"
+      WRITE_FILES_COMPARED: "1185"
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
@@ -237,7 +238,7 @@ jobs:
         run: git clone --quiet --filter=blob:none --no-checkout https://github.com/rewire-bio/rewire-benchmark-data.git history
 
       # Every case is part of the store the other gates are pinned to, and the recorded
-      # write was made on the pinned commit itself.
+      # writes were made on the pinned commit itself.
       - name: The cases are in the history of the pinned commit
         run: |
           for merge in $(jq -r '.cases[].merge' scripts/expected/store-writes.json); do
