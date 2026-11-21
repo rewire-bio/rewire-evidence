@@ -3,10 +3,10 @@
 // TypeScript.
 //
 // The store holds 52,278 locators and not one character beyond U+FFFF, no letter that
-// JavaScript folds onto an ASCII one, no line separator and no segment of more than a few
-// tokens. The gate cannot say anything about those, so they are written here: locators made
-// by hand for each rule of the grammar, and a few thousand put together from parts by a
-// seeded generator, some of them with an awkward character dropped in.
+// JavaScript folds onto an ASCII one and no line separator, and a port that got any of those
+// wrong would still read every one of them as the TypeScript does. So they are written
+// here: locators made by hand for each rule of the grammar, and a few thousand put together
+// from parts by a seeded generator, some of them with an awkward character dropped in.
 
 /** A small seeded generator (mulberry32), so the cases are the same on every run. */
 function seeded(seed) {
