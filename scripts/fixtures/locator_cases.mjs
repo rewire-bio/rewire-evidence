@@ -25,7 +25,7 @@ const anchors = [
   "Supplementary Table 9", "Supplementary Materials Table S3", "Appendix B Table 2", "Appendix Table A2",
   "Extended Data Table 1", "Supplemental Table S2", "Supporting Information Table S1", "table s4",
   "Fig. 3b", "Figure 2", "Figures 4", "Fig 5a", "Extended Data Figure 4", "Supplementary Figure S7",
-  "sheet 'Table S9'", "sheet \"Main results\"", "sheet Data B12", "sheets Results", "sheet ‘Scores’",
+  "sheet 'Table S9'", "sheet \"Main results\"", "sheet Data B12", "sheets Results", "sheet \u2018Scores\u2019",
   "'Suppl Table 3 Track performance'!K8", "Sheet1!B2", "results.csv", "data/metrics.json.gz", "scores.xlsx",
   "leaderboard.json", "path/to/file(1).tsv", "Supplementary Data 2", "Supplementary Dataset", "Zenodo",
   "Additional file 3", "Data file S2", "Source Data", "Online Methods", "Methods", "Results", "Appendix C",
@@ -49,25 +49,25 @@ const selectors = [
   "column group 'y'", "metric block 'AUROC'", "row group: 'ours'", "subtable='B'", "sub-table 'C'",
   "strategy 'fine-tune'", "dataset ProteinGym", "split test", "method=ESM-2 (650M)", "row 'Ridge (one-hot), tuned'",
   "col 'r'", "columns 'a'", "field score", "rows 'x'", "x = y", "a/b=c", "50% 'half'", "identification=T315_P36.M01",
-  "tier 2", "depth 30x", "value block 'x'", "model", "row  'spaced'", "ROW 'UPPER'", "Column ‘curly’",
+  "tier 2", "depth 30x", "value block 'x'", "model", "row  'spaced'", "ROW 'UPPER'", "Column \u2018curly\u2019",
 ];
 const qualifiers = [
   "(page 4)", "page 4", "p. 12", "pp. 3 of 9", "pages 10", "PDF page 4", "(PDF page text)", "text-layer line 12",
   "(text-layer)", "text-layer", "at commit abc1234", "at commit 0123456789abcdef0123456789abcdef01234567",
   "(a note)", "(see the footnote)", "JSON entries[63].score_avg", "JSON results.f1", "(sheet 'Table S9') cell I9",
   "(sheets 'A')", "(XML tbl1)", "XML", "SI", "HTML", "JATS table 2", "source CSV", "source data file",
-  "CSV", "TSV", "PDF caption", "PDF text – page", "(a note that is far too long to be read as a note in brackets)",
+  "CSV", "TSV", "PDF caption", "PDF text \u2013 page", "(a note that is far too long to be read as a note in brackets)",
   "()", "(nested (note))",
 ];
 const noise = [
-  "and the value", "footnote a", "see also", "v2", "unnamed", "±0.3", "→", "the mean of the first row",
+  "and the value", "footnote a", "see also", "v2", "unnamed", "\u00b10.3", "\u2192", "the mean of the first row",
   "as printed", "Header", "bold", "1", "x", "top left", "rounded to two", "n/a", ":", "|", "[1]", "-",
 ];
 const awkward = [
-  " ", "ſ", "K", "İ", "ı", "ͅ", "😀", "\ud83d", "\ude00", " ", " ",
-  "é", "Δ", "‘", "’", "“", "”", "﻿", "\t", "\n", "\r", "𝐀", "ǅ",
-  "ß", "ẞ", "٣", "Ⅳ", "　", "–", "'", "\"", "(", ")", "[", "]", "!", "=", ":", ".",
-  "Ᲊ", "\u0085", "\u001c", "𐐀", "µ", "Σ", "Ａ",
+  "\u00a0", "\u017f", "\u212a", "\u0130", "\u0131", "\u0345", "\ud83d\ude00", "\ud83d", "\ude00", "\u2028", "\u2029",
+  "\u00e9", "\u0394", "\u2018", "\u2019", "\u201c", "\u201d", "\ufeff", "\t", "\n", "\r", "\ud835\udc00", "\u01c5",
+  "\u00df", "\u1e9e", "\u0663", "\u2163", "\u3000", "\u2013", "'", "\"", "(", ")", "[", "]", "!", "=", ":", ".",
+  "\u1c89", "\u0085", "\u001c", "\ud801\udc00", "\u00b5", "\u03a3", "\uff21",
 ];
 const joins = [", ", "; ", " ", ",", ";", ", ", "; ", " ", " - ", ": ", " (", ") ", "\t", " and "];
 
@@ -90,8 +90,8 @@ export const handwritten = [
   "leaderboard.json data.10shot",
   "JSON entries[63].score_avg",
   // A quote opened by a curly mark is closed only by a straight one.
-  "row ‘a, b’, column 'c'",
-  "row ‘a, b', column 'c'",
+  "row \u2018a, b\u2019, column 'c'",
+  "row \u2018a, b', column 'c'",
   "row \"a; b\", column c",
   "row 'it\"s; here', column c",
   // Brackets hold a comma, and a closing one with nothing open does nothing.
@@ -103,44 +103,44 @@ export const handwritten = [
   Array.from({ length: 41 }, (_, at) => `(n${at})`).join(" "),
   Array.from({ length: 45 }, (_, at) => `(n${at})`).join(", "),
   // Counted in units without the u flag and in characters with it.
-  `sentence beginning '😀😀'`,
-  `sentence beginning '😀a'`,
-  `'${"😀".repeat(20)}'`,
-  `'${"😀".repeat(40)}'`,
+  `sentence beginning '\ud83d\ude00\ud83d\ude00'`,
+  `sentence beginning '\ud83d\ude00a'`,
+  `'${"\ud83d\ude00".repeat(20)}'`,
+  `'${"\ud83d\ude00".repeat(40)}'`,
   `'${"a".repeat(39)}'`,
   `'${"a".repeat(40)}'`,
-  `sheet '${"😀".repeat(30)}'`,
-  `sheet '${"😀".repeat(31)}'`,
-  `sheet ${"😀".repeat(31)} B2`,
-  `row ${"😀".repeat(40)}, column x`,
-  `row a${"😀".repeat(40)}, column x`,
-  `(${"😀".repeat(22)})`,
-  `(${"😀".repeat(23)})`,
-  `x=${"😀".repeat(81)}`,
-  `x${"😀".repeat(41)}=y`,
-  `${"😀".repeat(51)}!B2`,
+  `sheet '${"\ud83d\ude00".repeat(30)}'`,
+  `sheet '${"\ud83d\ude00".repeat(31)}'`,
+  `sheet ${"\ud83d\ude00".repeat(31)} B2`,
+  `row ${"\ud83d\ude00".repeat(40)}, column x`,
+  `row a${"\ud83d\ude00".repeat(40)}, column x`,
+  `(${"\ud83d\ude00".repeat(22)})`,
+  `(${"\ud83d\ude00".repeat(23)})`,
+  `x=${"\ud83d\ude00".repeat(81)}`,
+  `x${"\ud83d\ude00".repeat(41)}=y`,
+  `${"\ud83d\ude00".repeat(51)}!B2`,
   // Letters JavaScript folds onto ASCII ones with both flags, and with neither.
-  "JſON entries[1].x",
-  "CſV file",
-  "reſults.cſv",
-  "ſheet 'A'",
-  "Table ſ18",
-  "Key 'x'",
-  "KEY x",
-  "PDFſ",
-  "ſSI",
-  "SIK",
-  "text-layerͅ line 3",
-  "PDF ͅͅ page",
-  "fileͅ.csv",
+  "J\u017fON entries[1].x",
+  "C\u017fV file",
+  "re\u017fults.c\u017fv",
+  "\u017fheet 'A'",
+  "Table \u017f18",
+  "\u212aey 'x'",
+  "\u212aEY x",
+  "PDF\u017f",
+  "\u017fSI",
+  "SI\u212a",
+  "text-layer\u0345 line 3",
+  "PDF \u0345\u0345 page",
+  "file\u0345.csv",
   // White space as JavaScript has it.
-  "Table 3, row　'x',﻿column 'y'",
-  "﻿Table 3﻿",
+  "Table\u00a03,\u2028row\u3000'x',\ufeffcolumn\u00a0'y'",
+  "\ufeffTable 3\ufeff",
   "Table 3\u0085row 'x'",
   "Table 3\u001crow 'x'",
   "Table 3\nrow 'x'\ncolumn 'y'",
   "Table S1, row 'a\nb', column 'c'",
-  "Table S1 x row 'a', column 'c'",
+  "Table S1 x\u2028row 'a', column 'c'",
   // Half a character.
   "Table 3 \ud83d",
   "\ude00 Table 3",
@@ -207,15 +207,15 @@ export function generated(count, seed) {
 export const keys = [
   "row", "rows", "row label", "column", "col", "columns", "sub-column", "sub-col", "key", "field",
   "column group", "model", "", "Row", "column 4", "column 1 of 4", "row 12", "row label 2 of 3",
-  "column  7", "column 4", "column 4 ", " column", "column 1 of", "column of 4", "column 4 of 4 of 4",
-  "col 1 of　4", "column ٤", "row\n3", "tool 2", "column 4\n", "row 😀 1", "key 1",
+  "column  7", "column\u00a04", "column 4 ", " column", "column 1 of", "column of 4", "column 4 of 4 of 4",
+  "col\u00a01\u2028of\u30004", "column \u0664", "row\n3", "tool 2", "column 4\n", "row \ud83d\ude00 1", "key 1",
 ];
 
 /** Words, for carriesNoAddress. */
 export const words = [
   "and", "AND", "the", "value", "v2", "V10", "v", "v2a", "row", "rows", "table", "and the", "andx", "x",
-  "", "five", "six", "ſee", "see", "ſub", "sub", "😀", "and😀", " and", "and ",
-  "K", "under", "Supplementary", "fig",
+  "", "five", "six", "\u017fee", "see", "\u017fub", "sub", "\ud83d\ude00", "and\ud83d\ude00", " and", "and ",
+  "\u212a", "under", "Supplementary", "fig",
 ];
 
 const anchor = (kind, value, raw, container) => ({ kind, value, raw, ...(container === undefined ? {} : { container }) });
@@ -316,7 +316,9 @@ export const tallied = [
     "Table 1 (XML tbl1); row Boltz R; column angle_rmsd; footnote a", "line 12; column x",
     "entries[63].score_avg", "identifier x; column y", "Table A.2, row 'x', column 'y'", "Table 3, column 'y'",
     "Table 3, row x, column y", "sheet 'Data', cell I9", "sheet 'Data', cell I9, row 'x'",
-    "row 😀, column x", "",
+    "row \ud83d\ude00, column x", "",
+    // Fully addressed, and its rendering is not read back as the same structure.
+    "JSON entries[63].score_avg; submission u2MMaChop9DM3fjqkS7z",
   ],
   // One locator in 400 fully addressed is 0.25%, which toFixed writes as 0.3.
   [...Array.from({ length: 399 }, () => "metrics.ndcg"), "Table S18, row 'Bacformer', column 'Binary AUPRC'"],
@@ -330,7 +332,7 @@ const someResults = [
   result("r-2", "Table A2; row ESMC-300M naive supervised; column spearman"),
   result("r-3", "'Suppl Table 3 Track performance'!K8"),
   result("r-4", "metrics.ndcg"),
-  result("r-5", "Fig. 3b – panel 😀"),
+  result("r-5", "Fig. 3b \u2013 panel \ud83d\ude00"),
 ].join("\n");
 
 /** Runs of the command, each in a folder holding these files. */
@@ -351,7 +353,7 @@ export const commands = [
         JSON.stringify({ id: "r-empty", kind: "result", attributes: { source_locator: "" } }),
         "17", "\"result\"", "[]", "{}", `${result("r-cr", "line 4")}\r`,
       ].join("\n"),
-      "data/evidence/results/B.jsonl": result("r-B", "line 3; column x"),
+      "data/evidence/results/Z.jsonl": result("r-Z", "line 3; column x"),
       "data/evidence/results/c.json": result("r-c", "line 9"),
       "data/evidence/results/notes.txt": "not read",
     },
@@ -364,7 +366,7 @@ export const commands = [
   { name: "coverage of a row that is null", files: { "data/evidence/results/0.jsonl": "null\n" }, args: ["coverage", "--out", "report.tsv"] },
   { name: "parse of one locator", files: {}, args: ["parse", "Table S18, row 'Bacformer', column 'Binary AUPRC'"] },
   { name: "parse of a locator given as several arguments", files: {}, args: ["parse", "Table", "S9", "(sheet 'Table S9')", "cell", "I9"] },
-  { name: "parse of a locator that addresses nothing", files: {}, args: ["parse", "metrics.ndcg 😀"] },
+  { name: "parse of a locator that addresses nothing", files: {}, args: ["parse", "metrics.ndcg \ud83d\ude00"] },
   { name: "parse of a container and its number", files: {}, args: ["parse", "Supplementary Data 2, cells A1:B2, XML row 3 column 4 (page 2)"] },
   { name: "parse with nothing to parse", files: {}, args: ["parse"] },
   { name: "parse of nothing", files: {}, args: ["parse", ""] },

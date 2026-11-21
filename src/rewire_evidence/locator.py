@@ -223,9 +223,11 @@ TOKEN_SOURCES: tuple[tuple[str, str, str], ...] = (
     (
         "qual_layer",
         "iu",
-        r"\(?\b(?:text-layer|PDF page text|PDF caption|PDF text|PDF|XML|HTML|JATS|JSON|CSV|TSV"
-        r"|source CSV|source data|SI)\b"
-        r"(?:(?!\s*(?:\$|entries|data|results|root|leaderboard)[[.])[\p{L}\p{N}_.: /–-]){0,24}\)?",
+        (
+            r"\(?\b(?:text-layer|PDF page text|PDF caption|PDF text|PDF|XML|HTML|JATS|JSON|CSV|TSV"
+            r"|source CSV|source data|SI)\b"
+            r"(?:(?!\s*(?:\$|entries|data|results|root|leaderboard)[[.])[\p{L}\p{N}_.: /\u2013-]){0,24}\)?"
+        ),
     ),
     ("qual_layerline", "i", r"\(?\btext-layer line\s*\d+\)?"),
     ("qual_page", "i", r"\(?\b(?:page|pages|p\.|pp\.)\s*\d+(?:\s*of\s*\d+)?\)?"),
@@ -257,8 +259,10 @@ TOKEN_SOURCES: tuple[tuple[str, str, str], ...] = (
     (
         "anchor_sheet",
         "i",
-        r"""\bsheets?\s*(?:['‘’"](?<qsheet>[^'’"]{1,60})['’"]"""
-        r"""|(?<sheet>[^'’",;()!]{1,60}?)(?=\s*[,;)!]|\s*$|\s+cell|\s+[A-Z]{1,3}\d))""",
+        (
+            r"""\bsheets?\s*(?:['‘’"](?<qsheet>[^'’"]{1,60})['’"]"""
+            r"""|(?<sheet>[^'’",;()!]{1,60}?)(?=\s*[,;)!]|\s*$|\s+cell|\s+[A-Z]{1,3}\d))"""
+        ),
     ),
     ("anchor_bangsheet", "u", r"""['‘’"]?(?<bsheet>[\p{L}\p{N}_ .%+-]{1,50})['’"]?(?=!)"""),
     ("anchor_table", "i", rf"\b(?:(?<tcontainer>{_CONTAINER})\s+)?Tables?\s*(?<table>{_TNUM})\b\.?"),
@@ -270,17 +274,21 @@ TOKEN_SOURCES: tuple[tuple[str, str, str], ...] = (
     (
         "anchor_file",
         "iu",
-        r"(?<file>[\p{L}\p{N}_./+()%-]+"
-        r"\.(?:csv|tsv|json|jsonl|xlsx|xls|txt|parquet|md|ya?ml|html|xml|pdf|zip)(?:\.gz)?)",
+        (
+            r"(?<file>[\p{L}\p{N}_./+()%-]+"
+            r"\.(?:csv|tsv|json|jsonl|xlsx|xls|txt|parquet|md|ya?ml|html|xml|pdf|zip)(?:\.gz)?)"
+        ),
     ),
     ("anchor_container", "i", rf"\b(?<ccontainer>{_CONTAINER})(?:\s+(?<obj>[A-Z]?\d+[a-z]?))?"),
     # Selectors.
     (
         "sel_group",
         "i",
-        r"(?<key>(?:metric |column |row |value )?"
-        r"(?:block|group|panel|sub-?table|part|section|strategy|subgroup))"
-        r"""\s*[:=]?\s*['‘’"](?<qv>[^'’"]*)['’"]""",
+        (
+            r"(?<key>(?:metric |column |row |value )?"
+            r"(?:block|group|panel|sub-?table|part|section|strategy|subgroup))"
+            r"""\s*[:=]?\s*['‘’"](?<qv>[^'’"]*)['’"]"""
+        ),
     ),
     ("sel_grouprev", "i", r"""['‘’"](?<qv>[^'’"]*)['’"]\s*(?<key>block|group|panel|sub-?table|section)\b"""),
     ("sel_panel", "", r"\b(?<key>Panel|panel)\s+(?<bv>[A-Za-z]\b)"),
@@ -457,7 +465,9 @@ def _anchor(name: str, found: Found) -> Anchor:
     numbered = groups.get("obj")
     # A container with an object number keeps the two apart ("Supplementary Data" and "2"),
     # so rendering writes the label back out and not the bare number.
-    container = _first(groups, ("tcontainer", "fcontainer")) or (groups.get("ccontainer") if numbered else None)
+    container = _first(groups, ("tcontainer", "fcontainer")) or (
+        groups.get("ccontainer") if numbered else None
+    )
     if value is None or (kind == "container" and not numbered):
         value = raw
     return Anchor(kind, paired(trim(value)), paired(raw), paired(trim(container)) if container else None)
@@ -507,7 +517,13 @@ def parse_locator(printed: str) -> Parsed:
             residue.append(paired(left))
     verdict = verdict_of(anchors, addresses, selectors, residue)
     return Parsed(
-        printed, tuple(anchors), tuple(addresses), tuple(selectors), tuple(qualifiers), tuple(residue), verdict
+        printed,
+        tuple(anchors),
+        tuple(addresses),
+        tuple(selectors),
+        tuple(qualifiers),
+        tuple(residue),
+        verdict,
     )
 
 
@@ -609,14 +625,16 @@ def _render_selector(selector: Selector) -> str:
     return f"{selector.key} {_quoted(selector.value)}"
 
 
+def authored_addresses(address: Address | None, refines: Sequence[Address] = ()) -> list[Address]:
+    """The addresses of an authored locator: its one address, if it has one, then what narrows it."""
+    return [held for held in (address, *refines) if held is not None]
+
+
 def render_locator(
     anchors: Sequence[Anchor],
+    addresses: Sequence[Address],
     selectors: Sequence[Selector],
     qualifiers: Sequence[Qualifier],
-    *,
-    addresses: Sequence[Address] | None = None,
-    address: Address | None = None,
-    refines: Sequence[Address] = (),
 ) -> str:
     """Write a locator back out as text, from its typed fields only.
 
@@ -625,11 +643,9 @@ def render_locator(
     so rendering a parse gives back the text it was read from only where that text was
     already written this way. That share is what the coverage report measures.
 
-    `addresses` is what a parse gives. An authored locator has one `address`, narrowed by
-    any `refines`, and those are used when `addresses` is not given.
+    `addresses` is what a parse gives. An authored locator has one address and what
+    narrows it, which `authored_addresses` puts in the same order.
     """
-    if addresses is None:
-        addresses = [held for held in (address, *refines) if held is not None]
     parts = [
         *(_render_anchor(anchor) for anchor in anchors),
         *(_render_address(held) for held in addresses),
@@ -641,7 +657,7 @@ def render_locator(
 
 def rendered(parsed: Parsed) -> str:
     """`renderLocator` of a parse."""
-    return render_locator(parsed.anchors, parsed.selectors, parsed.qualifiers, addresses=parsed.addresses)
+    return render_locator(parsed.anchors, parsed.addresses, parsed.selectors, parsed.qualifiers)
 
 
 # ----------------------------------------------------------------------------------------

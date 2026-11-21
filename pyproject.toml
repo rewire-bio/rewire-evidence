@@ -81,6 +81,9 @@ ignore = [
   "PLR2004", # expected values are literals
   "INP001",  # tests are not a package
 ]
+"src/rewire_evidence/locator.py" = [
+  "RUF001",  # the patterns are the TypeScript's, curly quotation marks included
+]
 "scripts/**" = [
   "INP001",  # scripts are not a package
   "T201",    # a command-line gate prints
