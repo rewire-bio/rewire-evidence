@@ -11,9 +11,9 @@ from hypothesis import given
 
 from rewire_evidence.canonical import JsonObject, js_stringify, record_sha256, sha256_hex, shard_of
 from rewire_evidence.jsonl import StoreError, join_lines, write_text
+from rewire_evidence.schema import KINDS
 from rewire_evidence.store import (
     EVIDENCE_KINDS,
-    KINDS,
     PROVENANCE_FILE,
     FileDigest,
     checked_records,

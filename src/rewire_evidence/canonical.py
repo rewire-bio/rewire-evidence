@@ -198,6 +198,45 @@ def js_parse(text: str) -> JsonValue:
     return parsed
 
 
+def js_value(value: object) -> JsonValue:
+    """A value as JavaScript holds it once `JSON.parse` has read it: one form per value.
+
+    Python has two numbers where JavaScript has one, and a dict keeps any key order where a
+    JavaScript object lists its array-index keys first. So `1.0` and `1` are two Python
+    values and one JavaScript value, and comparing parsed records with `==` would call an
+    unchanged record changed. This puts every value in the one form:
+
+    - a whole number a double holds exactly is an `int`, so `1.0` and `-0.0` become `1` and `0`;
+    - any other number is the `float` nearest to it, so an integer above 2**53 becomes the
+      double JavaScript would hold, and one beyond every double becomes infinity, as
+      `JSON.parse` reads `1e400`;
+    - an object's keys are in the order JavaScript lists them;
+    - a tuple is a list.
+
+    The result shares nothing with what it was given, and `js_stringify` writes it exactly
+    as it writes the original. Raises `TypeError` for a value JSON has no form for, a key
+    that is not text, or NaN, which no JSON text can produce.
+    """
+    if value is None or isinstance(value, (bool, str)):
+        return value
+    if isinstance(value, int):
+        if abs(value) <= EXACT_INTEGER_LIMIT:
+            return value
+        try:
+            return float(value)
+        except OverflowError:
+            return math.inf if value > 0 else -math.inf
+    if isinstance(value, float):
+        if math.isnan(value):
+            raise TypeError("NaN is not a value JSON can hold")
+        return int(value) if value.is_integer() and abs(value) <= EXACT_INTEGER_LIMIT else value
+    if isinstance(value, Mapping):
+        return {key: js_value(value[key]) for key in js_key_order(value)}
+    if isinstance(value, (list, tuple)):
+        return [js_value(item) for item in value]
+    raise TypeError(f"{type(value).__name__} has no JSON form")
+
+
 def js_stringify(value: JsonInput) -> str:
     """`JSON.stringify(value)`: insertion order, no whitespace, JavaScript number format."""
     return _stringify(value)

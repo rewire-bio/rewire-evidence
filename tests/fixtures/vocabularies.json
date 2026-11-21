@@ -1,0 +1,2134 @@
+{
+ "recorded_from": {
+  "script": "scripts/fixtures/record_schema_fixture.mjs",
+  "store_ref": "91f76cf8e61cba9d6037a01a19c9aa3051184900",
+  "zod": "4.6.5",
+  "n3": "1.17.4"
+ },
+ "load_schemes": [
+  {
+   "name": "no data/vocab folder",
+   "files": null,
+   "error": null,
+   "schemes": {},
+   "message_comparable": true
+  },
+  {
+   "name": "an empty data/vocab folder",
+   "files": {},
+   "error": null,
+   "schemes": {},
+   "message_comparable": true
+  },
+  {
+   "name": "two schemes that refer to each other",
+   "files": {
+    "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
+    "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:a a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"a label\"@en .\n:b a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"b label\"@en ; skos:broader :a ; skos:related <https://benchmarks.rewire.it/vocab/direction/higher> ; rb:defaultDirection <https://benchmarks.rewire.it/vocab/direction/lower> .\n"
+   },
+   "error": null,
+   "schemes": {
+    "direction": {
+     "iri": "https://benchmarks.rewire.it/vocab/direction/",
+     "concepts": [
+      [
+       "higher",
+       "https://benchmarks.rewire.it/vocab/direction/higher",
+       "higher label"
+      ],
+      [
+       "lower",
+       "https://benchmarks.rewire.it/vocab/direction/lower",
+       "lower label"
+      ]
+     ]
+    },
+    "metric": {
+     "iri": "https://benchmarks.rewire.it/vocab/metric/",
+     "concepts": [
+      [
+       "a",
+       "https://benchmarks.rewire.it/vocab/metric/a",
+       "a label"
+      ],
+      [
+       "b",
+       "https://benchmarks.rewire.it/vocab/metric/b",
+       "b label"
+      ]
+     ]
+    }
+   },
+   "message_comparable": true
+  },
+  {
+   "name": "files are read in name order, and only .ttl files in the folder itself",
+   "files": {
+    "zeta.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/zeta/> .\n<https://benchmarks.rewire.it/vocab/zeta/> a skos:ConceptScheme .\n:z a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/zeta/> ; skos:prefLabel \"z label\"@en .\n",
+    "alpha.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/alpha/> .\n<https://benchmarks.rewire.it/vocab/alpha/> a skos:ConceptScheme .\n:a a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/alpha/> ; skos:prefLabel \"a label\"@en .\n",
+    "Beta.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/Beta/> .\n<https://benchmarks.rewire.it/vocab/Beta/> a skos:ConceptScheme .\n",
+    "notes.txt": "not turtle",
+    "alpha.ttl.bak": "not turtle",
+    "migration": null,
+    "folder.ttl-not": null
+   },
+   "error": null,
+   "schemes": {
+    "Beta": {
+     "iri": "https://benchmarks.rewire.it/vocab/Beta/",
+     "concepts": []
+    },
+    "alpha": {
+     "iri": "https://benchmarks.rewire.it/vocab/alpha/",
+     "concepts": [
+      [
+       "a",
+       "https://benchmarks.rewire.it/vocab/alpha/a",
+       "a label"
+      ]
+     ]
+    },
+    "zeta": {
+     "iri": "https://benchmarks.rewire.it/vocab/zeta/",
+     "concepts": [
+      [
+       "z",
+       "https://benchmarks.rewire.it/vocab/zeta/z",
+       "z label"
+      ]
+     ]
+    }
+   },
+   "message_comparable": true
+  },
+  {
+   "name": "concepts keep the order of the file, and a concept named twice keeps its first place",
+   "files": {
+    "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
+    "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:zeta a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"zeta label\"@en .\n:alpha a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"alpha label\"@en .\n:mid a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"mid label\"@en .\n:zeta skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> .\n"
+   },
+   "error": null,
+   "schemes": {
+    "direction": {
+     "iri": "https://benchmarks.rewire.it/vocab/direction/",
+     "concepts": [
+      [
+       "higher",
+       "https://benchmarks.rewire.it/vocab/direction/higher",
+       "higher label"
+      ],
+      [
+       "lower",
+       "https://benchmarks.rewire.it/vocab/direction/lower",
+       "lower label"
+      ]
+     ]
+    },
+    "metric": {
+     "iri": "https://benchmarks.rewire.it/vocab/metric/",
+     "concepts": [
+      [
+       "zeta",
+       "https://benchmarks.rewire.it/vocab/metric/zeta",
+       "zeta label"
+      ],
+      [
+       "alpha",
+       "https://benchmarks.rewire.it/vocab/metric/alpha",
+       "alpha label"
+      ],
+      [
+       "mid",
+       "https://benchmarks.rewire.it/vocab/metric/mid",
+       "mid label"
+      ]
+     ]
+    }
+   },
+   "message_comparable": true
+  },
+  {
+   "name": "keys with digits, hyphens and underscores",
+   "files": {
+    "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
+    "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:source_checked a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"source_checked label\"@en .\n:f1-score a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"f1-score label\"@en .\n:0 a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"0 label\"@en .\n:a-b_c-9 a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"a-b_c-9 label\"@en .\n"
+   },
+   "error": null,
+   "schemes": {
+    "direction": {
+     "iri": "https://benchmarks.rewire.it/vocab/direction/",
+     "concepts": [
+      [
+       "higher",
+       "https://benchmarks.rewire.it/vocab/direction/higher",
+       "higher label"
+      ],
+      [
+       "lower",
+       "https://benchmarks.rewire.it/vocab/direction/lower",
+       "lower label"
+      ]
+     ]
+    },
+    "metric": {
+     "iri": "https://benchmarks.rewire.it/vocab/metric/",
+     "concepts": [
+      [
+       "source_checked",
+       "https://benchmarks.rewire.it/vocab/metric/source_checked",
+       "source_checked label"
+      ],
+      [
+       "f1-score",
+       "https://benchmarks.rewire.it/vocab/metric/f1-score",
+       "f1-score label"
+      ],
+      [
+       "0",
+       "https://benchmarks.rewire.it/vocab/metric/0",
+       "0 label"
+      ],
+      [
+       "a-b_c-9",
+       "https://benchmarks.rewire.it/vocab/metric/a-b_c-9",
+       "a-b_c-9 label"
+      ]
+     ]
+    }
+   },
+   "message_comparable": true
+  },
+  {
+   "name": "the first label in the file is the one kept",
+   "files": {
+    "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
+    "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:a a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"premier\"@fr , \"first\"@en , \"plain\" .\n"
+   },
+   "error": null,
+   "schemes": {
+    "direction": {
+     "iri": "https://benchmarks.rewire.it/vocab/direction/",
+     "concepts": [
+      [
+       "higher",
+       "https://benchmarks.rewire.it/vocab/direction/higher",
+       "higher label"
+      ],
+      [
+       "lower",
+       "https://benchmarks.rewire.it/vocab/direction/lower",
+       "lower label"
+      ]
+     ]
+    },
+    "metric": {
+     "iri": "https://benchmarks.rewire.it/vocab/metric/",
+     "concepts": [
+      [
+       "a",
+       "https://benchmarks.rewire.it/vocab/metric/a",
+       "premier"
+      ]
+     ]
+    }
+   },
+   "message_comparable": true
+  },
+  {
+   "name": "a label given before the concept is declared",
+   "files": {
+    "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
+    "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:a skos:prefLabel \"early\" .\n:a skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> .\n:a skos:prefLabel \"late\"@en .\n"
+   },
+   "error": null,
+   "schemes": {
+    "direction": {
+     "iri": "https://benchmarks.rewire.it/vocab/direction/",
+     "concepts": [
+      [
+       "higher",
+       "https://benchmarks.rewire.it/vocab/direction/higher",
+       "higher label"
+      ],
+      [
+       "lower",
+       "https://benchmarks.rewire.it/vocab/direction/lower",
+       "lower label"
+      ]
+     ]
+    },
+    "metric": {
+     "iri": "https://benchmarks.rewire.it/vocab/metric/",
+     "concepts": [
+      [
+       "a",
+       "https://benchmarks.rewire.it/vocab/metric/a",
+       "early"
+      ]
+     ]
+    }
+   },
+   "message_comparable": true
+  },
+  {
+   "name": "labels with quotes, escapes, line breaks and other scripts",
+   "files": {
+    "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
+    "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:a skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"a \\\"quoted\\\" \\\\ label\\twith\\ttabs \\u00e9 α 🧬\"@en .\n:b skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"\"\"two\nlines\"\"\" .\n:c skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel 7 .\n:d skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel <https://example.org/label> .\n"
+   },
+   "error": null,
+   "schemes": {
+    "direction": {
+     "iri": "https://benchmarks.rewire.it/vocab/direction/",
+     "concepts": [
+      [
+       "higher",
+       "https://benchmarks.rewire.it/vocab/direction/higher",
+       "higher label"
+      ],
+      [
+       "lower",
+       "https://benchmarks.rewire.it/vocab/direction/lower",
+       "lower label"
+      ]
+     ]
+    },
+    "metric": {
+     "iri": "https://benchmarks.rewire.it/vocab/metric/",
+     "concepts": [
+      [
+       "a",
+       "https://benchmarks.rewire.it/vocab/metric/a",
+       "a \"quoted\" \\ label\twith\ttabs é α 🧬"
+      ],
+      [
+       "b",
+       "https://benchmarks.rewire.it/vocab/metric/b",
+       "two\nlines"
+      ],
+      [
+       "c",
+       "https://benchmarks.rewire.it/vocab/metric/c",
+       "7"
+      ],
+      [
+       "d",
+       "https://benchmarks.rewire.it/vocab/metric/d",
+       "https://example.org/label"
+      ]
+     ]
+    }
+   },
+   "message_comparable": true
+  },
+  {
+   "name": "a file that declares no scheme",
+   "files": {
+    "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n<https://benchmarks.rewire.it/vocab/metric/a> skos:prefLabel \"a\" .\n"
+   },
+   "error": "metric.ttl does not declare the concept scheme <https://benchmarks.rewire.it/vocab/metric/>",
+   "schemes": null,
+   "message_comparable": true
+  },
+  {
+   "name": "an empty file",
+   "files": {
+    "metric.ttl": ""
+   },
+   "error": "metric.ttl does not declare the concept scheme <https://benchmarks.rewire.it/vocab/metric/>",
+   "schemes": null,
+   "message_comparable": true
+  },
+  {
+   "name": "a file that declares another scheme",
+   "files": {
+    "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n"
+   },
+   "error": "metric.ttl does not declare the concept scheme <https://benchmarks.rewire.it/vocab/metric/>",
+   "schemes": null,
+   "message_comparable": true
+  },
+  {
+   "name": "a scheme declared as something else",
+   "files": {
+    "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:Concept .\n"
+   },
+   "error": "metric.ttl does not declare the concept scheme <https://benchmarks.rewire.it/vocab/metric/>",
+   "schemes": null,
+   "message_comparable": true
+  },
+  {
+   "name": "a scheme with no concepts",
+   "files": {
+    "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n"
+   },
+   "error": null,
+   "schemes": {
+    "metric": {
+     "iri": "https://benchmarks.rewire.it/vocab/metric/",
+     "concepts": []
+    }
+   },
+   "message_comparable": true
+  },
+  {
+   "name": "a key with a capital letter",
+   "files": {
+    "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
+    "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:Accuracy a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"Accuracy label\"@en .\n"
+   },
+   "error": "metric.ttl: concept <https://benchmarks.rewire.it/vocab/metric/Accuracy> is not <https://benchmarks.rewire.it/vocab/metric/key> with a lowercase key",
+   "schemes": null,
+   "message_comparable": true
+  },
+  {
+   "name": "a key ending in a hyphen",
+   "files": {
+    "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
+    "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n<https://benchmarks.rewire.it/vocab/metric/a-> skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"a\" .\n"
+   },
+   "error": "metric.ttl: concept <https://benchmarks.rewire.it/vocab/metric/a-> is not <https://benchmarks.rewire.it/vocab/metric/key> with a lowercase key",
+   "schemes": null,
+   "message_comparable": true
+  },
+  {
+   "name": "a key with two hyphens together",
+   "files": {
+    "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
+    "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n<https://benchmarks.rewire.it/vocab/metric/a--b> skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"a\" .\n"
+   },
+   "error": "metric.ttl: concept <https://benchmarks.rewire.it/vocab/metric/a--b> is not <https://benchmarks.rewire.it/vocab/metric/key> with a lowercase key",
+   "schemes": null,
+   "message_comparable": true
+  },
+  {
+   "name": "a key with a slash",
+   "files": {
+    "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
+    "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n<https://benchmarks.rewire.it/vocab/metric/a/b> skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"a\" .\n"
+   },
+   "error": "metric.ttl: concept <https://benchmarks.rewire.it/vocab/metric/a/b> is not <https://benchmarks.rewire.it/vocab/metric/key> with a lowercase key",
+   "schemes": null,
+   "message_comparable": true
+  },
+  {
+   "name": "an empty key: the scheme in itself",
+   "files": {
+    "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
+    "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n<https://benchmarks.rewire.it/vocab/metric/> skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"a\" .\n"
+   },
+   "error": "metric.ttl: concept <https://benchmarks.rewire.it/vocab/metric/> is not <https://benchmarks.rewire.it/vocab/metric/key> with a lowercase key",
+   "schemes": null,
+   "message_comparable": true
+  },
+  {
+   "name": "a concept from another namespace",
+   "files": {
+    "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
+    "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n<https://example.org/a> skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"a\" .\n"
+   },
+   "error": "metric.ttl: concept <https://example.org/a> is not <https://benchmarks.rewire.it/vocab/metric/key> with a lowercase key",
+   "schemes": null,
+   "message_comparable": true
+  },
+  {
+   "name": "a concept with no label",
+   "files": {
+    "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
+    "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:a a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"a label\"@en .\n:b a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:altLabel \"b\" .\n"
+   },
+   "error": "metric.ttl: concept b has no skos:prefLabel",
+   "schemes": null,
+   "message_comparable": true
+  },
+  {
+   "name": "a broader concept that does not exist",
+   "files": {
+    "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
+    "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:b a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"b label\"@en ; skos:broader :missing .\n"
+   },
+   "error": "Vocabulary references do not resolve:\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/b> skos:broader <https://benchmarks.rewire.it/vocab/metric/missing>, which is not a concept",
+   "schemes": null,
+   "message_comparable": true
+  },
+  {
+   "name": "a related concept that does not exist in another scheme",
+   "files": {
+    "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
+    "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:b a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"b label\"@en ; skos:related <https://benchmarks.rewire.it/vocab/direction/sideways> .\n"
+   },
+   "error": "Vocabulary references do not resolve:\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/b> skos:related <https://benchmarks.rewire.it/vocab/direction/sideways>, which is not a concept",
+   "schemes": null,
+   "message_comparable": true
+  },
+  {
+   "name": "a reference into a scheme that has no file",
+   "files": {
+    "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
+    "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:b a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"b label\"@en ; skos:related <https://benchmarks.rewire.it/vocab/unit/percent> .\n"
+   },
+   "error": "Vocabulary references do not resolve:\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/b> skos:related <https://benchmarks.rewire.it/vocab/unit/percent>, which is not a concept",
+   "schemes": null,
+   "message_comparable": true
+  },
+  {
+   "name": "a reference under a key with a slash",
+   "files": {
+    "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
+    "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:b a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"b label\"@en ; skos:related <https://benchmarks.rewire.it/vocab/metric/b/c> .\n"
+   },
+   "error": "Vocabulary references do not resolve:\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/b> skos:related <https://benchmarks.rewire.it/vocab/metric/b/c>, which is not a concept",
+   "schemes": null,
+   "message_comparable": true
+  },
+  {
+   "name": "references that are not checked: other sites, the scheme itself, text",
+   "files": {
+    "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
+    "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:b a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"b label\"@en ; skos:closeMatch <http://purl.obolibrary.org/obo/STATO_0000415> ; skos:related <https://benchmarks.rewire.it/vocab/metric/> ; skos:note \"https://benchmarks.rewire.it/vocab/metric/missing\" ; skos:related <https://benchmarks.rewire.it/vocab#Thing> ; skos:related <https://benchmarks.rewire.it/vocab/Upper/x> .\n"
+   },
+   "error": null,
+   "schemes": {
+    "direction": {
+     "iri": "https://benchmarks.rewire.it/vocab/direction/",
+     "concepts": [
+      [
+       "higher",
+       "https://benchmarks.rewire.it/vocab/direction/higher",
+       "higher label"
+      ],
+      [
+       "lower",
+       "https://benchmarks.rewire.it/vocab/direction/lower",
+       "lower label"
+      ]
+     ]
+    },
+    "metric": {
+     "iri": "https://benchmarks.rewire.it/vocab/metric/",
+     "concepts": [
+      [
+       "b",
+       "https://benchmarks.rewire.it/vocab/metric/b",
+       "b label"
+      ]
+     ]
+    }
+   },
+   "message_comparable": true
+  },
+  {
+   "name": "a concept placed in another scheme than its IRI",
+   "files": {
+    "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
+    "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:a a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"a label\"@en .\n:x skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> .\n"
+   },
+   "error": "Vocabulary references do not resolve:\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/x> is in scheme <https://benchmarks.rewire.it/vocab/direction/> but its IRI is in <https://benchmarks.rewire.it/vocab/metric/>",
+   "schemes": null,
+   "message_comparable": true
+  },
+  {
+   "name": "a concept placed in a scheme that is not one",
+   "files": {
+    "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
+    "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:a a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"a label\"@en .\n:x skos:inScheme <https://example.org/scheme> ; skos:prefLabel \"x\" .\n"
+   },
+   "error": "Vocabulary references do not resolve:\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/x> is in scheme <https://example.org/scheme> but its IRI is in <https://benchmarks.rewire.it/vocab/metric/>",
+   "schemes": null,
+   "message_comparable": true
+  },
+  {
+   "name": "a scheme whose name the reference pattern does not read",
+   "files": {
+    "my_scheme.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/my_scheme/> .\n<https://benchmarks.rewire.it/vocab/my_scheme/> a skos:ConceptScheme .\n:a a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/my_scheme/> ; skos:prefLabel \"a label\"@en ; skos:broader :missing .\n:x skos:inScheme <https://benchmarks.rewire.it/vocab/other/> .\n"
+   },
+   "error": null,
+   "schemes": {
+    "my_scheme": {
+     "iri": "https://benchmarks.rewire.it/vocab/my_scheme/",
+     "concepts": [
+      [
+       "a",
+       "https://benchmarks.rewire.it/vocab/my_scheme/a",
+       "a label"
+      ]
+     ]
+    }
+   },
+   "message_comparable": true
+  },
+  {
+   "name": "broader and narrower said from both ends",
+   "files": {
+    "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
+    "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:a a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"a label\"@en ; skos:broader :b .\n:b a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"b label\"@en ; skos:narrower :a .\n"
+   },
+   "error": null,
+   "schemes": {
+    "direction": {
+     "iri": "https://benchmarks.rewire.it/vocab/direction/",
+     "concepts": [
+      [
+       "higher",
+       "https://benchmarks.rewire.it/vocab/direction/higher",
+       "higher label"
+      ],
+      [
+       "lower",
+       "https://benchmarks.rewire.it/vocab/direction/lower",
+       "lower label"
+      ]
+     ]
+    },
+    "metric": {
+     "iri": "https://benchmarks.rewire.it/vocab/metric/",
+     "concepts": [
+      [
+       "a",
+       "https://benchmarks.rewire.it/vocab/metric/a",
+       "a label"
+      ],
+      [
+       "b",
+       "https://benchmarks.rewire.it/vocab/metric/b",
+       "b label"
+      ]
+     ]
+    }
+   },
+   "message_comparable": true
+  },
+  {
+   "name": "a loop of three",
+   "files": {
+    "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
+    "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:a a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"a label\"@en ; skos:broader :b .\n:b a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"b label\"@en ; skos:broader :c .\n:c a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"c label\"@en .\n:a skos:narrower :c .\n"
+   },
+   "error": "Vocabulary references do not resolve:\n  skos:broader cycle: metric/a, then metric/b, then metric/c, then metric/a",
+   "schemes": null,
+   "message_comparable": true
+  },
+  {
+   "name": "a concept broader than itself",
+   "files": {
+    "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
+    "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:a a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"a label\"@en ; skos:broader :a .\n"
+   },
+   "error": "Vocabulary references do not resolve:\n  skos:broader cycle: metric/a, then metric/a",
+   "schemes": null,
+   "message_comparable": true
+  },
+  {
+   "name": "two loops, and a tail leading into one",
+   "files": {
+    "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
+    "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:a a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"a label\"@en ; skos:broader :b .\n:b a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"b label\"@en ; skos:broader :a .\n:c a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"c label\"@en ; skos:broader :d .\n:d a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"d label\"@en ; skos:broader :c .\n:t a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"t label\"@en ; skos:broader :a .\n:u a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"u label\"@en ; skos:broader :t , :c .\n"
+   },
+   "error": "Vocabulary references do not resolve:\n  skos:broader cycle: metric/a, then metric/b, then metric/a\n  skos:broader cycle: metric/c, then metric/d, then metric/c",
+   "schemes": null,
+   "message_comparable": true
+  },
+  {
+   "name": "a loop across two schemes",
+   "files": {
+    "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en ; skos:broader <https://benchmarks.rewire.it/vocab/metric/a> .\n",
+    "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:a a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"a label\"@en ; skos:broader <https://benchmarks.rewire.it/vocab/direction/higher> .\n"
+   },
+   "error": "Vocabulary references do not resolve:\n  skos:broader cycle: direction/higher, then metric/a, then direction/higher",
+   "schemes": null,
+   "message_comparable": true
+  },
+  {
+   "name": "a diamond is not a loop",
+   "files": {
+    "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
+    "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:top a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"top label\"@en .\n:l a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"l label\"@en ; skos:broader :top .\n:r a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"r label\"@en ; skos:broader :top .\n:bottom a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"bottom label\"@en ; skos:broader :l , :r .\n"
+   },
+   "error": null,
+   "schemes": {
+    "direction": {
+     "iri": "https://benchmarks.rewire.it/vocab/direction/",
+     "concepts": [
+      [
+       "higher",
+       "https://benchmarks.rewire.it/vocab/direction/higher",
+       "higher label"
+      ],
+      [
+       "lower",
+       "https://benchmarks.rewire.it/vocab/direction/lower",
+       "lower label"
+      ]
+     ]
+    },
+    "metric": {
+     "iri": "https://benchmarks.rewire.it/vocab/metric/",
+     "concepts": [
+      [
+       "top",
+       "https://benchmarks.rewire.it/vocab/metric/top",
+       "top label"
+      ],
+      [
+       "l",
+       "https://benchmarks.rewire.it/vocab/metric/l",
+       "l label"
+      ],
+      [
+       "r",
+       "https://benchmarks.rewire.it/vocab/metric/r",
+       "r label"
+      ],
+      [
+       "bottom",
+       "https://benchmarks.rewire.it/vocab/metric/bottom",
+       "bottom label"
+      ]
+     ]
+    }
+   },
+   "message_comparable": true
+  },
+  {
+   "name": "more than twenty problems",
+   "files": {
+    "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
+    "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:a a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"a label\"@en .\n:a skos:related :missing-0 .\n:a skos:related :missing-1 .\n:a skos:related :missing-2 .\n:a skos:related :missing-3 .\n:a skos:related :missing-4 .\n:a skos:related :missing-5 .\n:a skos:related :missing-6 .\n:a skos:related :missing-7 .\n:a skos:related :missing-8 .\n:a skos:related :missing-9 .\n:a skos:related :missing-10 .\n:a skos:related :missing-11 .\n:a skos:related :missing-12 .\n:a skos:related :missing-13 .\n:a skos:related :missing-14 .\n:a skos:related :missing-15 .\n:a skos:related :missing-16 .\n:a skos:related :missing-17 .\n:a skos:related :missing-18 .\n:a skos:related :missing-19 .\n:a skos:related :missing-20 .\n:a skos:related :missing-21 .\n:a skos:related :missing-22 .\n:a skos:related :missing-23 .\n:a skos:related :missing-24 .\n"
+   },
+   "error": "Vocabulary references do not resolve:\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/a> skos:related <https://benchmarks.rewire.it/vocab/metric/missing-0>, which is not a concept\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/a> skos:related <https://benchmarks.rewire.it/vocab/metric/missing-1>, which is not a concept\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/a> skos:related <https://benchmarks.rewire.it/vocab/metric/missing-2>, which is not a concept\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/a> skos:related <https://benchmarks.rewire.it/vocab/metric/missing-3>, which is not a concept\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/a> skos:related <https://benchmarks.rewire.it/vocab/metric/missing-4>, which is not a concept\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/a> skos:related <https://benchmarks.rewire.it/vocab/metric/missing-5>, which is not a concept\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/a> skos:related <https://benchmarks.rewire.it/vocab/metric/missing-6>, which is not a concept\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/a> skos:related <https://benchmarks.rewire.it/vocab/metric/missing-7>, which is not a concept\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/a> skos:related <https://benchmarks.rewire.it/vocab/metric/missing-8>, which is not a concept\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/a> skos:related <https://benchmarks.rewire.it/vocab/metric/missing-9>, which is not a concept\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/a> skos:related <https://benchmarks.rewire.it/vocab/metric/missing-10>, which is not a concept\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/a> skos:related <https://benchmarks.rewire.it/vocab/metric/missing-11>, which is not a concept\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/a> skos:related <https://benchmarks.rewire.it/vocab/metric/missing-12>, which is not a concept\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/a> skos:related <https://benchmarks.rewire.it/vocab/metric/missing-13>, which is not a concept\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/a> skos:related <https://benchmarks.rewire.it/vocab/metric/missing-14>, which is not a concept\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/a> skos:related <https://benchmarks.rewire.it/vocab/metric/missing-15>, which is not a concept\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/a> skos:related <https://benchmarks.rewire.it/vocab/metric/missing-16>, which is not a concept\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/a> skos:related <https://benchmarks.rewire.it/vocab/metric/missing-17>, which is not a concept\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/a> skos:related <https://benchmarks.rewire.it/vocab/metric/missing-18>, which is not a concept\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/a> skos:related <https://benchmarks.rewire.it/vocab/metric/missing-19>, which is not a concept",
+   "schemes": null,
+   "message_comparable": true
+  },
+  {
+   "name": "a missing reference and a loop together",
+   "files": {
+    "direction.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/direction/> .\n<https://benchmarks.rewire.it/vocab/direction/> a skos:ConceptScheme .\n:higher a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"higher label\"@en .\n:lower a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/direction/> ; skos:prefLabel \"lower label\"@en .\n",
+    "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:a a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"a label\"@en ; skos:broader :a ; skos:related :gone .\n"
+   },
+   "error": "Vocabulary references do not resolve:\n  metric.ttl: <https://benchmarks.rewire.it/vocab/metric/a> skos:related <https://benchmarks.rewire.it/vocab/metric/gone>, which is not a concept\n  skos:broader cycle: metric/a, then metric/a",
+   "schemes": null,
+   "message_comparable": true
+  },
+  {
+   "name": "the first file's fault is the one reported",
+   "files": {
+    "alpha.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/alpha/> .\n<https://benchmarks.rewire.it/vocab/alpha/> a skos:ConceptScheme .\n:Bad a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/alpha/> ; skos:prefLabel \"Bad label\"@en .\n",
+    "beta.ttl": ""
+   },
+   "error": "alpha.ttl: concept <https://benchmarks.rewire.it/vocab/alpha/Bad> is not <https://benchmarks.rewire.it/vocab/alpha/key> with a lowercase key",
+   "schemes": null,
+   "message_comparable": true
+  },
+  {
+   "name": "text that is not Turtle",
+   "files": {
+    "metric.ttl": "this is not turtle"
+   },
+   "error": "Unexpected \"this\" on line 1.",
+   "schemes": null,
+   "message_comparable": false
+  },
+  {
+   "name": "a statement left unfinished",
+   "files": {
+    "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:a skos:prefLabel \"a\" ;\n"
+   },
+   "error": "Expected entity but got eof on line 6.",
+   "schemes": null,
+   "message_comparable": false
+  }
+ ],
+ "mapping": {
+  "fields": {
+   "name": {
+    "property": "p"
+   },
+   "status": {
+    "property": "p",
+    "scheme": "status"
+   }
+  },
+  "facets": {
+   "tasks": {
+    "property": "p"
+   },
+   "areas": {
+    "property": "p",
+    "scheme": "area"
+   }
+  },
+  "attributes": {
+   "url": {
+    "property": "p"
+   },
+   "metric": {
+    "property": "p",
+    "scheme": "metric"
+   },
+   "unit": {
+    "property": "p",
+    "scheme": "unit"
+   },
+   "ghost": {
+    "property": "p",
+    "scheme": "ghost"
+   }
+  },
+  "review": {
+   "date": {
+    "property": "p"
+   },
+   "method": {
+    "property": "p",
+    "scheme": "review-method"
+   },
+   "reviewer": {
+    "property": "p",
+    "scheme": "agent"
+   }
+  }
+ },
+ "vocabulary": {
+  "status.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/status/> .\n<https://benchmarks.rewire.it/vocab/status/> a skos:ConceptScheme .\n:discovered a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/status/> ; skos:prefLabel \"discovered label\"@en .\n:source_checked a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/status/> ; skos:prefLabel \"source_checked label\"@en .\n",
+  "area.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/area/> .\n<https://benchmarks.rewire.it/vocab/area/> a skos:ConceptScheme .\n:dna-genomes a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/area/> ; skos:prefLabel \"dna-genomes label\"@en .\n:proteins a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/area/> ; skos:prefLabel \"proteins label\"@en .\n",
+  "metric.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/metric/> .\n<https://benchmarks.rewire.it/vocab/metric/> a skos:ConceptScheme .\n:auprc a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"auprc label\"@en .\n:constructor a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"constructor label\"@en .\n:1 a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/metric/> ; skos:prefLabel \"1 label\"@en .\n",
+  "unit.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/unit/> .\n<https://benchmarks.rewire.it/vocab/unit/> a skos:ConceptScheme .\n:percent a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/unit/> ; skos:prefLabel \"percent label\"@en .\n",
+  "review-method.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/review-method/> .\n<https://benchmarks.rewire.it/vocab/review-method/> a skos:ConceptScheme .\n:span-check a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/review-method/> ; skos:prefLabel \"span-check label\"@en .\n",
+  "agent.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/agent/> .\n<https://benchmarks.rewire.it/vocab/agent/> a skos:ConceptScheme .\n:intake-agent a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/agent/> ; skos:prefLabel \"intake-agent label\"@en .\n",
+  "derivation-method.ttl": "@prefix skos: <http://www.w3.org/2004/02/skos/core#> .\n@prefix rb: <https://benchmarks.rewire.it/vocab#> .\n@prefix : <https://benchmarks.rewire.it/vocab/derivation-method/> .\n<https://benchmarks.rewire.it/vocab/derivation-method/> a skos:ConceptScheme .\n:difference a skos:Concept ; skos:inScheme <https://benchmarks.rewire.it/vocab/derivation-method/> ; skos:prefLabel \"difference label\"@en .\n"
+ },
+ "schemes": {
+  "agent": {
+   "iri": "https://benchmarks.rewire.it/vocab/agent/",
+   "concepts": [
+    [
+     "intake-agent",
+     "https://benchmarks.rewire.it/vocab/agent/intake-agent",
+     "intake-agent label"
+    ]
+   ]
+  },
+  "area": {
+   "iri": "https://benchmarks.rewire.it/vocab/area/",
+   "concepts": [
+    [
+     "dna-genomes",
+     "https://benchmarks.rewire.it/vocab/area/dna-genomes",
+     "dna-genomes label"
+    ],
+    [
+     "proteins",
+     "https://benchmarks.rewire.it/vocab/area/proteins",
+     "proteins label"
+    ]
+   ]
+  },
+  "derivation-method": {
+   "iri": "https://benchmarks.rewire.it/vocab/derivation-method/",
+   "concepts": [
+    [
+     "difference",
+     "https://benchmarks.rewire.it/vocab/derivation-method/difference",
+     "difference label"
+    ]
+   ]
+  },
+  "metric": {
+   "iri": "https://benchmarks.rewire.it/vocab/metric/",
+   "concepts": [
+    [
+     "auprc",
+     "https://benchmarks.rewire.it/vocab/metric/auprc",
+     "auprc label"
+    ],
+    [
+     "constructor",
+     "https://benchmarks.rewire.it/vocab/metric/constructor",
+     "constructor label"
+    ],
+    [
+     "1",
+     "https://benchmarks.rewire.it/vocab/metric/1",
+     "1 label"
+    ]
+   ]
+  },
+  "review-method": {
+   "iri": "https://benchmarks.rewire.it/vocab/review-method/",
+   "concepts": [
+    [
+     "span-check",
+     "https://benchmarks.rewire.it/vocab/review-method/span-check",
+     "span-check label"
+    ]
+   ]
+  },
+  "status": {
+   "iri": "https://benchmarks.rewire.it/vocab/status/",
+   "concepts": [
+    [
+     "discovered",
+     "https://benchmarks.rewire.it/vocab/status/discovered",
+     "discovered label"
+    ],
+    [
+     "source_checked",
+     "https://benchmarks.rewire.it/vocab/status/source_checked",
+     "source_checked label"
+    ]
+   ]
+  },
+  "unit": {
+   "iri": "https://benchmarks.rewire.it/vocab/unit/",
+   "concepts": [
+    [
+     "percent",
+     "https://benchmarks.rewire.it/vocab/unit/percent",
+     "percent label"
+    ]
+   ]
+  }
+ },
+ "controlled": [
+  {
+   "name": "no records",
+   "input": "[]",
+   "mapping": null,
+   "values": [],
+   "error": null
+  },
+  {
+   "name": "every controlled field holding a concept",
+   "input": "[{\"id\":\"good\",\"facets\":{\"areas\":[\"dna-genomes\",\"proteins\"],\"tasks\":[\"anything\"]},\"attributes\":{\"url\":\"anything\",\"metric\":\"auprc\",\"unit\":\"percent\",\"review\":{\"method\":\"span-check\",\"reviewer\":\"intake-agent\",\"date\":\"anything\"},\"derivation\":{\"method\":\"difference\",\"other\":\"anything\"}},\"status\":\"source_checked\",\"name\":\"anything\"}]",
+   "mapping": null,
+   "values": [
+    [
+     [
+      "status",
+      "status",
+      "\"source_checked\""
+     ],
+     [
+      "facets.areas",
+      "area",
+      "\"dna-genomes\""
+     ],
+     [
+      "facets.areas",
+      "area",
+      "\"proteins\""
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "\"auprc\""
+     ],
+     [
+      "attributes.unit",
+      "unit",
+      "\"percent\""
+     ],
+     [
+      "attributes.review.method",
+      "review-method",
+      "\"span-check\""
+     ],
+     [
+      "attributes.review.reviewer",
+      "agent",
+      "\"intake-agent\""
+     ],
+     [
+      "attributes.derivation.method",
+      "derivation-method",
+      "\"difference\""
+     ]
+    ]
+   ],
+   "error": null
+  },
+  {
+   "name": "a record with nothing controlled",
+   "input": "[{\"id\":\"bare\",\"facets\":{},\"attributes\":{}}]",
+   "mapping": null,
+   "values": [
+    []
+   ],
+   "error": null
+  },
+  {
+   "name": "a bad status",
+   "input": "[{\"id\":\"r\",\"facets\":{},\"attributes\":{},\"status\":\"Source checked\"}]",
+   "mapping": null,
+   "values": [
+    [
+     [
+      "status",
+      "status",
+      "\"Source checked\""
+     ]
+    ]
+   ],
+   "error": "Uncontrolled values:\n  r: status \"Source checked\" is not a concept in the status vocabulary"
+  },
+  {
+   "name": "a bad facet value among good ones",
+   "input": "[{\"id\":\"r\",\"facets\":{\"areas\":[\"dna-genomes\",\"genomics\",\"proteins\"]},\"attributes\":{}}]",
+   "mapping": null,
+   "values": [
+    [
+     [
+      "facets.areas",
+      "area",
+      "\"dna-genomes\""
+     ],
+     [
+      "facets.areas",
+      "area",
+      "\"genomics\""
+     ],
+     [
+      "facets.areas",
+      "area",
+      "\"proteins\""
+     ]
+    ]
+   ],
+   "error": "Uncontrolled values:\n  r: facets.areas \"genomics\" is not a concept in the area vocabulary"
+  },
+  {
+   "name": "a facet that is one text and not a list",
+   "input": "[{\"id\":\"r\",\"facets\":{\"areas\":\"genomics\"},\"attributes\":{}}]",
+   "mapping": null,
+   "values": [
+    [
+     [
+      "facets.areas",
+      "area",
+      "\"genomics\""
+     ]
+    ]
+   ],
+   "error": "Uncontrolled values:\n  r: facets.areas \"genomics\" is not a concept in the area vocabulary"
+  },
+  {
+   "name": "an uncontrolled facet holds anything",
+   "input": "[{\"id\":\"r\",\"facets\":{\"tasks\":[\"x\"],\"other\":[\"y\"]},\"attributes\":{}}]",
+   "mapping": null,
+   "values": [
+    []
+   ],
+   "error": null
+  },
+  {
+   "name": "a bad metric",
+   "input": "[{\"id\":\"r\",\"facets\":{},\"attributes\":{\"metric\":\"AUPRC\"}}]",
+   "mapping": null,
+   "values": [
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "\"AUPRC\""
+     ]
+    ]
+   ],
+   "error": "Uncontrolled values:\n  r: attributes.metric \"AUPRC\" is not a concept in the metric vocabulary"
+  },
+  {
+   "name": "a metric that is a list with one bad item",
+   "input": "[{\"id\":\"r\",\"facets\":{},\"attributes\":{\"metric\":[\"auprc\",\"nope\"]}}]",
+   "mapping": null,
+   "values": [
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "\"auprc\""
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "\"nope\""
+     ]
+    ]
+   ],
+   "error": "Uncontrolled values:\n  r: attributes.metric \"nope\" is not a concept in the metric vocabulary"
+  },
+  {
+   "name": "a metric that is a list inside a list",
+   "input": "[{\"id\":\"r\",\"facets\":{},\"attributes\":{\"metric\":[[\"auprc\"]]}}]",
+   "mapping": null,
+   "values": [
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "[\"auprc\"]"
+     ]
+    ]
+   ],
+   "error": "Uncontrolled values:\n  r: attributes.metric [\"auprc\"] is not a concept in the metric vocabulary"
+  },
+  {
+   "name": "an empty list holds nothing to check",
+   "input": "[{\"id\":\"r\",\"facets\":{},\"attributes\":{\"metric\":[]}}]",
+   "mapping": null,
+   "values": [
+    []
+   ],
+   "error": null
+  },
+  {
+   "name": "null and absent are not checked",
+   "input": "[{\"id\":\"r\",\"facets\":{\"areas\":null},\"attributes\":{\"metric\":null},\"status\":null}]",
+   "mapping": null,
+   "values": [
+    []
+   ],
+   "error": null
+  },
+  {
+   "name": "null inside a list is checked",
+   "input": "[{\"id\":\"r\",\"facets\":{},\"attributes\":{\"metric\":[null]}}]",
+   "mapping": null,
+   "values": [
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "null"
+     ]
+    ]
+   ],
+   "error": "Uncontrolled values:\n  r: attributes.metric null is not a concept in the metric vocabulary"
+  },
+  {
+   "name": "a metric that is empty text",
+   "input": "[{\"id\":\"r\",\"facets\":{},\"attributes\":{\"metric\":\"\"}}]",
+   "mapping": null,
+   "values": [
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "\"\""
+     ]
+    ]
+   ],
+   "error": "Uncontrolled values:\n  r: attributes.metric \"\" is not a concept in the metric vocabulary"
+  },
+  {
+   "name": "values that are not text",
+   "input": "[{\"id\":\"n\",\"facets\":{},\"attributes\":{\"metric\":1}},{\"id\":\"f\",\"facets\":{},\"attributes\":{\"metric\":1.5}},{\"id\":\"big\",\"facets\":{},\"attributes\":{\"metric\":1e+21}},{\"id\":\"small\",\"facets\":{},\"attributes\":{\"metric\":1e-7}},{\"id\":\"t\",\"facets\":{},\"attributes\":{\"metric\":true}},{\"id\":\"z\",\"facets\":{},\"attributes\":{\"metric\":false}},{\"id\":\"zero\",\"facets\":{},\"attributes\":{\"metric\":0}},{\"id\":\"o\",\"facets\":{},\"attributes\":{\"metric\":{\"b\":1,\"a\":[2]}}},{\"id\":\"u\",\"facets\":{},\"attributes\":{\"metric\":\"é \\\"quoted\\\"  \"}}]",
+   "mapping": null,
+   "values": [
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "1"
+     ]
+    ],
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "1.5"
+     ]
+    ],
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "1e+21"
+     ]
+    ],
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "1e-7"
+     ]
+    ],
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "true"
+     ]
+    ],
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "false"
+     ]
+    ],
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "0"
+     ]
+    ],
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "{\"b\":1,\"a\":[2]}"
+     ]
+    ],
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "\"é \\\"quoted\\\"  \""
+     ]
+    ]
+   ],
+   "error": "Uncontrolled values:\n  n: attributes.metric 1 is not a concept in the metric vocabulary\n  f: attributes.metric 1.5 is not a concept in the metric vocabulary\n  big: attributes.metric 1e+21 is not a concept in the metric vocabulary\n  small: attributes.metric 1e-7 is not a concept in the metric vocabulary\n  t: attributes.metric true is not a concept in the metric vocabulary\n  z: attributes.metric false is not a concept in the metric vocabulary\n  zero: attributes.metric 0 is not a concept in the metric vocabulary\n  o: attributes.metric {\"b\":1,\"a\":[2]} is not a concept in the metric vocabulary\n  u: attributes.metric \"é \\\"quoted\\\"  \" is not a concept in the metric vocabulary"
+  },
+  {
+   "name": "a key that is a name on Object.prototype is only a concept if the scheme has it",
+   "input": "[{\"id\":\"r\",\"facets\":{},\"attributes\":{\"metric\":\"constructor\",\"unit\":\"constructor\"}}]",
+   "mapping": null,
+   "values": [
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "\"constructor\""
+     ],
+     [
+      "attributes.unit",
+      "unit",
+      "\"constructor\""
+     ]
+    ]
+   ],
+   "error": "Uncontrolled values:\n  r: attributes.unit \"constructor\" is not a concept in the unit vocabulary"
+  },
+  {
+   "name": "the number 1 is not the concept 1",
+   "input": "[{\"id\":\"r\",\"facets\":{},\"attributes\":{\"metric\":1}},{\"id\":\"s\",\"facets\":{},\"attributes\":{\"metric\":\"1\"}}]",
+   "mapping": null,
+   "values": [
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "1"
+     ]
+    ],
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "\"1\""
+     ]
+    ]
+   ],
+   "error": "Uncontrolled values:\n  r: attributes.metric 1 is not a concept in the metric vocabulary"
+  },
+  {
+   "name": "a bad review method and reviewer",
+   "input": "[{\"id\":\"r\",\"facets\":{},\"attributes\":{\"review\":{\"method\":\"looked\",\"reviewer\":\"a person\",\"actor\":\"anyone\",\"date\":\"x\"}}}]",
+   "mapping": null,
+   "values": [
+    [
+     [
+      "attributes.review.method",
+      "review-method",
+      "\"looked\""
+     ],
+     [
+      "attributes.review.reviewer",
+      "agent",
+      "\"a person\""
+     ]
+    ]
+   ],
+   "error": "Uncontrolled values:\n  r: attributes.review.method \"looked\" is not a concept in the review-method vocabulary\n  r: attributes.review.reviewer \"a person\" is not a concept in the agent vocabulary"
+  },
+  {
+   "name": "a review that is a list, text, a number or null is not looked into",
+   "input": "[{\"id\":\"a\",\"facets\":{},\"attributes\":{\"review\":[{\"method\":\"looked\"}]}},{\"id\":\"b\",\"facets\":{},\"attributes\":{\"review\":\"looked\"}},{\"id\":\"c\",\"facets\":{},\"attributes\":{\"review\":3}},{\"id\":\"d\",\"facets\":{},\"attributes\":{\"review\":null}},{\"id\":\"e\",\"facets\":{},\"attributes\":{\"review\":{}}}]",
+   "mapping": null,
+   "values": [
+    [],
+    [],
+    [],
+    [],
+    []
+   ],
+   "error": null
+  },
+  {
+   "name": "a bad derivation method",
+   "input": "[{\"id\":\"r\",\"facets\":{},\"attributes\":{\"derivation\":{\"method\":\"guess\"}}}]",
+   "mapping": null,
+   "values": [
+    [
+     [
+      "attributes.derivation.method",
+      "derivation-method",
+      "\"guess\""
+     ]
+    ]
+   ],
+   "error": "Uncontrolled values:\n  r: attributes.derivation.method \"guess\" is not a concept in the derivation-method vocabulary"
+  },
+  {
+   "name": "a derivation method that is a list",
+   "input": "[{\"id\":\"r\",\"facets\":{},\"attributes\":{\"derivation\":{\"method\":[\"difference\",\"guess\"]}}}]",
+   "mapping": null,
+   "values": [
+    [
+     [
+      "attributes.derivation.method",
+      "derivation-method",
+      "\"difference\""
+     ],
+     [
+      "attributes.derivation.method",
+      "derivation-method",
+      "\"guess\""
+     ]
+    ]
+   ],
+   "error": "Uncontrolled values:\n  r: attributes.derivation.method \"guess\" is not a concept in the derivation-method vocabulary"
+  },
+  {
+   "name": "a derivation that is a list, text or null is not looked into",
+   "input": "[{\"id\":\"a\",\"facets\":{},\"attributes\":{\"derivation\":[{\"method\":\"guess\"}]}},{\"id\":\"b\",\"facets\":{},\"attributes\":{\"derivation\":\"guess\"}},{\"id\":\"c\",\"facets\":{},\"attributes\":{\"derivation\":null}},{\"id\":\"d\",\"facets\":{},\"attributes\":{\"derivation\":{}}}]",
+   "mapping": null,
+   "values": [
+    [],
+    [],
+    [],
+    []
+   ],
+   "error": null
+  },
+  {
+   "name": "a field whose scheme has no file",
+   "input": "[{\"id\":\"r\",\"facets\":{},\"attributes\":{\"ghost\":\"x\"}},{\"id\":\"s\",\"facets\":{},\"attributes\":{\"ghost\":[\"y\",\"z\"]}}]",
+   "mapping": null,
+   "values": [
+    [
+     [
+      "attributes.ghost",
+      "ghost",
+      "\"x\""
+     ]
+    ],
+    [
+     [
+      "attributes.ghost",
+      "ghost",
+      "\"y\""
+     ],
+     [
+      "attributes.ghost",
+      "ghost",
+      "\"z\""
+     ]
+    ]
+   ],
+   "error": "Uncontrolled values:\n  attributes.ghost uses scheme \"ghost\", which has no data/vocab/ghost.ttl"
+  },
+  {
+   "name": "the same fault twice in one record is reported once",
+   "input": "[{\"id\":\"r\",\"facets\":{},\"attributes\":{\"metric\":[\"nope\",\"nope\"]}}]",
+   "mapping": null,
+   "values": [
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "\"nope\""
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "\"nope\""
+     ]
+    ]
+   ],
+   "error": "Uncontrolled values:\n  r: attributes.metric \"nope\" is not a concept in the metric vocabulary"
+  },
+  {
+   "name": "faults in several fields of several records, in order",
+   "input": "[{\"id\":\"b\",\"facets\":{\"areas\":[\"y\"]},\"attributes\":{\"unit\":\"u\",\"metric\":\"m\",\"review\":{\"reviewer\":\"w\",\"method\":\"v\"},\"derivation\":{\"method\":\"d\"}},\"status\":\"x\"},{\"id\":\"a\",\"facets\":{},\"attributes\":{\"metric\":\"m\"}}]",
+   "mapping": null,
+   "values": [
+    [
+     [
+      "status",
+      "status",
+      "\"x\""
+     ],
+     [
+      "facets.areas",
+      "area",
+      "\"y\""
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "\"m\""
+     ],
+     [
+      "attributes.unit",
+      "unit",
+      "\"u\""
+     ],
+     [
+      "attributes.review.method",
+      "review-method",
+      "\"v\""
+     ],
+     [
+      "attributes.review.reviewer",
+      "agent",
+      "\"w\""
+     ],
+     [
+      "attributes.derivation.method",
+      "derivation-method",
+      "\"d\""
+     ]
+    ],
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "\"m\""
+     ]
+    ]
+   ],
+   "error": "Uncontrolled values:\n  b: status \"x\" is not a concept in the status vocabulary\n  b: facets.areas \"y\" is not a concept in the area vocabulary\n  b: attributes.metric \"m\" is not a concept in the metric vocabulary\n  b: attributes.unit \"u\" is not a concept in the unit vocabulary\n  b: attributes.review.method \"v\" is not a concept in the review-method vocabulary\n  b: attributes.review.reviewer \"w\" is not a concept in the agent vocabulary\n  b: attributes.derivation.method \"d\" is not a concept in the derivation-method vocabulary\n  a: attributes.metric \"m\" is not a concept in the metric vocabulary"
+  },
+  {
+   "name": "twenty-five faults in one record stop at twenty",
+   "input": "[{\"id\":\"r\",\"facets\":{},\"attributes\":{\"metric\":[\"bad-0\",\"bad-1\",\"bad-2\",\"bad-3\",\"bad-4\",\"bad-5\",\"bad-6\",\"bad-7\",\"bad-8\",\"bad-9\",\"bad-10\",\"bad-11\",\"bad-12\",\"bad-13\",\"bad-14\",\"bad-15\",\"bad-16\",\"bad-17\",\"bad-18\",\"bad-19\",\"bad-20\",\"bad-21\",\"bad-22\",\"bad-23\",\"bad-24\"]}}]",
+   "mapping": null,
+   "values": [
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "\"bad-0\""
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "\"bad-1\""
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "\"bad-2\""
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "\"bad-3\""
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "\"bad-4\""
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "\"bad-5\""
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "\"bad-6\""
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "\"bad-7\""
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "\"bad-8\""
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "\"bad-9\""
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "\"bad-10\""
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "\"bad-11\""
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "\"bad-12\""
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "\"bad-13\""
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "\"bad-14\""
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "\"bad-15\""
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "\"bad-16\""
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "\"bad-17\""
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "\"bad-18\""
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "\"bad-19\""
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "\"bad-20\""
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "\"bad-21\""
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "\"bad-22\""
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "\"bad-23\""
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "\"bad-24\""
+     ]
+    ]
+   ],
+   "error": "Uncontrolled values:\n  r: attributes.metric \"bad-0\" is not a concept in the metric vocabulary\n  r: attributes.metric \"bad-1\" is not a concept in the metric vocabulary\n  r: attributes.metric \"bad-2\" is not a concept in the metric vocabulary\n  r: attributes.metric \"bad-3\" is not a concept in the metric vocabulary\n  r: attributes.metric \"bad-4\" is not a concept in the metric vocabulary\n  r: attributes.metric \"bad-5\" is not a concept in the metric vocabulary\n  r: attributes.metric \"bad-6\" is not a concept in the metric vocabulary\n  r: attributes.metric \"bad-7\" is not a concept in the metric vocabulary\n  r: attributes.metric \"bad-8\" is not a concept in the metric vocabulary\n  r: attributes.metric \"bad-9\" is not a concept in the metric vocabulary\n  r: attributes.metric \"bad-10\" is not a concept in the metric vocabulary\n  r: attributes.metric \"bad-11\" is not a concept in the metric vocabulary\n  r: attributes.metric \"bad-12\" is not a concept in the metric vocabulary\n  r: attributes.metric \"bad-13\" is not a concept in the metric vocabulary\n  r: attributes.metric \"bad-14\" is not a concept in the metric vocabulary\n  r: attributes.metric \"bad-15\" is not a concept in the metric vocabulary\n  r: attributes.metric \"bad-16\" is not a concept in the metric vocabulary\n  r: attributes.metric \"bad-17\" is not a concept in the metric vocabulary\n  r: attributes.metric \"bad-18\" is not a concept in the metric vocabulary\n  r: attributes.metric \"bad-19\" is not a concept in the metric vocabulary"
+  },
+  {
+   "name": "thirty records with two faults each",
+   "input": "[{\"id\":\"r-00\",\"facets\":{},\"attributes\":{\"metric\":\"m\",\"unit\":\"u\"}},{\"id\":\"r-01\",\"facets\":{},\"attributes\":{\"metric\":\"m\",\"unit\":\"u\"}},{\"id\":\"r-02\",\"facets\":{},\"attributes\":{\"metric\":\"m\",\"unit\":\"u\"}},{\"id\":\"r-03\",\"facets\":{},\"attributes\":{\"metric\":\"m\",\"unit\":\"u\"}},{\"id\":\"r-04\",\"facets\":{},\"attributes\":{\"metric\":\"m\",\"unit\":\"u\"}},{\"id\":\"r-05\",\"facets\":{},\"attributes\":{\"metric\":\"m\",\"unit\":\"u\"}},{\"id\":\"r-06\",\"facets\":{},\"attributes\":{\"metric\":\"m\",\"unit\":\"u\"}},{\"id\":\"r-07\",\"facets\":{},\"attributes\":{\"metric\":\"m\",\"unit\":\"u\"}},{\"id\":\"r-08\",\"facets\":{},\"attributes\":{\"metric\":\"m\",\"unit\":\"u\"}},{\"id\":\"r-09\",\"facets\":{},\"attributes\":{\"metric\":\"m\",\"unit\":\"u\"}},{\"id\":\"r-10\",\"facets\":{},\"attributes\":{\"metric\":\"m\",\"unit\":\"u\"}},{\"id\":\"r-11\",\"facets\":{},\"attributes\":{\"metric\":\"m\",\"unit\":\"u\"}},{\"id\":\"r-12\",\"facets\":{},\"attributes\":{\"metric\":\"m\",\"unit\":\"u\"}},{\"id\":\"r-13\",\"facets\":{},\"attributes\":{\"metric\":\"m\",\"unit\":\"u\"}},{\"id\":\"r-14\",\"facets\":{},\"attributes\":{\"metric\":\"m\",\"unit\":\"u\"}},{\"id\":\"r-15\",\"facets\":{},\"attributes\":{\"metric\":\"m\",\"unit\":\"u\"}},{\"id\":\"r-16\",\"facets\":{},\"attributes\":{\"metric\":\"m\",\"unit\":\"u\"}},{\"id\":\"r-17\",\"facets\":{},\"attributes\":{\"metric\":\"m\",\"unit\":\"u\"}},{\"id\":\"r-18\",\"facets\":{},\"attributes\":{\"metric\":\"m\",\"unit\":\"u\"}},{\"id\":\"r-19\",\"facets\":{},\"attributes\":{\"metric\":\"m\",\"unit\":\"u\"}},{\"id\":\"r-20\",\"facets\":{},\"attributes\":{\"metric\":\"m\",\"unit\":\"u\"}},{\"id\":\"r-21\",\"facets\":{},\"attributes\":{\"metric\":\"m\",\"unit\":\"u\"}},{\"id\":\"r-22\",\"facets\":{},\"attributes\":{\"metric\":\"m\",\"unit\":\"u\"}},{\"id\":\"r-23\",\"facets\":{},\"attributes\":{\"metric\":\"m\",\"unit\":\"u\"}},{\"id\":\"r-24\",\"facets\":{},\"attributes\":{\"metric\":\"m\",\"unit\":\"u\"}},{\"id\":\"r-25\",\"facets\":{},\"attributes\":{\"metric\":\"m\",\"unit\":\"u\"}},{\"id\":\"r-26\",\"facets\":{},\"attributes\":{\"metric\":\"m\",\"unit\":\"u\"}},{\"id\":\"r-27\",\"facets\":{},\"attributes\":{\"metric\":\"m\",\"unit\":\"u\"}},{\"id\":\"r-28\",\"facets\":{},\"attributes\":{\"metric\":\"m\",\"unit\":\"u\"}},{\"id\":\"r-29\",\"facets\":{},\"attributes\":{\"metric\":\"m\",\"unit\":\"u\"}}]",
+   "mapping": null,
+   "values": [
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "\"m\""
+     ],
+     [
+      "attributes.unit",
+      "unit",
+      "\"u\""
+     ]
+    ],
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "\"m\""
+     ],
+     [
+      "attributes.unit",
+      "unit",
+      "\"u\""
+     ]
+    ],
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "\"m\""
+     ],
+     [
+      "attributes.unit",
+      "unit",
+      "\"u\""
+     ]
+    ],
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "\"m\""
+     ],
+     [
+      "attributes.unit",
+      "unit",
+      "\"u\""
+     ]
+    ],
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "\"m\""
+     ],
+     [
+      "attributes.unit",
+      "unit",
+      "\"u\""
+     ]
+    ],
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "\"m\""
+     ],
+     [
+      "attributes.unit",
+      "unit",
+      "\"u\""
+     ]
+    ],
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "\"m\""
+     ],
+     [
+      "attributes.unit",
+      "unit",
+      "\"u\""
+     ]
+    ],
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "\"m\""
+     ],
+     [
+      "attributes.unit",
+      "unit",
+      "\"u\""
+     ]
+    ],
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "\"m\""
+     ],
+     [
+      "attributes.unit",
+      "unit",
+      "\"u\""
+     ]
+    ],
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "\"m\""
+     ],
+     [
+      "attributes.unit",
+      "unit",
+      "\"u\""
+     ]
+    ],
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "\"m\""
+     ],
+     [
+      "attributes.unit",
+      "unit",
+      "\"u\""
+     ]
+    ],
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "\"m\""
+     ],
+     [
+      "attributes.unit",
+      "unit",
+      "\"u\""
+     ]
+    ],
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "\"m\""
+     ],
+     [
+      "attributes.unit",
+      "unit",
+      "\"u\""
+     ]
+    ],
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "\"m\""
+     ],
+     [
+      "attributes.unit",
+      "unit",
+      "\"u\""
+     ]
+    ],
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "\"m\""
+     ],
+     [
+      "attributes.unit",
+      "unit",
+      "\"u\""
+     ]
+    ],
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "\"m\""
+     ],
+     [
+      "attributes.unit",
+      "unit",
+      "\"u\""
+     ]
+    ],
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "\"m\""
+     ],
+     [
+      "attributes.unit",
+      "unit",
+      "\"u\""
+     ]
+    ],
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "\"m\""
+     ],
+     [
+      "attributes.unit",
+      "unit",
+      "\"u\""
+     ]
+    ],
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "\"m\""
+     ],
+     [
+      "attributes.unit",
+      "unit",
+      "\"u\""
+     ]
+    ],
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "\"m\""
+     ],
+     [
+      "attributes.unit",
+      "unit",
+      "\"u\""
+     ]
+    ],
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "\"m\""
+     ],
+     [
+      "attributes.unit",
+      "unit",
+      "\"u\""
+     ]
+    ],
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "\"m\""
+     ],
+     [
+      "attributes.unit",
+      "unit",
+      "\"u\""
+     ]
+    ],
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "\"m\""
+     ],
+     [
+      "attributes.unit",
+      "unit",
+      "\"u\""
+     ]
+    ],
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "\"m\""
+     ],
+     [
+      "attributes.unit",
+      "unit",
+      "\"u\""
+     ]
+    ],
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "\"m\""
+     ],
+     [
+      "attributes.unit",
+      "unit",
+      "\"u\""
+     ]
+    ],
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "\"m\""
+     ],
+     [
+      "attributes.unit",
+      "unit",
+      "\"u\""
+     ]
+    ],
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "\"m\""
+     ],
+     [
+      "attributes.unit",
+      "unit",
+      "\"u\""
+     ]
+    ],
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "\"m\""
+     ],
+     [
+      "attributes.unit",
+      "unit",
+      "\"u\""
+     ]
+    ],
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "\"m\""
+     ],
+     [
+      "attributes.unit",
+      "unit",
+      "\"u\""
+     ]
+    ],
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "\"m\""
+     ],
+     [
+      "attributes.unit",
+      "unit",
+      "\"u\""
+     ]
+    ]
+   ],
+   "error": "Uncontrolled values:\n  r-00: attributes.metric \"m\" is not a concept in the metric vocabulary\n  r-00: attributes.unit \"u\" is not a concept in the unit vocabulary\n  r-01: attributes.metric \"m\" is not a concept in the metric vocabulary\n  r-01: attributes.unit \"u\" is not a concept in the unit vocabulary\n  r-02: attributes.metric \"m\" is not a concept in the metric vocabulary\n  r-02: attributes.unit \"u\" is not a concept in the unit vocabulary\n  r-03: attributes.metric \"m\" is not a concept in the metric vocabulary\n  r-03: attributes.unit \"u\" is not a concept in the unit vocabulary\n  r-04: attributes.metric \"m\" is not a concept in the metric vocabulary\n  r-04: attributes.unit \"u\" is not a concept in the unit vocabulary\n  r-05: attributes.metric \"m\" is not a concept in the metric vocabulary\n  r-05: attributes.unit \"u\" is not a concept in the unit vocabulary\n  r-06: attributes.metric \"m\" is not a concept in the metric vocabulary\n  r-06: attributes.unit \"u\" is not a concept in the unit vocabulary\n  r-07: attributes.metric \"m\" is not a concept in the metric vocabulary\n  r-07: attributes.unit \"u\" is not a concept in the unit vocabulary\n  r-08: attributes.metric \"m\" is not a concept in the metric vocabulary\n  r-08: attributes.unit \"u\" is not a concept in the unit vocabulary\n  r-09: attributes.metric \"m\" is not a concept in the metric vocabulary\n  r-09: attributes.unit \"u\" is not a concept in the unit vocabulary\n  r-10: attributes.metric \"m\" is not a concept in the metric vocabulary\n  r-11: attributes.metric \"m\" is not a concept in the metric vocabulary\n  r-12: attributes.metric \"m\" is not a concept in the metric vocabulary\n  r-13: attributes.metric \"m\" is not a concept in the metric vocabulary\n  r-14: attributes.metric \"m\" is not a concept in the metric vocabulary\n  r-15: attributes.metric \"m\" is not a concept in the metric vocabulary\n  r-16: attributes.metric \"m\" is not a concept in the metric vocabulary\n  r-17: attributes.metric \"m\" is not a concept in the metric vocabulary\n  r-18: attributes.metric \"m\" is not a concept in the metric vocabulary\n  r-19: attributes.metric \"m\" is not a concept in the metric vocabulary\n  r-20: attributes.metric \"m\" is not a concept in the metric vocabulary\n  r-21: attributes.metric \"m\" is not a concept in the metric vocabulary\n  r-22: attributes.metric \"m\" is not a concept in the metric vocabulary\n  r-23: attributes.metric \"m\" is not a concept in the metric vocabulary\n  r-24: attributes.metric \"m\" is not a concept in the metric vocabulary\n  r-25: attributes.metric \"m\" is not a concept in the metric vocabulary\n  r-26: attributes.metric \"m\" is not a concept in the metric vocabulary\n  r-27: attributes.metric \"m\" is not a concept in the metric vocabulary\n  r-28: attributes.metric \"m\" is not a concept in the metric vocabulary\n  r-29: attributes.metric \"m\" is not a concept in the metric vocabulary"
+  },
+  {
+   "name": "after twenty faults a record with a good value first still reports its bad one",
+   "input": "[{\"id\":\"first\",\"facets\":{},\"attributes\":{\"metric\":[\"bad-0\",\"bad-1\",\"bad-2\",\"bad-3\",\"bad-4\",\"bad-5\",\"bad-6\",\"bad-7\",\"bad-8\",\"bad-9\",\"bad-10\",\"bad-11\",\"bad-12\",\"bad-13\",\"bad-14\",\"bad-15\",\"bad-16\",\"bad-17\",\"bad-18\",\"bad-19\"]}},{\"id\":\"second\",\"facets\":{},\"attributes\":{\"metric\":\"auprc\",\"unit\":\"bad-unit\"}},{\"id\":\"third\",\"facets\":{},\"attributes\":{\"metric\":\"auprc\",\"unit\":\"percent\"}}]",
+   "mapping": null,
+   "values": [
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "\"bad-0\""
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "\"bad-1\""
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "\"bad-2\""
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "\"bad-3\""
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "\"bad-4\""
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "\"bad-5\""
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "\"bad-6\""
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "\"bad-7\""
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "\"bad-8\""
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "\"bad-9\""
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "\"bad-10\""
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "\"bad-11\""
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "\"bad-12\""
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "\"bad-13\""
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "\"bad-14\""
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "\"bad-15\""
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "\"bad-16\""
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "\"bad-17\""
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "\"bad-18\""
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "\"bad-19\""
+     ]
+    ],
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "\"auprc\""
+     ],
+     [
+      "attributes.unit",
+      "unit",
+      "\"bad-unit\""
+     ]
+    ],
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "\"auprc\""
+     ],
+     [
+      "attributes.unit",
+      "unit",
+      "\"percent\""
+     ]
+    ]
+   ],
+   "error": "Uncontrolled values:\n  first: attributes.metric \"bad-0\" is not a concept in the metric vocabulary\n  first: attributes.metric \"bad-1\" is not a concept in the metric vocabulary\n  first: attributes.metric \"bad-2\" is not a concept in the metric vocabulary\n  first: attributes.metric \"bad-3\" is not a concept in the metric vocabulary\n  first: attributes.metric \"bad-4\" is not a concept in the metric vocabulary\n  first: attributes.metric \"bad-5\" is not a concept in the metric vocabulary\n  first: attributes.metric \"bad-6\" is not a concept in the metric vocabulary\n  first: attributes.metric \"bad-7\" is not a concept in the metric vocabulary\n  first: attributes.metric \"bad-8\" is not a concept in the metric vocabulary\n  first: attributes.metric \"bad-9\" is not a concept in the metric vocabulary\n  first: attributes.metric \"bad-10\" is not a concept in the metric vocabulary\n  first: attributes.metric \"bad-11\" is not a concept in the metric vocabulary\n  first: attributes.metric \"bad-12\" is not a concept in the metric vocabulary\n  first: attributes.metric \"bad-13\" is not a concept in the metric vocabulary\n  first: attributes.metric \"bad-14\" is not a concept in the metric vocabulary\n  first: attributes.metric \"bad-15\" is not a concept in the metric vocabulary\n  first: attributes.metric \"bad-16\" is not a concept in the metric vocabulary\n  first: attributes.metric \"bad-17\" is not a concept in the metric vocabulary\n  first: attributes.metric \"bad-18\" is not a concept in the metric vocabulary\n  first: attributes.metric \"bad-19\" is not a concept in the metric vocabulary"
+  },
+  {
+   "name": "numbers as JavaScript prints them, and one beyond any double",
+   "input": "[{\"id\":\"r\",\"facets\":{},\"attributes\":{\"metric\":[1.0,-0,1e21,0.00001,12345678901234567890,1e400,[-1e400],{\"a\":1e400}]}}]",
+   "mapping": null,
+   "values": [
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "1"
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "0"
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "1e+21"
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "0.00001"
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "12345678901234567000"
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "null"
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "[null]"
+     ],
+     [
+      "attributes.metric",
+      "metric",
+      "{\"a\":null}"
+     ]
+    ]
+   ],
+   "error": "Uncontrolled values:\n  r: attributes.metric 1 is not a concept in the metric vocabulary\n  r: attributes.metric 0 is not a concept in the metric vocabulary\n  r: attributes.metric 1e+21 is not a concept in the metric vocabulary\n  r: attributes.metric 0.00001 is not a concept in the metric vocabulary\n  r: attributes.metric 12345678901234567000 is not a concept in the metric vocabulary\n  r: attributes.metric null is not a concept in the metric vocabulary\n  r: attributes.metric [null] is not a concept in the metric vocabulary\n  r: attributes.metric {\"a\":null} is not a concept in the metric vocabulary"
+  },
+  {
+   "name": "integer-like keys inside a value are listed first",
+   "input": "[{\"id\":\"r\",\"facets\":{},\"attributes\":{\"metric\":{\"b\":1,\"10\":2,\"2\":3}}}]",
+   "mapping": null,
+   "values": [
+    [
+     [
+      "attributes.metric",
+      "metric",
+      "{\"2\":3,\"10\":2,\"b\":1}"
+     ]
+    ]
+   ],
+   "error": "Uncontrolled values:\n  r: attributes.metric {\"2\":3,\"10\":2,\"b\":1} is not a concept in the metric vocabulary"
+  },
+  {
+   "name": "a mapping with no controlled field",
+   "input": "[{\"id\":\"r\",\"facets\":{},\"attributes\":{\"metric\":\"x\"},\"status\":\"x\"}]",
+   "mapping": {
+    "fields": {
+     "status": {
+      "property": "p"
+     }
+    },
+    "facets": {},
+    "attributes": {},
+    "review": {}
+   },
+   "values": [
+    []
+   ],
+   "error": null
+  }
+ ]
+}

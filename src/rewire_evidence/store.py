@@ -33,27 +33,8 @@ from rewire_evidence.jsonl import (
     text_field,
     write_text,
 )
+from rewire_evidence.schema import KINDS
 
-#: Every kind a record may have: `entityKinds` in `shared/omics/entity-kinds.ts`, in its order.
-KINDS = (
-    "model",
-    "method",
-    "configuration",
-    "pipeline",
-    "service",
-    "benchmark",
-    "task",
-    "protocol",
-    "evaluator",
-    "dataset",
-    "dataset_subset",
-    "baseline",
-    "evaluation",
-    "result",
-    "source",
-    "claim",
-    "use_case",
-)
 EVIDENCE_KINDS = ("evaluation", "result", "claim")
 #: Kinds whose records are split across shard files.
 SHARDED_KINDS = EVIDENCE_KINDS
