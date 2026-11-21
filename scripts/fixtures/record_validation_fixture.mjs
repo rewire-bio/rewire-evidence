@@ -349,6 +349,18 @@ function faulted(held, [op, family, arg, other]) {
     const held_ = lines(out[file]);
     held_[arg] = JSON.stringify({ ...JSON.parse(held_[arg]), status: "nonsense" });
     out[file] = joined(held_);
+  } else if (op === "beyond") {
+    // A number no double holds, in an attribute that takes any JSON. JSON.parse reads it as
+    // Infinity and JSON.stringify writes that as null, so the digest of the record is the
+    // digest of a line that says null, and the provenance row is given that one.
+    const file = pick(records);
+    const held_ = lines(out[file]);
+    const row = JSON.parse(held_[arg]);
+    held_[arg] = JSON.stringify({ ...row, attributes: { ...row.attributes, entity_classification: { beyond: "@@" } } }).replace('"@@"', "1e400");
+    out[file] = joined(held_);
+    const digest = recordSha256(JSON.parse(held_[arg]));
+    for (const name of provenance)
+      out[name] = joined(lines(out[name]).map((line) => (JSON.parse(line).id === row.id ? JSON.stringify({ ...JSON.parse(line), sha256: digest }) : line)));
   } else if (op === "blank") {
     const file = pick(records, 2);
     const held_ = lines(out[file]);
@@ -501,6 +513,11 @@ const seedNames = {
     "a panel result of another metric",
     "a panel on another record with no claim backing the link",
     "a panel on a protocol that differs from its task's of the same ID",
+    // Rules a review removed from the port one at a time, each leaving this gate green.
+    "a source with no retrieval date",
+    "a reproduced result of an evaluation that was not our run",
+    "a panel result that cites none of the panel's sources",
+    "panel results that all test one system",
   ],
 };
 const validators = {

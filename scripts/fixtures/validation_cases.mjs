@@ -1043,6 +1043,7 @@ export const loadCases = [
   ["a line that is not a record", [["damage", "record", 0]]],
   ["a blank line and no final line break", [["blank", "record"]]],
   ["no records and no provenance", [["empty"]]],
+  ["a number beyond every double, with the digest of the null it is written as", [["beyond", "record", 0]]],
 ];
 
 // ---------------------------------------------------------------------------------------
