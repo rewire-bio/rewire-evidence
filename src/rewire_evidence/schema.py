@@ -305,22 +305,26 @@ _JS_DECIMAL = re.compile(r"[+-]?(?:Infinity|(?:[0-9]+\.?[0-9]*|\.[0-9]+)(?:[eE][
 _JS_RADIX = re.compile(r"0[xX][0-9a-fA-F]+|0[oO][0-7]+|0[bB][01]+")
 
 
-def _js_text(value: JsonValue) -> str:
-    """`String(value)` for a value `JSON.parse` returned."""
-    if value is None:
-        return "null"
-    if isinstance(value, bool):
-        return "true" if value else "false"
-    if isinstance(value, str):
-        return value
-    if isinstance(value, list):
-        # Array.prototype.join writes nothing for null.
-        return ",".join("" if item is None else _js_text(item) for item in value)
-    if isinstance(value, dict):
+def _js_joined(items: list[JsonValue]) -> str:
+    """`String(items)` for a list `JSON.parse` returned, which is `items.join(",")`."""
+    return ",".join(_js_element(item) for item in items)
+
+
+def _js_element(item: JsonValue) -> str:
+    """One element as `Array.prototype.join` writes it: nothing for null, `String(item)` otherwise."""
+    if item is None:
+        return ""
+    if isinstance(item, bool):
+        return "true" if item else "false"
+    if isinstance(item, str):
+        return item
+    if isinstance(item, list):
+        return _js_joined(item)
+    if isinstance(item, dict):
         return "[object Object]"
-    if math.isinf(value):
-        return "Infinity" if value > 0 else "-Infinity"
-    return js_number(value)
+    if math.isinf(item):
+        return "Infinity" if item > 0 else "-Infinity"
+    return js_number(item)
 
 
 def _js_number_of_text(text: str) -> float:
@@ -346,7 +350,7 @@ def _js_number_of(value: JsonValue) -> float:
         return float(value)
     if isinstance(value, dict):
         return math.nan
-    return _js_number_of_text(_js_text(value))
+    return _js_number_of_text(value if isinstance(value, str) else _js_joined(value))
 
 
 def _at_least_one(value: _Held, path: _Path, issues: list[Issue]) -> None:

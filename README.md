@@ -18,7 +18,9 @@ The old store is the test oracle, and it is big enough to be decisive. Nothing h
 | --- | --- | --- | --- | --- |
 | P0 | Record serialisation and digests | `data/provenance/records/*.jsonl` | 93,216 | Passing |
 | P1 | Store layout, and reading and writing every family of store file | every committed line file, and the 18 logical digests of release `2026-11-20-72316db0764b` | 199,585 lines in 100 files | Passing ([notes](docs/stages/p1.md)) |
-| P2 to P6 | Record schema, vocabularies, validators, write path | `records check` over the store, replayed batches | 93,216 | Not started |
+| P2 | Record schema and key order, kinds, statuses, relation rules, public records | every committed record parsed and written back as its committed line, and again with its keys moved; 299 inputs recorded from zod, 209 of them refused | 93,216 records, 138,962 links | Passing ([notes](docs/stages/p2-p3.md)) |
+| P3 | Vocabulary loader and controlled values | the 25 SKOS schemes as n3 reads them, and every controlled value in the store | 441 concepts, 580,242 values | Passing ([notes](docs/stages/p2-p3.md)) |
+| P4 to P6 | Attribute registry, the remaining validators, write path | `records check` over the store, replayed batches | 93,216 | Not started |
 | P7 | Locator grammar | committed coverage report | 52,278 | Not started |
 | P8 | Report-only checks | `checks-baseline.json` and the row-level report | 10,754 | Not started |
 | P9 | Object manifest and receipts, with their schemas | `data/archive/objects/*.jsonl` | 1,167 | Bytes reproduce (P1). Schemas not started |
@@ -36,9 +38,14 @@ Run the gates here:
 uv sync --group dev
 uv run python scripts/verify_store_digests.py ../rewire-benchmark-data
 uv run python scripts/verify_store_layout.py ../rewire-benchmark-data
+uv run python scripts/verify_store_schema.py ../rewire-benchmark-data
 ```
 
-The second one holds every count, and the SHA-256 of each family's files, against `scripts/expected/store-layout.json`, which names the store commit they were measured at. A checkout of any other commit, or an edited one, fails it. Both exit 0 when everything reproduces, 1 on a disagreement and 2 when the run could not be made.
+The second one holds every count, and the SHA-256 of each family's files, against `scripts/expected/store-layout.json`, which names the store commit they were measured at. A checkout of any other commit, or an edited one, fails it.
+
+The third parses every record with the schema and requires the committed line back, then does it again with each record's keys in another order, and checks every link, source ID and controlled value. It holds what it measures against `scripts/expected/store-schema.json`, which is not written by this library: the TypeScript in the data repository records it, at the same commit.
+
+All three exit 0 when everything reproduces, 1 on a disagreement and 2 when the run could not be made.
 
 ## Why byte identity matters here
 
@@ -58,16 +65,22 @@ uv run ruff check . && uv run ruff format --check .
 
 `tests/js-fixture.json` and `tests/fixtures/js-semantics.json` are output Node actually produced, committed rather than described, so the tests are a recording of the other implementation instead of an opinion about the specification. `node scripts/fixtures/record_js_fixture.mjs` writes both, using built-ins only, and CI runs it to prove the files are what the script produces. The first fixture is what caught the 2^53 bug, which the record oracle could not, because the store holds no value that large.
 
+`tests/fixtures/record-schema.json`, `tests/fixtures/vocabularies.json` and `scripts/expected/store-schema.json` are the same idea one level up: what the data repository's own TypeScript does, with zod as the schema and n3 as the Turtle parser. `scripts/fixtures/record_schema_fixture.mjs` writes them, and it has to run inside a checkout of the data repository with its dependencies installed. That happens in the `fixtures` job in CI and nowhere else. The job fails if a committed file is not what the TypeScript produces, and uploads what it recorded as the `schema-fixtures` artifact, which is how a changed fixture gets committed.
+
 ## Layout
 
 ```
-src/rewire_evidence/canonical.py   serialisation, digests, shards
-src/rewire_evidence/jsonl.py       line files, split on the newline only
-src/rewire_evidence/store.py       where records and provenance live, logical digests, reshard
-src/rewire_evidence/families.py    every family of store file: serialisation, order, placement
-src/rewire_evidence/parity.py      what the two gates measure
-src/rewire_evidence/gates.py       the gates as commands: arguments, report, exit status
-scripts/                           one thin file per gate, the pinned expectation, the fixture recorder
-tests/                             pytest and Hypothesis, with the Node fixtures
+src/rewire_evidence/canonical.py    serialisation, digests, shards, one form per JavaScript value
+src/rewire_evidence/jsonl.py        line files, split on the newline only
+src/rewire_evidence/store.py        where records and provenance live, logical digests, reshard
+src/rewire_evidence/families.py     every family of store file: serialisation, order, placement
+src/rewire_evidence/schema.py       what a record is: the schema, key order, kinds, relation rules
+src/rewire_evidence/vocab.py        the SKOS vocabularies and the controlled-value check
+src/rewire_evidence/records.py      loading a store as records, as far as the checks are ported
+src/rewire_evidence/parity.py       what the digest and layout gates measure
+src/rewire_evidence/conformance.py  what the schema gate measures
+src/rewire_evidence/gates.py        the gates as commands: arguments, report, exit status
+scripts/                            one thin file per gate, the expectations, the fixture recorders
+tests/                              pytest and Hypothesis, with the Node fixtures
 docs/stages/                       one note per ported stage: oracle, measured result, known gaps
 ```

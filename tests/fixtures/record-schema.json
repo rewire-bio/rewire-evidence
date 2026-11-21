@@ -4063,6 +4063,174 @@
    ]
   },
   {
+   "name": "name has the length [false]",
+   "input": "{\"id\":\"model-a\",\"kind\":\"model\",\"name\":{\"length\":[false]},\"description\":\"A model.\",\"status\":\"discovered\",\"facets\":{\"areas\":[\"dna-genomes\"],\"tasks\":[\"t\"]},\"source_ids\":[\"source-a\"],\"links\":[{\"relation\":\"source\",\"target_id\":\"source-a\"}],\"attributes\":{\"version\":\"1\",\"nested\":{\"b\":1,\"a\":2}}}",
+   "accepted": false,
+   "issues": [
+    {
+     "code": "invalid_type",
+     "path": [
+      "name"
+     ],
+     "message": "Invalid input: expected string, received object"
+    },
+    {
+     "code": "too_small",
+     "path": [
+      "name"
+     ],
+     "message": "Too small: expected unknown to be >=1"
+    }
+   ]
+  },
+  {
+   "name": "name has the length [1e400]",
+   "input": "{\"id\":\"model-a\",\"kind\":\"model\",\"name\":{\"length\":[1e400]},\"description\":\"A model.\",\"status\":\"discovered\",\"facets\":{\"areas\":[\"dna-genomes\"],\"tasks\":[\"t\"]},\"source_ids\":[\"source-a\"],\"links\":[{\"relation\":\"source\",\"target_id\":\"source-a\"}],\"attributes\":{\"version\":\"1\",\"nested\":{\"b\":1,\"a\":2}}}",
+   "accepted": false,
+   "issues": [
+    {
+     "code": "invalid_type",
+     "path": [
+      "name"
+     ],
+     "message": "Invalid input: expected string, received object"
+    }
+   ]
+  },
+  {
+   "name": "name has the length [-1e400]",
+   "input": "{\"id\":\"model-a\",\"kind\":\"model\",\"name\":{\"length\":[-1e400]},\"description\":\"A model.\",\"status\":\"discovered\",\"facets\":{\"areas\":[\"dna-genomes\"],\"tasks\":[\"t\"]},\"source_ids\":[\"source-a\"],\"links\":[{\"relation\":\"source\",\"target_id\":\"source-a\"}],\"attributes\":{\"version\":\"1\",\"nested\":{\"b\":1,\"a\":2}}}",
+   "accepted": false,
+   "issues": [
+    {
+     "code": "invalid_type",
+     "path": [
+      "name"
+     ],
+     "message": "Invalid input: expected string, received object"
+    },
+    {
+     "code": "too_small",
+     "path": [
+      "name"
+     ],
+     "message": "Too small: expected unknown to be >=1"
+    }
+   ]
+  },
+  {
+   "name": "name has the length -1e400",
+   "input": "{\"id\":\"model-a\",\"kind\":\"model\",\"name\":{\"length\":-1e400},\"description\":\"A model.\",\"status\":\"discovered\",\"facets\":{\"areas\":[\"dna-genomes\"],\"tasks\":[\"t\"]},\"source_ids\":[\"source-a\"],\"links\":[{\"relation\":\"source\",\"target_id\":\"source-a\"}],\"attributes\":{\"version\":\"1\",\"nested\":{\"b\":1,\"a\":2}}}",
+   "accepted": false,
+   "issues": [
+    {
+     "code": "invalid_type",
+     "path": [
+      "name"
+     ],
+     "message": "Invalid input: expected string, received object"
+    },
+    {
+     "code": "too_small",
+     "path": [
+      "name"
+     ],
+     "message": "Too small: expected unknown to be >=1"
+    }
+   ]
+  },
+  {
+   "name": "name has the length \"0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\"",
+   "input": "{\"id\":\"model-a\",\"kind\":\"model\",\"name\":{\"length\":\"0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\"},\"description\":\"A model.\",\"status\":\"discovered\",\"facets\":{\"areas\":[\"dna-genomes\"],\"tasks\":[\"t\"]},\"source_ids\":[\"source-a\"],\"links\":[{\"relation\":\"source\",\"target_id\":\"source-a\"}],\"attributes\":{\"version\":\"1\",\"nested\":{\"b\":1,\"a\":2}}}",
+   "accepted": false,
+   "issues": [
+    {
+     "code": "invalid_type",
+     "path": [
+      "name"
+     ],
+     "message": "Invalid input: expected string, received object"
+    }
+   ]
+  },
+  {
+   "name": "name has the length \"0x\"",
+   "input": "{\"id\":\"model-a\",\"kind\":\"model\",\"name\":{\"length\":\"0x\"},\"description\":\"A model.\",\"status\":\"discovered\",\"facets\":{\"areas\":[\"dna-genomes\"],\"tasks\":[\"t\"]},\"source_ids\":[\"source-a\"],\"links\":[{\"relation\":\"source\",\"target_id\":\"source-a\"}],\"attributes\":{\"version\":\"1\",\"nested\":{\"b\":1,\"a\":2}}}",
+   "accepted": false,
+   "issues": [
+    {
+     "code": "invalid_type",
+     "path": [
+      "name"
+     ],
+     "message": "Invalid input: expected string, received object"
+    },
+    {
+     "code": "too_small",
+     "path": [
+      "name"
+     ],
+     "message": "Too small: expected unknown to be >=1"
+    }
+   ]
+  },
+  {
+   "name": "name has the length [1e21]",
+   "input": "{\"id\":\"model-a\",\"kind\":\"model\",\"name\":{\"length\":[1e21]},\"description\":\"A model.\",\"status\":\"discovered\",\"facets\":{\"areas\":[\"dna-genomes\"],\"tasks\":[\"t\"]},\"source_ids\":[\"source-a\"],\"links\":[{\"relation\":\"source\",\"target_id\":\"source-a\"}],\"attributes\":{\"version\":\"1\",\"nested\":{\"b\":1,\"a\":2}}}",
+   "accepted": false,
+   "issues": [
+    {
+     "code": "invalid_type",
+     "path": [
+      "name"
+     ],
+     "message": "Invalid input: expected string, received object"
+    }
+   ]
+  },
+  {
+   "name": "name has the length [1e-7]",
+   "input": "{\"id\":\"model-a\",\"kind\":\"model\",\"name\":{\"length\":[1e-7]},\"description\":\"A model.\",\"status\":\"discovered\",\"facets\":{\"areas\":[\"dna-genomes\"],\"tasks\":[\"t\"]},\"source_ids\":[\"source-a\"],\"links\":[{\"relation\":\"source\",\"target_id\":\"source-a\"}],\"attributes\":{\"version\":\"1\",\"nested\":{\"b\":1,\"a\":2}}}",
+   "accepted": false,
+   "issues": [
+    {
+     "code": "invalid_type",
+     "path": [
+      "name"
+     ],
+     "message": "Invalid input: expected string, received object"
+    },
+    {
+     "code": "too_small",
+     "path": [
+      "name"
+     ],
+     "message": "Too small: expected unknown to be >=1"
+    }
+   ]
+  },
+  {
+   "name": "name has the length [\"a\",null,[null,\"b\"]]",
+   "input": "{\"id\":\"model-a\",\"kind\":\"model\",\"name\":{\"length\":[\"a\",null,[null,\"b\"]]},\"description\":\"A model.\",\"status\":\"discovered\",\"facets\":{\"areas\":[\"dna-genomes\"],\"tasks\":[\"t\"]},\"source_ids\":[\"source-a\"],\"links\":[{\"relation\":\"source\",\"target_id\":\"source-a\"}],\"attributes\":{\"version\":\"1\",\"nested\":{\"b\":1,\"a\":2}}}",
+   "accepted": false,
+   "issues": [
+    {
+     "code": "invalid_type",
+     "path": [
+      "name"
+     ],
+     "message": "Invalid input: expected string, received object"
+    },
+    {
+     "code": "too_small",
+     "path": [
+      "name"
+     ],
+     "message": "Too small: expected unknown to be >=1"
+    }
+   ]
+  },
+  {
    "name": "name is the list [\"x\"]",
    "input": "{\"id\":\"model-a\",\"kind\":\"model\",\"name\":[\"x\"],\"description\":\"A model.\",\"status\":\"discovered\",\"facets\":{\"areas\":[\"dna-genomes\"],\"tasks\":[\"t\"]},\"source_ids\":[\"source-a\"],\"links\":[{\"relation\":\"source\",\"target_id\":\"source-a\"}],\"attributes\":{\"version\":\"1\",\"nested\":{\"b\":1,\"a\":2}}}",
    "accepted": false,

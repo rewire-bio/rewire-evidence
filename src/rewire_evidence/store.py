@@ -7,13 +7,14 @@ results, claims) and the provenance log are sharded: a record is in
 SHA-256 of its ID. Every file is sorted by ID, compared as JavaScript compares strings.
 
 This module places, reads, writes and digests lines. It does not know what a valid record
-is: the schema, the vocabularies and the validators are later stages. `load_store` is
-therefore the structural half of `loadRecords`, and says so.
+is. `load_store` is the structural half of `loadRecords`: `records.load_records` is the
+whole of it as far as it is ported, with the schema run first and the vocabularies and
+references checked after.
 
 It does know the kinds, because a kind becomes a file name. The TypeScript builds the path
-from whatever kind it is given and relies on `recordSchema.parse` having run first. Until
-the schema is ported nothing runs first here, so a kind outside `KINDS` is refused before
-it can name a file.
+from whatever kind it is given and relies on `recordSchema.parse` having run first. These
+functions are also called with rows nothing has parsed, so a kind outside `schema.KINDS`
+is refused before it can name a file.
 """
 
 from __future__ import annotations
@@ -323,10 +324,10 @@ class RecordCheck:
 def checked_records(root: Path) -> Iterator[JsonObject]:
     """Every record in file order, checked for file placement, sort order and provenance.
 
-    This is `loadRecords` without the schema and the validators, which are not ported yet.
-    A record is hashed as the line was read, so until the schema lands this cannot notice a
-    record whose top-level keys are out of schema order if its digest was taken the same
-    way. The last check, that no provenance row is left over, runs when the records run
+    This is `loadRecords` without the schema and the validators. A record is hashed as the
+    line was read, so this cannot notice a record whose top-level keys are out of schema
+    order if its digest was taken the same way: `records.load_records` parses first and
+    can. The last check, that no provenance row is left over, runs when the records run
     out, so the iterator has to be read to its end for the store to have passed.
 
     It stops at the first fault, as `loadRecords` does. `parity.verify_records` makes the
