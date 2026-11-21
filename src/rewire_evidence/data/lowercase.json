@@ -1,5 +1,5 @@
 {
- "recorded_from": {"script":"scripts/fixtures/record_lowercase.mjs","node":"v26","unicode":"17.0"},
+ "recorded_from": {"script":"scripts/fixtures/record_lowercase.mjs","node":"v24","unicode":"17.0"},
  "lower": [
   ["0041","0061"],
   ["0042","0062"],
