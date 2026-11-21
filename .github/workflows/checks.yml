@@ -25,6 +25,9 @@ env:
   # rewire-bio/rewire-benchmark-data, and the record count the gates expect of it.
   STORE_REF: 91f76cf8e61cba9d6037a01a19c9aa3051184900
   STORE_RECORDS: "93216"
+  # The results among them that carry a locator, and the rows of the value-check files.
+  STORE_LOCATORS: "52278"
+  VALUE_CHECK_ROWS: "2432"
 
 jobs:
   checks:
@@ -78,9 +81,10 @@ jobs:
           recorded=$(jq -r .recorded_from.store_ref scripts/expected/store-schema.json)
           validated=$(jq -r .recorded_from.store_ref scripts/expected/store-validation.json)
           registry=$(jq -r .recorded_from.store_ref src/rewire_evidence/data/attribute-registry.json)
-          for named in "$held" "$expected" "$recorded" "$validated" "$registry"; do
+          located=$(jq -r .recorded_from.store_ref scripts/expected/store-locators.json)
+          for named in "$held" "$expected" "$recorded" "$validated" "$registry" "$located"; do
             if [ "$named" != "$STORE_REF" ]; then
-              echo "::error::STORE_REF is ${STORE_REF}, the checkout is ${held}, the pinned layout was measured at ${expected}, the TypeScript was recorded at ${recorded} and at ${validated}, and the attribute registry was read at ${registry}. All six must be one commit."
+              echo "::error::STORE_REF is ${STORE_REF}, the checkout is ${held}, the pinned layout was measured at ${expected}, the TypeScript was recorded at ${recorded} and at ${validated}, the attribute registry was read at ${registry} and the locators at ${located}. All seven must be one commit."
               exit 1
             fi
           done
@@ -191,6 +195,42 @@ jobs:
             exit 1
           fi
 
+      # Every locator of every result read by the grammar, and each reading written out as
+      # the line the TypeScript wrote for it in scripts/expected/store-locators.jsonl.gz,
+      # which the fixtures job below records from shared/omics/locator.ts at the same
+      # commit. Then the coverage report, byte for byte the one the data repository
+      # commits, and the pattern of grammar version 1 against every row of the value-check
+      # files. The script fails on a line that differs and on a count that is not the
+      # recorded one, and the counts are pinned here too.
+      - name: Read every stored locator as the TypeScript reads it
+        run: |
+          set -o pipefail
+          uv run --no-sync python scripts/verify_store_locators.py store --json locators.json 2>&1 | tee locators.log
+          for pin in "locators_read:$STORE_LOCATORS" "locators_reproduced:$STORE_LOCATORS" "value_check_rows:$VALUE_CHECK_ROWS" "value_check_agreed:$VALUE_CHECK_ROWS"; do
+            measured=$(jq -r ".${pin%%:*}" locators.json)
+            if [ "$measured" != "${pin##*:}" ]; then
+              echo "::error::The locator gate measured ${pin%%:*} as ${measured} against a pin of ${pin##*:}."
+              exit 1
+            fi
+          done
+
+      # The command itself, which is `npm run locator -- coverage`: the report it writes
+      # has to be the one the data repository commits.
+      - name: Write the coverage report with the command
+        run: |
+          uv run --no-sync rewire-evidence locator coverage --root store --out locator-coverage.tsv
+          for report in $(jq -r '.report.committed[]' scripts/expected/store-locators.json); do
+            cmp locator-coverage.tsv "store/${report}"
+          done
+          if [ "$(jq -r '.report.committed | length' scripts/expected/store-locators.json)" -lt 1 ]; then
+            echo "::error::The TypeScript's report is not one the data repository commits, so there is nothing to hold the command to."
+            exit 1
+          fi
+          if [ -n "$(git -C store status --porcelain)" ]; then
+            echo "::error::The command wrote to the store."
+            exit 1
+          fi
+
       - name: Summary
         if: always()
         run: |
@@ -203,6 +243,7 @@ jobs:
             if [ -f layout.log ]; then echo; echo "### Store layout"; echo; echo '```'; cat layout.log; echo '```'; fi
             if [ -f schema.log ]; then echo; echo "### Schema and vocabularies"; echo; echo '```'; cat schema.log; echo '```'; fi
             if [ -f validation.log ]; then echo; echo "### Validators"; echo; echo '```'; cat validation.log; echo '```'; fi
+            if [ -f locators.log ]; then echo; echo "### Locators"; echo; echo '```'; cat locators.log; echo '```'; fi
           } >> "$GITHUB_STEP_SUMMARY"
 
   # The write path, held to the data repository's own history. Each case is a merged pull
@@ -324,6 +365,17 @@ jobs:
       # with. Built-ins only, on the Node the data repository's workflows run.
       - name: Record the lowercase mapping
         run: node scripts/fixtures/record_lowercase.mjs
+      # Which characters each class, escape and letter of the library's patterns matches,
+      # which follows the same Unicode version, and what a list of patterns matches in a
+      # list of texts. Built-ins only.
+      - name: Record the patterns
+        run: node scripts/fixtures/record_pattern_fixture.mjs
+      # The locator grammar: its reading of every locator in the pinned store, the coverage
+      # report its command writes for that store, and its answers on locators the store has
+      # no example of.
+      - name: Record the locator grammar
+        working-directory: store
+        run: node_modules/.bin/tsx ../scripts/fixtures/record_locator_fixture.mjs
       - name: Keep what was recorded
         if: always()
         uses: actions/upload-artifact@v4
@@ -335,12 +387,17 @@ jobs:
             tests/fixtures/turtle.json
             tests/fixtures/validation.json
             tests/fixtures/write-path.json
+            tests/fixtures/js-patterns.json
+            tests/fixtures/locator.json
+            scripts/expected/store-locators.json
+            scripts/expected/store-locators.jsonl.gz
             scripts/expected/store-schema.json
             scripts/expected/store-validation.json
             scripts/expected/store-recorded-writes.json
             scripts/expected/changes
             src/rewire_evidence/data/attribute-registry.json
             src/rewire_evidence/data/lowercase.json
+            src/rewire_evidence/data/pattern-classes.json
           if-no-files-found: ignore
       - name: Fixtures are what the TypeScript produces
         run: |
