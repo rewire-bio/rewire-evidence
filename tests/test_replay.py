@@ -475,6 +475,45 @@ def test_an_expectation_that_cannot_be_read_is_refused(tmp_path: Path) -> None:
         read_cases(tmp_path / "list.json")
 
 
+def test_a_changes_file_kept_with_the_expectation_is_replayed_from_there(
+    history: History, tmp_path: Path
+) -> None:
+    # The data repository holds one changes file. Others are written from the pinned store
+    # and kept beside the expectation, which names each by its path from its own folder.
+    applied = case_named("changes: one changed record")
+    kept = copy.deepcopy(history.recorded)
+    (held,) = kept["cases"]
+    held["steps"][1] = {**held["steps"][1], "changes_here": "changes/one.jsonl"}
+    del held["steps"][1]["changes"]
+    folder = tmp_path / "expected"
+    (folder / "changes").mkdir(parents=True)
+    (folder / "changes" / "one.jsonl").write_text(applied["input"], "utf-8")
+    expectation = read_cases(history.written(folder, kept))
+    (case,) = expectation.cases
+    assert [(step.batch, step.changes, step.changes_file) for step in case.steps] == [
+        (BATCH, None, None),
+        (None, None, folder / "changes" / "one.jsonl"),
+    ]
+    repository = Repository(history.repository)
+    report = replay_case(repository, case, expectation.configuration, tmp_path / "scratch")
+    assert report.problems == []
+    assert (report.added, report.changed, report.files, report.written) == (1, 1, 13, 4)
+    # Nothing is copied: the command is given the file where it is kept.
+    assert not (tmp_path / "scratch" / "changes.jsonl").exists()
+
+    # A refusal names the file as it is kept, and a file that is not there cannot be replayed.
+    held["steps"] = [held["steps"][1]] * 2
+    (case,) = read_cases(history.written(folder, kept)).cases
+    (problem,) = replay_case(repository, case, CONFIGURATION, tmp_path / "scratch").problems
+    assert problem.startswith(f"step 2 was refused: RecordError: {folder / 'changes' / 'one.jsonl'} line 1: ")
+    (folder / "changes" / "one.jsonl").unlink()
+    with pytest.raises(InputError, match=r"there is no changes file .*changes/one\.jsonl"):
+        replay_case(repository, case, CONFIGURATION, tmp_path / "scratch")
+    held["steps"] = [{"changes_here": 5, "batch_dir": "a", "review": "b", "date": "c"}]
+    with pytest.raises(StoreError, match="has no str 'changes_here'"):
+        read_cases(history.written(folder, kept))
+
+
 def test_the_committed_expectation_names_what_the_gate_replays() -> None:
     expectation = read_cases(Path(__file__).parent.parent / "scripts/expected/store-writes.json")
     assert expectation.configuration == ("data/vocab", "data/ontology/mapping.json", "scripts/omics/derive")
@@ -490,19 +529,39 @@ def test_the_committed_expectation_names_what_the_gate_replays() -> None:
     assert all(case.steps and case.merge != case.parent for case in expectation.cases)
     assert sum(case.added for case in expectation.cases) >= 10
 
-    # The write the TypeScript recorded: one commit, an add and a changes file, and what was left.
-    recorded = read_cases(Path(__file__).parent.parent / "scripts/expected/store-recorded-writes.json")
+    # The writes the TypeScript recorded, each on the one commit: an add and the data
+    # repository's changes file, and two changes files kept here, with what each left.
+    expected = Path(__file__).parent.parent / "scripts/expected"
+    recorded = read_cases(expected / "store-recorded-writes.json")
     assert recorded.configuration == expectation.configuration
-    (case,) = recorded.cases
-    assert case.merge == case.parent
-    assert [(step.batch is None, step.changes is None) for step in case.steps] == [
+    fixture, every_file, three = recorded.cases
+    assert [(step.batch is None, step.changes is None) for step in fixture.steps] == [
         (False, True),
         (True, False),
     ]
-    assert (case.added, case.changed) == (1, 1)
-    assert case.left is not None
-    assert len(case.left) == case.files == 79
-    assert all(
-        re.fullmatch(r"data/(entities|evidence|provenance)/[a-z0-9/-]+\.jsonl", file) for file in case.left
-    )
-    assert all(re.fullmatch(r"[0-9a-f]{40}", name) for name in case.left.values())
+    assert [[step.changes_file for step in case.steps] for case in (every_file, three)] == [
+        [expected / "changes/one-record-in-every-file.jsonl"],
+        [expected / "changes/three-records.jsonl"],
+    ]
+    assert [(case.added, case.changed) for case in recorded.cases] == [(1, 1), (0, 62), (0, 3)]
+    for case in recorded.cases:
+        assert case.merge == case.parent == fixture.merge
+        assert case.left is not None
+        assert len(case.left) == case.files == 79
+        assert all(
+            re.fullmatch(r"data/(entities|evidence|provenance)/[a-z0-9/-]+\.jsonl", file)
+            for file in case.left
+        )
+        assert all(re.fullmatch(r"[0-9a-f]{40}", name) for name in case.left.values())
+    # A changes file kept here holds as many lines as its case says it changes, each with a
+    # record, the digest it was based on and the digest it has. No record is named twice.
+    for case in (every_file, three):
+        (step,) = case.steps
+        assert step.changes_file is not None
+        lines = [json.loads(line) for line in step.changes_file.read_text("utf-8").split("\n") if line]
+        assert len(lines) == len({line["id"] for line in lines}) == case.changed
+        assert all(list(line) == ["id", "base_sha256", "sha256", "record"] for line in lines)
+        assert all(line["record"]["id"] == line["id"] for line in lines)
+    # One record of every record file.
+    assert every_file.left is not None
+    assert sum(not file.startswith("data/provenance/") for file in every_file.left) == every_file.changed

@@ -26,11 +26,13 @@ The SHACL check the command line makes after writing is not part of a replay: it
 store and writes nothing.
 
 History holds no `records change --changes`, which arrived in the pinned commit. So a second
-expectation, `scripts/expected/store-recorded-writes.json`, holds a case the TypeScript ran
-itself in CI: the data repository's own reviewer fixture, a batch and a changes file, added
-and applied to the pinned store. Such a case names one commit, whose store is laid out and
-which holds the inputs, and lists the blob name of every store file the TypeScript left.
-It is replayed and compared in the same way, against those names in place of a tree.
+expectation, `scripts/expected/store-recorded-writes.json`, holds cases the TypeScript ran
+itself in CI on the pinned store: the data repository's own reviewer fixture, a batch and a
+changes file, added and applied, and two changes files written from the store and kept in
+`scripts/expected/changes/`. Such a case names one commit, whose store is laid out and
+which holds the inputs unless a step says they are kept with the expectation, and lists the
+blob name of every store file the TypeScript left. It is replayed and compared in the same
+way, against those names in place of a tree.
 
 A case that does not reproduce is reported with the file, both blob IDs and the first line
 that differs. The counts of records added and changed and of files compared are held to the
@@ -208,6 +210,8 @@ class Step:
     date: str = ""
     #: The changes file, as a path in the commit that holds the inputs, for a change from one.
     changes: str | None = None
+    #: The changes file where the expectation keeps it, for one the data repository does not hold.
+    changes_file: Path | None = None
 
 
 @dataclass(frozen=True)
@@ -259,13 +263,17 @@ def _commit_name(held: Mapping[str, JsonValue], name: str, where: str) -> str:
     return value
 
 
-def _step(value: JsonValue, where: str) -> Step:
+def _step(value: JsonValue, where: str, folder: Path) -> Step:
+    """One step of a case. `folder` is where the expectation is, which `changes_here` is a path from."""
     if not isinstance(value, dict):
         raise StoreError(f"{where} is not an object")
     batch_dir = _member(value, "batch_dir", str, where)
     if "add" in value:
         return Step(_member(value, "add", str, where), batch_dir)
     review, date = _member(value, "review", str, where), _member(value, "date", str, where)
+    if "changes_here" in value:
+        kept = folder / _member(value, "changes_here", str, where)
+        return Step(None, batch_dir, (), review, date, None, kept)
     if "changes" in value:
         return Step(None, batch_dir, (), review, date, _member(value, "changes", str, where))
     return Step(None, batch_dir, _texts(value.get("change"), f"{where}'s change"), review, date)
@@ -282,6 +290,8 @@ def read_cases(path: Path) -> Expectation:
 
     A case that names a `merge` and its `parent` is a merged pull request. One that names
     a `store` is a write the TypeScript recorded on that commit, with the files it `left`.
+    A step's `changes` is a changes file in the commit, and its `changes_here` is one kept
+    with the expectation, as a path from the folder the expectation is in.
     """
     try:
         held = parse_row(path.read_text("utf-8"), str(path))
@@ -299,7 +309,7 @@ def read_cases(path: Path) -> Expectation:
                 _member(value, "name", str, where),
                 _commit_name(value, "store" if recorded else "merge", where),
                 _commit_name(value, "store" if recorded else "parent", where),
-                tuple(_step(step, f"step {at} of {where}") for at, step in enumerate(steps, 1)),
+                tuple(_step(step, f"step {at} of {where}", path.parent) for at, step in enumerate(steps, 1)),
                 _member(value, "added", int, where),
                 _member(value, "changed", int, where),
                 _member(value, "files", int, where),
@@ -444,6 +454,10 @@ def _planned(repository: Repository, case: Case, step: Step, scratch: Path) -> P
     if step.changes is not None:
         changes_file = _input(repository, case.merge, step.changes, scratch / "changes.jsonl")
         return plan_changes_file(str(changes_file), step.batch_dir, step.review, root, step.date)
+    if step.changes_file is not None:
+        if not step.changes_file.is_file():
+            raise InputError(f"there is no changes file {step.changes_file}")
+        return plan_changes_file(str(step.changes_file), step.batch_dir, step.review, root, step.date)
     edit_in_place(repository, case.merge, root, step.ids)
     return plan_change(step.ids, step.batch_dir, step.review, root, step.date)
 
