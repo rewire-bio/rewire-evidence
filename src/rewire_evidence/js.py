@@ -8,13 +8,22 @@ holds the forms a value is written in. This holds what a value counts as.
 
 Everything here is held to recordings from Node: `tests/fixtures/js-semantics.json` for the
 built-ins, and the zod and validator fixtures for the places they are used.
+
+Lowercase is data. `toLowerCase` follows the Unicode version Node was built with and
+`str.lower` the one Python was built with, and they differ on every letter added between
+the two. `data/lowercase.json` is what the Node the data repository runs on does to every
+code point, recorded in CI by `scripts/fixtures/record_lowercase.mjs`, and `lower` reads it.
 """
 
 from __future__ import annotations
 
 import enum
+import functools
+import json
 import math
 import re
+from collections.abc import Iterable, Sequence
+from importlib import resources
 from typing import cast
 
 from rewire_evidence.canonical import JsonValue, js_number, js_string
@@ -88,12 +97,17 @@ def truthy(value: object) -> bool:
 
 def joined(items: list[JsonValue]) -> str:
     """`String(items)` for a list `JSON.parse` returned, which is `items.join(",")`."""
-    return ",".join(_element(item) for item in items)
+    return join(items, ",")
 
 
-def _element(item: JsonValue) -> str:
+def join(items: Sequence[Held], separator: str) -> str:
+    """`items.join(separator)`: nothing for null or for a member that is absent."""
+    return separator.join(_element(item) for item in items)
+
+
+def _element(item: Held) -> str:
     """One element as `Array.prototype.join` writes it: nothing for null, `String(item)` otherwise."""
-    if item is None:
+    if item is None or isinstance(item, Missing):
         return ""
     if isinstance(item, bool):
         return "true" if item else "false"
@@ -132,6 +146,98 @@ def number_of(value: JsonValue) -> float:
     if isinstance(value, dict):
         return math.nan
     return number_of_text(value if isinstance(value, str) else joined(value))
+
+
+def member(value: JsonValue, name: str) -> Held:
+    """`value.name` for a member no built-in type has: the value's own, or nothing.
+
+    Text, a number, a boolean and a list have members of their own, such as `length` and
+    `split`, and a caller that asks for one of those names has to say what it is. Raises
+    `TypeError` for null, which has no members, as JavaScript does.
+    """
+    if value is None:
+        raise TypeError(f"Cannot read properties of null (reading '{name}')")
+    return value.get(name, MISSING) if isinstance(value, dict) else MISSING
+
+
+def distinct(values: Iterable[Held]) -> int:
+    """`new Set(values).size`: how many of the values a JavaScript `Set` keeps apart.
+
+    Text, numbers, booleans, null and nothing at all are one value each however often they
+    come, and a boolean is never a number. A list or an object is itself and no other, so
+    two that read alike count twice.
+    """
+    seen: set[tuple[str, object]] = set()
+    for value in values:
+        if isinstance(value, (dict, list)):
+            seen.add(("object", id(value)))
+        elif isinstance(value, (int, float)) and not isinstance(value, bool):
+            seen.add(("number", float(value)))
+        else:
+            seen.add((type(value).__name__, value))
+    return len(seen)
+
+
+class _Case:
+    """What `data/lowercase.json` holds, as `lower` asks it."""
+
+    def __init__(self) -> None:
+        text = resources.files("rewire_evidence").joinpath("data/lowercase.json").read_text("utf-8")
+        held = json.loads(text)
+        self.lower: dict[int, str] = {
+            int(code, 16): "".join(chr(int(each, 16)) for each in becomes.split(" "))
+            for code, becomes in held["lower"]
+        }
+        self.cased = _code_points(held["cased"])
+        self.ignorable = _code_points(held["case_ignorable"])
+
+    def final(self, text: str, at: int) -> bool:
+        """Whether the capital sigma at `at` ends a word, which is Unicode's Final_Sigma.
+
+        A cased letter comes before it and none comes after, passing over case-ignorable
+        characters on both sides. A character that is both cased and case-ignorable is
+        passed over, as ICU passes over it.
+        """
+        return self._cased_next(reversed(text[:at])) and not self._cased_next(text[at + 1 :])
+
+    def _cased_next(self, characters: Iterable[str]) -> bool:
+        for character in characters:
+            if ord(character) not in self.ignorable:
+                return ord(character) in self.cased
+        return False
+
+
+def _code_points(ranges: list[str]) -> frozenset[int]:
+    found: set[int] = set()
+    for held in ranges:
+        first, last = held.split("-")
+        found.update(range(int(first, 16), int(last, 16) + 1))
+    return frozenset(found)
+
+
+_case = functools.cache(_Case)
+_SIGMA = "\u03a3"
+_FINAL_SIGMA = "\u03c2"
+
+
+def lower(text: str) -> str:
+    """`text.toLowerCase()`, by the Unicode version the recorded Node was built with.
+
+    Each character becomes what the recording says, which is one character or more: a
+    dotted capital I becomes an `i` and a combining dot. The one rule that looks at the
+    neighbours is the capital sigma, which becomes a final sigma at the end of a word.
+    """
+    if text.isascii():
+        return text.lower()
+    case = _case()
+    if _SIGMA not in text:
+        return text.translate(case.lower)
+    return "".join(
+        _FINAL_SIGMA
+        if character == _SIGMA and case.final(text, at)
+        else case.lower.get(ord(character), character)
+        for at, character in enumerate(text)
+    )
 
 
 def text_of(value: object) -> str:

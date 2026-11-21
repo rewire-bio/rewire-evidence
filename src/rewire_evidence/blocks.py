@@ -20,7 +20,7 @@ from typing import Final, cast
 from rewire_evidence import zod
 from rewire_evidence.attributes import said
 from rewire_evidence.canonical import JsonObject, JsonValue
-from rewire_evidence.js import MISSING, Held, truthy
+from rewire_evidence.js import MISSING, Held, lower, truthy
 from rewire_evidence.schema import BENCHMARK_SUBJECT_KINDS, Issue, Record, RecordError, SchemaError
 
 #: Member names that must never enter a public release, wherever they appear in a record.
@@ -55,7 +55,7 @@ def assert_no_private_fields(
     """
     if isinstance(value, dict):
         for key, child in value.items():
-            if key.lower() in _PRIVATE:
+            if lower(key) in _PRIVATE:
                 raise RecordError(message)
             assert_no_private_fields(child, message)
     elif isinstance(value, list):
