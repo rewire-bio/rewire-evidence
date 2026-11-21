@@ -2,7 +2,10 @@
 name = "rewire-evidence"
 version = "0.1.0"
 description = "Turn primary literature into checkable benchmark records, each bound to a byte span in an archived copy of its source."
+license = "MIT"
+license-files = ["LICENSE", "THIRD-PARTY-NOTICES.md"]
 requires-python = ">=3.12"
+authors = [{ name = "Tim Richardson" }]
 dependencies = []
 
 [dependency-groups]
