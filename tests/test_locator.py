@@ -14,7 +14,7 @@ from hypothesis import strategies as st
 
 from rewire_evidence import locator
 from rewire_evidence.canonical import js_written
-from rewire_evidence.js import trim
+from rewire_evidence.js import paired, trim, unit_text
 from rewire_evidence.locator import (
     authored_addresses,
     carries_no_address,
@@ -274,7 +274,8 @@ def test_any_text_is_read_into_fields_that_agree_with_each_other(printed: str) -
 
 @given(LOCATORS)
 def test_text_with_nothing_to_split_on_is_one_segment(printed: str) -> None:
-    plain = "".join(character for character in printed if character not in ",;")
+    # Two halves side by side are one character to JavaScript, and come back as one.
+    plain = paired(unit_text("".join(character for character in printed if character not in ",;")))
     assert split_segments(plain) == ([trim(plain)] if trim(plain) else [])
     # Splitting what was split changes nothing where no segment holds a separator.
     for segment in split_segments(printed):
