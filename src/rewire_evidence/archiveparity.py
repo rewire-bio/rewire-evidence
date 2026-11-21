@@ -28,12 +28,19 @@ from typing import cast
 
 from rewire_evidence import archive, archivesaid, licence, reclassify, worklist, zod
 from rewire_evidence.archivesaid import Said
-from rewire_evidence.canonical import JsonObject, JsonValue, canonical_line, js_stringify, js_utf8, sha256_hex
+from rewire_evidence.canonical import (
+    JsonObject,
+    JsonValue,
+    canonical_line,
+    js_stringify,
+    js_utf8,
+    sha256_hex,
+    utf16_key,
+)
 from rewire_evidence.checkparity import Lines, compare_lines, read_dump
 from rewire_evidence.conformance import differences, recorded_ref
 from rewire_evidence.families import AUDIT_DIR, OBJECT_SHARDS, manifest_shard_path
 from rewire_evidence.jsonl import StoreError, parse_value
-from rewire_evidence.schema import Issue
 
 _FETCHED = "-archive-fetch.receipts.jsonl"
 _RESOLVED = "-licence-resolve.receipts.jsonl"
@@ -80,7 +87,7 @@ def _digest(text: str) -> str:
     return sha256_hex(js_utf8(text))
 
 
-def _issues(issues: Sequence[zod.Raised] | Sequence[Issue]) -> JsonObject:
+def _issues(issues: Sequence[zod.Raised]) -> JsonObject:
     return {"issues": [[issue.code, list(issue.path), issue.message] for issue in issues]}
 
 
@@ -127,18 +134,19 @@ class _Made:
                 self.push(kind, label, number, *lead(given), _digest(written), *more(parsed))
 
 
-def _rebuilt(candidate: JsonObject, held: licence.LicenceMap) -> JsonValue:
-    """A candidate built again from its own observations: the digest of its line, or the refusal."""
-    try:
-        again = licence.build_candidate(candidate, cast("list[JsonObject]", candidate["observations"]), held)
-    except archive.Refused as error:
-        return {"error": {"zod": _issues(error.issues)["issues"]}}
-    return None if again is None else _digest(canonical_line(again))
+def _rebuilt(candidate: JsonObject, held: licence.LicenceMap) -> str:
+    """A candidate built again from its own observations, as the digest of its line.
+
+    The schema read the candidate, so it has an observation and something is built.
+    """
+    again = licence.build_candidate(candidate, cast("list[JsonObject]", candidate["observations"]), held)
+    assert again is not None  # noqa: S101 - nothing is built only from no observation
+    return _digest(canonical_line(again))
 
 
 def _audits(root: Path, ending: str) -> list[tuple[str, Path]]:
     folder = root / AUDIT_DIR
-    names = sorted(path.name for path in folder.iterdir()) if folder.is_dir() else []
+    names = sorted((path.name for path in folder.iterdir()), key=utf16_key) if folder.is_dir() else []
     dated = [name for name in names if name.endswith(ending) and len(name) == len(ending) + _DATE_LENGTH]
     return [(f"{AUDIT_DIR}/{name}", folder / name) for name in dated]
 
