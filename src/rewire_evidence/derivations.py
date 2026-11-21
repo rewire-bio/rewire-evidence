@@ -18,7 +18,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from rewire_evidence.attributes import JsTypeError, said
-from rewire_evidence.canonical import JsonValue, sha256_hex
+from rewire_evidence.canonical import JsonValue, js_utf8, sha256_hex
 from rewire_evidence.js import MISSING, Held, strictly_equal, truthy
 from rewire_evidence.schema import Record, RecordError
 
@@ -46,9 +46,12 @@ class _Scripts:
         if not isinstance(script, str):
             raise JsTypeError("a derivation's script is not text")
         if script not in self.hashes:
-            # Joined as Node joins a path: a script that starts with a slash is still below the root.
-            file = Path(os.path.normpath(f"{self.root}/{script}"))
-            self.hashes[script] = sha256_hex(file.read_bytes()) if file.exists() else None
+            # Joined as Node joins a path: a script that starts with a slash is still below the
+            # root. Node names a file in UTF-8, with U+FFFD for half a character.
+            file = os.path.normpath(f"{self.root}/{js_utf8(script).decode('utf-8')}")
+            # `existsSync` answers false for a name no file system can hold, where
+            # `Path.exists` raises: one too long, or one with a null character in it.
+            self.hashes[script] = sha256_hex(Path(file).read_bytes()) if os.path.exists(file) else None  # noqa: PTH110
         return self.hashes[script]
 
 
@@ -81,9 +84,7 @@ def derivation_issues(records: Sequence[Record], root: Path) -> list[str]:  # no
             fail("needs a numeric_value")
         aggregation = _member(derivation, "aggregation_source_id")
         aggregation_source = by_id.get(aggregation) if isinstance(aggregation, str) else None
-        if aggregation_source is not None and aggregation_source.kind != "source":
-            aggregation_source = None
-        if aggregation_source is None:
+        if aggregation_source is None or aggregation_source.kind != "source":
             fail(f"aggregation source {said(aggregation)} is not a source record")
         inputs = _member(derivation, "inputs")
         if not isinstance(inputs, list):
@@ -91,6 +92,7 @@ def derivation_issues(records: Sequence[Record], root: Path) -> list[str]:  # no
         for cited in (aggregation, *(_member(each, "source_id") for each in inputs)):
             if not isinstance(cited, str) or cited not in record.source_ids:
                 fail(f"source {said(cited)} is not in the result's source_ids")
+        # The DOI is read from whatever record the ID names, a source or not.
         doi = MISSING if aggregation_source is None else aggregation_source.attributes.get("doi", MISSING)
         for each in inputs:
             source_id = _member(each, "source_id")

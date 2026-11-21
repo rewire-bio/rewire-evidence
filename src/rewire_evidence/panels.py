@@ -36,7 +36,7 @@ from typing import cast
 
 from rewire_evidence.attributes import normalize_attributes, said
 from rewire_evidence.blocks import pinned
-from rewire_evidence.canonical import JsonObject, JsonValue, canonical_json, js_stringify, utf16_key
+from rewire_evidence.canonical import JsonObject, JsonValue, canonical_json, js_written, utf16_key
 from rewire_evidence.concerns import concern_targets, evidence_path, source_wide_concern
 from rewire_evidence.js import MISSING, Held, strictly_equal, trim, truthy
 from rewire_evidence.schema import (
@@ -347,15 +347,12 @@ class Query:
         if len(tested) < _MINIMUM_RESULTS:
             raise fail("fewer than two tested configurations")
         for field in _COMPARED:
-            if len({self._compared(evaluation, field) for _, evaluation, _ in rows}) != 1:
+            if (
+                len({compared(evaluation.attributes.get("comparison"), field) for _, evaluation, _ in rows})
+                != 1
+            ):
                 raise fail(f"mixed {field}")
         return Resolved(panel)
-
-    @staticmethod
-    def _compared(evaluation: Record, field: str) -> str:
-        comparison = evaluation.attributes.get("comparison")
-        value: JsonValue = comparison.get(field) if isinstance(comparison, dict) else None
-        return js_stringify(value)
 
     def resolve(self, owner: Record) -> list[Resolved]:
         """A record's own panels, resolved: `resolveComparisons`."""
@@ -389,6 +386,19 @@ class Query:
                 raise RecordError(f"Conflicting inherited comparison: {panel.id}")
             unique[panel.id] = panel
         return list(unique.values())
+
+
+def compared(comparison: JsonValue, field: str) -> str | None:
+    """`JSON.stringify(comparison?.[field] ?? null)`, for one of the fields a panel compares.
+
+    None is JavaScript's `undefined`, which is what `JSON.stringify` answers for a function.
+    A comparison that is text has one: every string has a method named `split`, so text has
+    a split that no other comparison has, and no subset, population or aggregation. A
+    number, a boolean and a list have no member of any of the four names.
+    """
+    if isinstance(comparison, str) and field == "split":
+        return None
+    return js_written(comparison.get(field) if isinstance(comparison, dict) else None)
 
 
 def resolve_panels(records: Sequence[Record]) -> Mapping[str, list[Resolved] | None]:
