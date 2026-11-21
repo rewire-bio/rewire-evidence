@@ -1,0 +1,7 @@
+{
+ "recorded_from": {"script":"scripts/fixtures/record_tables_fixture.mjs","cases":"scripts/fixtures/tables_cases.mjs","store_ref":"91f76cf8e61cba9d6037a01a19c9aa3051184900","node":"v24.22.3","unicode":"17.0"},
+ "module": {"file":"scripts/omics/extract/tables.ts","sha256":"b98ab9f4b40fe79717daf47973ec4c4af72e514eab6c5bb5e720dc34acabfb8b"},
+ "folders": ["data","docs"],
+ "counts": {"artifacts":97,"artifacts_with_tables":65,"artifacts_refused":0,"tables":245,"rows":3270,"cells":17307,"blocks":18},
+ "dump": {"file":"store-tables.jsonl.gz","lines":342,"sha256":"ff248f3c525a11a0d3b431b55b2141a099e5ded35be1458151cda18e0b642b1a"}
+}
