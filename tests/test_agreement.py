@@ -7,6 +7,8 @@ What the TypeScript did with each is in the fixture.
 
 from __future__ import annotations
 
+import hashlib
+import io
 import json
 import subprocess
 import sys
@@ -24,14 +26,15 @@ from rewire_evidence.agreement import (
     panel_lines,
     verify_validation,
 )
-from rewire_evidence.attributes import REGISTRY_FILE
+from rewire_evidence.attributes import REGISTRY_FILE, JsTypeError
 from rewire_evidence.canonical import JsonObject, JsonValue, js_stringify
 from rewire_evidence.cli import main
+from rewire_evidence.descriptions import row_problems
 from rewire_evidence.gates import validation_gate
-from rewire_evidence.jsonl import StoreError, write_text
+from rewire_evidence.jsonl import StoreError, read_values, write_text
 from rewire_evidence.records import load_records, read_records
 from rewire_evidence.schema import RecordError, SchemaError, parse_record
-from rewire_evidence.store import record_file
+from rewire_evidence.store import record_file, record_files
 from rewire_evidence.validation import validate_all
 from rewire_evidence.vocab import MAPPING_FILE, VocabularyError
 from tests.recorded import BASE_ROWS, ROLES, VALIDATION, named, write_base, write_configuration
@@ -347,9 +350,11 @@ def test_a_url_this_library_does_not_judge_stops_every_entry_point_in_one_line(
     root = rewritten(tmp_path, [["set", ROLES["kind_source"], ["attributes", "url"], IDNA]])
     assert validation_gate([str(root)], expected) == 2
     assert capsys.readouterr().err.strip().splitlines()[-1].startswith("Cannot verify: the host ")
-    assert main(["records", "check", str(root)]) == 1
+    # The command says it cannot judge the store, with a status that is not a refusal's.
+    assert main(["records", "check", str(root)]) == 2
     said = capsys.readouterr()
     assert (said.out, said.err.count("\n")) == ("", 1)
+    assert said.err.startswith("Cannot judge the store: the host ")
     assert "needs IDNA mapping" in said.err
 
 
@@ -396,9 +401,12 @@ def configuration(tmp_path_factory: pytest.TempPathFactory) -> Path:
 
 def test_the_stores_on_disk_are_the_ones_recorded() -> None:
     held = VALIDATION["load"]
-    assert len(held) == 13
-    assert sum(case["error"] is None for case in held) == 4
-    assert [case["count"] for case in held if case["error"] is None] == [10, 10, 10, 0]
+    assert len(held) == 14
+    assert sum(case["error"] is None for case in held) == 5
+    assert [case["count"] for case in held if case["error"] is None] == [10, 10, 10, 0, 10]
+    # The last holds a number no double holds, which the TypeScript reads, digests as null and accepts.
+    beyond = held[-1]["files"]["data/entities/configurations.jsonl"]
+    assert '"entity_classification":{"beyond":1e400}' in beyond
 
 
 @pytest.mark.parametrize("case", named(VALIDATION["load"]))
@@ -492,3 +500,82 @@ def test_descriptions_lists_what_the_check_refuses(
         load_records(root)
     with pytest.raises(SystemExit):
         main(["records"])
+
+
+COMMAND = {case["name"]: case for case in VALIDATION["descriptions_command"]}
+#: What the TypeScript's command fails with, and what stops this one in the same place.
+FAILURES: dict[str, type[Exception]] = {"TypeError": JsTypeError, "SyntaxError": StoreError}
+
+
+def test_the_stores_the_descriptions_command_was_recorded_on_are_the_ones_expected() -> None:
+    assert len(COMMAND) == 16
+    failed = {name: case["text"]["error"] for name, case in COMMAND.items() if case["text"]["status"]}
+    assert sorted(failed.values()) == [
+        "SyntaxError",
+        "SyntaxError",
+        "TypeError",
+        "TypeError",
+        "TypeError",
+        "TypeError",
+    ]
+    # The command asks the record schema nothing: rows no schema would take are listed.
+    assert COMMAND["rows whose IDs are not text"]["text"]["status"] == 0
+    assert "\ufffd" in COMMAND["half a character in a description"]["text"]["stdout"]
+    assert "\\ud800" in COMMAND["half a character in a description"]["json"]["stdout"]
+    for case in COMMAND.values():
+        assert case["text"]["status"] == case["json"]["status"]
+        assert case["text"]["error"] == case["json"]["error"]
+
+
+@pytest.mark.parametrize("mode", ["text", "json"])
+@pytest.mark.parametrize("case", named(VALIDATION["descriptions_command"]))
+def test_descriptions_writes_the_bytes_the_typescript_writes_and_fails_where_it_fails(
+    case: dict[str, Any], mode: str, tmp_path: Path, capfdbinary: pytest.CaptureFixture[bytes]
+) -> None:
+    root = laid_out(case, tmp_path / "store")
+    root.mkdir(exist_ok=True)
+    recorded = case[mode]
+    status = main(["records", "descriptions", *(["--json"] if mode == "json" else []), str(root)])
+    said = capfdbinary.readouterr()
+    assert status == recorded["status"]
+    assert said.out.decode("utf-8") == recorded["stdout"]
+    assert hashlib.sha256(said.out).hexdigest() == recorded["sha256"]
+    if recorded["status"] == 0:
+        assert said.err == b""
+    else:
+        # One line where the TypeScript leaves a stack trace, for the same cause.
+        assert said.err.count(b"\n") == 1
+        with pytest.raises(FAILURES[recorded["error"]]):
+            row_problems([row for file in record_files(root) for row in read_values(file)])
+
+
+def test_descriptions_lists_a_store_that_check_refuses(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # The command is for a store that is failing, so a row the schema refuses does not stop it.
+    model = ROLES["described"]
+    root = rewritten(
+        tmp_path,
+        [
+            ["set", model, ["description"], "Candidate catalogue entry"],
+            ["set", model, ["status"], "nonsense"],
+        ],
+    )
+    assert main(["records", "check", str(root)]) == 1
+    assert "is not a record" in capsys.readouterr().err
+    assert main(["records", "descriptions", str(root)]) == 0
+    assert (
+        capsys.readouterr().out.splitlines()[0]
+        == f"{model}\tcatalogue-placeholder\tCandidate catalogue entry"
+    )
+
+
+def test_the_command_writes_to_a_stream_that_only_takes_text(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    case = COMMAND["half a character in a description"]
+    root = laid_out(case, tmp_path / "store")
+    collected = io.StringIO()
+    monkeypatch.setattr(sys, "stdout", collected)
+    assert main(["records", "descriptions", str(root)]) == 0
+    assert collected.getvalue() == case["text"]["stdout"]
