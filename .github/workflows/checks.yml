@@ -1,7 +1,8 @@
 # Lint, types, tests at full coverage, and the gates that matter: reproducing data that
-# already exists, and refusing what the TypeScript refuses. A second job records the fixtures
-# that need the data repository's own TypeScript, and fails if a committed one is not what
-# that code produces.
+# already exists, and refusing what the TypeScript refuses. A second job replays merged
+# batches from the data repository's history and requires the files the TypeScript wrote. A
+# third records the fixtures that need the data repository's own TypeScript, and fails if a
+# committed one is not what that code produces.
 #
 # The store is pinned to one commit rather than taken from main as it stands. A gate whose
 # input moves is a gate whose result cannot be compared with yesterday's: a run that goes red
@@ -162,6 +163,33 @@ jobs:
             exit 1
           fi
 
+      # The write commands on the pinned store, writing nothing. A batch the store already
+      # holds is refused by name, and a change shows the one provenance row it would rewrite.
+      - name: Dry-run the write commands
+        run: |
+          batch=data/omics/intake-250-20261119
+          first=$(head -n 1 "store/${batch}/batch.jsonl" | jq -r .id)
+          status=0
+          uv run --no-sync rewire-evidence records add --dry-run --root store "store/${batch}/batch.jsonl" "$batch" 2> refused.log || status=$?
+          cat refused.log
+          if [ "$status" != 1 ] || [ "$(head -n 1 refused.log)" != "Batch cannot replace or duplicate record: ${first}" ]; then
+            echo "::error::Adding a batch the store holds exited ${status}, and should be refused by name with status 1."
+            exit 1
+          fi
+          uv run --no-sync rewire-evidence records change --dry-run --root store docs/reviews/a-review.md "$batch" "$first" > change.log
+          cut -c 1-200 change.log
+          lost=$(grep -c "^-{\"id\":\"${first}\"" change.log)
+          gained=$(grep -c "^+{\"id\":\"${first}\".*\"step\":\"records:change\",\"inputs\":\"${batch}\"" change.log)
+          if [ "$lost" != 1 ] || [ "$gained" != 1 ] || [ "$(grep -c '^[-+]{' change.log)" != 2 ]; then
+            echo "::error::A dry run of one change should show one provenance row lost and one gained."
+            exit 1
+          fi
+          if [ -n "$(git -C store status --porcelain)" ]; then
+            echo "::error::A dry run wrote to the store."
+            git -C store status --porcelain
+            exit 1
+          fi
+
       - name: Summary
         if: always()
         run: |
@@ -174,6 +202,83 @@ jobs:
             if [ -f layout.log ]; then echo; echo "### Store layout"; echo; echo '```'; cat layout.log; echo '```'; fi
             if [ -f schema.log ]; then echo; echo "### Schema and vocabularies"; echo; echo '```'; cat schema.log; echo '```'; fi
             if [ -f validation.log ]; then echo; echo "### Validators"; echo; echo '```'; cat validation.log; echo '```'; fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # The write path, held to the data repository's own history. Each case is a merged pull
+  # request that added a batch or recorded a change: the store is laid out as the merge's
+  # first parent holds it, the commands are run again by this library, and every store file
+  # has to be the merge commit's, by git's own blob names. The clone has the history and no
+  # file contents, and the gate fetches the blobs of the stores it lays out.
+  #
+  # History has no `records change --changes`, so three more cases are writes the TypeScript
+  # made itself: the fixtures job below adds and applies the data repository's reviewer fixture
+  # to the pinned store, applies two changes files written from the store, and records the
+  # blob name of every file left each time, in scripts/expected/store-recorded-writes.json.
+  # The gate replays them from the pinned commit.
+  writes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      # What the two expectations amount to: twelve merged pull requests and one recorded
+      # write. A replay that does less fails.
+      WRITE_CASES: "13"
+      WRITE_RECORDS_ADDED: "2601"
+      WRITE_CHANGES_RECORDED: "1218"
+      WRITE_FILES_COMPARED: "1027"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: uv sync --locked --group dev
+
+      - name: Clone the history of the data repository, without file contents
+        run: git clone --quiet --filter=blob:none --no-checkout https://github.com/rewire-bio/rewire-benchmark-data.git history
+
+      # Every case is part of the store the other gates are pinned to, and the recorded
+      # write was made on the pinned commit itself.
+      - name: The cases are in the history of the pinned commit
+        run: |
+          for merge in $(jq -r '.cases[].merge' scripts/expected/store-writes.json); do
+            if ! git -C history merge-base --is-ancestor "$merge" "$STORE_REF"; then
+              echo "::error::${merge} is not an ancestor of STORE_REF ${STORE_REF}."
+              exit 1
+            fi
+          done
+          for named in $(jq -r '.recorded_from.store_ref, .cases[].store' scripts/expected/store-recorded-writes.json); do
+            if [ "$named" != "$STORE_REF" ]; then
+              echo "::error::The recorded write names ${named}, and STORE_REF is ${STORE_REF}."
+              exit 1
+            fi
+          done
+
+      # The commands of each case are worked out from the provenance rows its merge changed.
+      # They are worked out again here, so the committed cases are what the script gives for
+      # this history and not something edited afterwards.
+      - name: The cases are what the history states
+        run: |
+          uv run --no-sync python scripts/fixtures/derive_write_cases.py history $(jq -r '.cases[].merge' scripts/expected/store-writes.json) > derived.json
+          diff derived.json scripts/expected/store-writes.json
+
+      - name: Replay merged batches and changes, and the recorded writes
+        run: |
+          set -o pipefail
+          uv run --no-sync python scripts/verify_store_writes.py history --json writes.json 2>&1 | tee writes.log
+          for pin in "cases:$WRITE_CASES" "reproduced:$WRITE_CASES" "records_added:$WRITE_RECORDS_ADDED" "changes_recorded:$WRITE_CHANGES_RECORDED" "files_compared:$WRITE_FILES_COMPARED"; do
+            measured=$(jq -r ".${pin%%:*}" writes.json)
+            if [ "$measured" != "${pin##*:}" ]; then
+              echo "::error::The write gate measured ${pin%%:*} as ${measured} against a pin of ${pin##*:}."
+              exit 1
+            fi
+          done
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## Writes"
+            if [ -f writes.log ]; then echo; echo '```'; cat writes.log; echo '```'; fi
           } >> "$GITHUB_STEP_SUMMARY"
 
   # The fixtures that need the data repository's own code: its zod schema, its vocabulary
@@ -206,6 +311,14 @@ jobs:
       - name: Record the validators
         working-directory: store
         run: node_modules/.bin/tsx ../scripts/fixtures/record_validation_fixture.mjs
+      # The write path, on small stores in a scratch folder: what addBatch, recordChanges and
+      # applyChanges return or refuse, and every file they leave different. It reads the
+      # small store the step before wrote into tests/fixtures/validation.json. Then the
+      # reviewer fixture, added and applied to a copy of the pinned store, and two changes
+      # files written from the store by scripts/fixtures/store_changes.mjs.
+      - name: Record the write path
+        working-directory: store
+        run: node_modules/.bin/tsx ../scripts/fixtures/record_write_fixture.mjs
       # How Node writes text in lowercase, which follows the Unicode version it was built
       # with. Built-ins only, on the Node the data repository's workflows run.
       - name: Record the lowercase mapping
@@ -220,8 +333,11 @@ jobs:
             tests/fixtures/vocabularies.json
             tests/fixtures/turtle.json
             tests/fixtures/validation.json
+            tests/fixtures/write-path.json
             scripts/expected/store-schema.json
             scripts/expected/store-validation.json
+            scripts/expected/store-recorded-writes.json
+            scripts/expected/changes
             src/rewire_evidence/data/attribute-registry.json
             src/rewire_evidence/data/lowercase.json
           if-no-files-found: ignore

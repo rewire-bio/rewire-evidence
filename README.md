@@ -22,7 +22,7 @@ The old store is the test oracle, and it is big enough to be decisive. Nothing h
 | P3 | Vocabulary loader and controlled values, with n3's Turtle reader ported so a scheme is read as the TypeScript reads it | the 25 SKOS schemes as n3 reads them, statement for statement, and every controlled value in the store; 921 Turtle documents recorded from n3, 784 of them refused | 441 concepts, 3,315 statements, 580,242 values | Passing ([notes](docs/stages/p2-p3.md)) |
 | P4 | Attribute registry and its types, older shapes, descriptions, derivations, evidence concerns, with as much of zod as the validators use | every attribute value of the store by declared type; 8,574 values recorded from zod, each a valid block damaged in one place or more; 98 older shapes and a 42-record release recorded from `normalizeAttributes` | 766,774 values, 134,822 reasons for a missing value | Passing ([notes](docs/stages/p4-p5.md)) |
 | P5 | The whole of `validateRecords`, comparison panels included, and `records check` as a command | `records -- check` over the store, with every panel as the catalogue query resolves it; 424 faults seeded into a 228-record store with what each validator did; 23 seeded into the whole store; `records descriptions` byte for byte on 16 stores | 93,216 records, 1,178 panels showing 12,919 results | Passing ([notes](docs/stages/p4-p5.md)) |
-| P6 | Write path: `add`, `change`, restore on failure | replayed batches | | Not started |
+| P6 | Write path: `records add`, `records change` by ID and from a changes file, each undone if the check that follows it fails | 12 merged pull requests replayed from the data repository's history against their first parent, every store file held to the merge commit's by git blob name; a changes file the TypeScript applied to the pinned store; 110 writes recorded from `addBatch`, `recordChanges` and `applyChanges`, 75 of them refused | 2,601 records added, 1,218 changes recorded, 1,027 files | Passing ([notes](docs/stages/p6.md)) |
 | P7 | Locator grammar | committed coverage report | 52,278 | Not started |
 | P8 | Report-only checks | `checks-baseline.json` and the row-level report | 10,754 | Not started |
 | P9 | Object manifest and receipts, with their schemas | `data/archive/objects/*.jsonl` | 1,167 | Bytes reproduce (P1). Schemas not started |
@@ -42,6 +42,13 @@ uv run python scripts/verify_store_digests.py ../rewire-benchmark-data
 uv run python scripts/verify_store_layout.py ../rewire-benchmark-data
 uv run python scripts/verify_store_schema.py ../rewire-benchmark-data
 uv run python scripts/verify_store_validation.py ../rewire-benchmark-data
+uv run python scripts/verify_store_writes.py ../rewire-benchmark-data-history
+```
+
+The first four read a checkout. The fifth reads history and no checkout, so a clone without file contents is enough, and it fetches the blobs of the stores it lays out:
+
+```sh
+git clone --filter=blob:none --no-checkout https://github.com/rewire-bio/rewire-benchmark-data.git ../rewire-benchmark-data-history
 ```
 
 The second one holds every count, and the SHA-256 of each family's files, against `scripts/expected/store-layout.json`, which names the store commit they were measured at. A checkout of any other commit, or an edited one, fails it.
@@ -50,7 +57,9 @@ The third parses every record with the schema and requires the committed line ba
 
 The fourth runs every validator `npm run records -- check` applies, over every record. The store passes them all, and a validator that looked at nothing would pass too, so the gate holds what it measures against `scripts/expected/store-validation.json`, which the TypeScript records at the same commit: how many attribute values there are of each declared type, every comparison panel as the catalogue query resolves it, and the words each validator refuses a seeded fault in. Each fault is put into the whole store and has to be refused in the recorded words.
 
-All four exit 0 when everything reproduces, 1 on a disagreement and 2 when the run could not be made: a store, a vocabulary or an expectation that cannot be read, or a report that cannot be written. No one gate holds every byte. What each catches of an edited checkout is set out in the [P2 and P3 notes](docs/stages/p2-p3.md), and CI runs all four.
+The fifth replays merged pull requests. For each case in `scripts/expected/store-writes.json` it lays the store out in a scratch folder as the merge's first parent holds it, runs the commands the pull request ran (`records add` with the batch file the merge holds, `records change` with the IDs, review and date its provenance rows record) and requires every file under `data/entities`, `data/evidence` and `data/provenance` to be the merge commit's, compared by the name git gives each blob. It writes nothing to the clone. Nothing records the commands themselves, so `scripts/fixtures/derive_write_cases.py` works them out from the provenance rows each merge changed. No merged pull request has used a changes file, so one more case, in `scripts/expected/store-recorded-writes.json`, is a write the TypeScript made in CI: the data repository's own reviewer fixture, added and applied to the pinned store, with the blob name of every file it left.
+
+All five exit 0 when everything reproduces, 1 on a disagreement and 2 when the run could not be made: a store, a vocabulary, a history or an expectation that cannot be read, or a report that cannot be written. No one gate holds every byte. What each catches of an edited checkout is set out in the [P2 and P3 notes](docs/stages/p2-p3.md), and CI runs all four.
 
 `records check` is also a command, and prints the line the TypeScript prints:
 
@@ -58,6 +67,16 @@ All four exit 0 when everything reproduces, 1 on a disagreement and 2 when the r
 uv run rewire-evidence records check ../rewire-benchmark-data
 uv run rewire-evidence records descriptions --json ../rewire-benchmark-data
 ```
+
+So are the commands that write. Each prints the line the TypeScript prints, and with `--dry-run` writes nothing and prints the lines each store file would lose and gain:
+
+```sh
+uv run rewire-evidence records add --root ../rewire-benchmark-data --dry-run batch.jsonl data/omics/a-batch
+uv run rewire-evidence records change --root ../rewire-benchmark-data docs/reviews/a-review.md data/omics/a-batch an-id another-id
+uv run rewire-evidence records change --root ../rewire-benchmark-data docs/reviews/a-review.md data/omics/a-batch --changes changes.jsonl
+```
+
+Without `--dry-run` they write every store file as the TypeScript writes it and then hold what they wrote to the SHACL shapes, through the data repository's own `npm run kg -- subset` and `npm run kg:build -- --shapes-only`, which are not ported yet. So `--root` has to be a checkout of the data repository with its dependencies installed. If the batch, the change or the shapes are refused, every file is put back as it was and the command exits 1.
 
 ## Why byte identity matters here
 
@@ -77,7 +96,7 @@ uv run ruff check . && uv run ruff format --check .
 
 `tests/js-fixture.json` and `tests/fixtures/js-semantics.json` are output Node actually produced, committed rather than described, so the tests are a recording of the other implementation instead of an opinion about the specification. `node scripts/fixtures/record_js_fixture.mjs` writes both, using built-ins only, and CI runs it to prove the files are what the script produces. The first fixture is what caught the 2^53 bug, which the record oracle could not, because the store holds no value that large.
 
-`tests/fixtures/record-schema.json`, `tests/fixtures/vocabularies.json`, `tests/fixtures/turtle.json` and `scripts/expected/store-schema.json` are the same idea one level up: what the data repository's own TypeScript does, with zod as the schema and n3 as the Turtle parser. `scripts/fixtures/record_schema_fixture.mjs` writes them, taking its Turtle documents from `scripts/fixtures/turtle_cases.mjs`. `tests/fixtures/validation.json`, `scripts/expected/store-validation.json` and the attribute registry in `src/rewire_evidence/data/` are what its validators do, written by `scripts/fixtures/record_validation_fixture.mjs` from the cases in `scripts/fixtures/validation_cases.mjs`. Both recorders have to run inside a checkout of the data repository with its dependencies installed. That happens in the `fixtures` job in CI and nowhere else. The same job records `src/rewire_evidence/data/lowercase.json` with `scripts/fixtures/record_lowercase.mjs`: what `toLowerCase` does to every code point on the Node the data repository runs on, which the library reads so that lowercase does not follow the Unicode version of the Python it runs on. The job fails if a committed file is not what the TypeScript produces, and uploads what it recorded as the `schema-fixtures` artifact, which is how a changed fixture gets committed.
+`tests/fixtures/record-schema.json`, `tests/fixtures/vocabularies.json`, `tests/fixtures/turtle.json` and `scripts/expected/store-schema.json` are the same idea one level up: what the data repository's own TypeScript does, with zod as the schema and n3 as the Turtle parser. `scripts/fixtures/record_schema_fixture.mjs` writes them, taking its Turtle documents from `scripts/fixtures/turtle_cases.mjs`. `tests/fixtures/validation.json`, `scripts/expected/store-validation.json` and the attribute registry in `src/rewire_evidence/data/` are what its validators do, written by `scripts/fixtures/record_validation_fixture.mjs` from the cases in `scripts/fixtures/validation_cases.mjs`. `tests/fixtures/write-path.json` is what its write path does: `scripts/fixtures/record_write_fixture.mjs` gives `addBatch`, `recordChanges` and `applyChanges` the stores and inputs `scripts/fixtures/write_cases.mjs` builds, with the clock held still, and writes down what each returned or refused and every file it left different. The same recorder writes `scripts/expected/store-recorded-writes.json`. All three recorders have to run inside a checkout of the data repository with its dependencies installed. That happens in the `fixtures` job in CI and nowhere else. The same job records `src/rewire_evidence/data/lowercase.json` with `scripts/fixtures/record_lowercase.mjs`: what `toLowerCase` does to every code point on the Node the data repository runs on, which the library reads so that lowercase does not follow the Unicode version of the Python it runs on. The job fails if a committed file is not what the TypeScript produces, and uploads what it recorded as the `schema-fixtures` artifact, which is how a changed fixture gets committed.
 
 ## Layout
 
@@ -100,10 +119,12 @@ src/rewire_evidence/blocks.py       profiles, run guides, recipes and the other 
 src/rewire_evidence/panels.py       comparison panels, resolved as the catalogue query resolves them
 src/rewire_evidence/validation.py   validateRecords, and the validators of loadRecords in order
 src/rewire_evidence/records.py      loading a store as records: the whole of loadRecords
-src/rewire_evidence/cli.py          the rewire-evidence command: records check, records descriptions
+src/rewire_evidence/writes.py       records add and records change: what a write leaves, written and undone
+src/rewire_evidence/cli.py          the rewire-evidence command: records check, descriptions, add, change
 src/rewire_evidence/parity.py       what the digest and layout gates measure
 src/rewire_evidence/conformance.py  what the schema gate measures
 src/rewire_evidence/agreement.py    what the validation gate measures
+src/rewire_evidence/replay.py       what the write gate measures: merged batches replayed from history
 src/rewire_evidence/gates.py        the gates as commands: arguments, report, exit status
 scripts/                            one thin file per gate, the expectations, the fixture recorders
 tests/                              pytest and Hypothesis, with the Node fixtures

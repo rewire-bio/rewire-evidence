@@ -206,17 +206,27 @@ def read_provenance(root: Path) -> dict[str, JsonObject]:
     return rows
 
 
+def store_bodies(records: Iterable[object], provenance: Iterable[object], root: Path) -> dict[Path, str]:
+    """The whole body of every file `writeStore` writes for these rows, with nothing written.
+
+    A file is written only if a row belongs in it, as in the TypeScript, so the result names
+    the files that receive a row and no others. Every row is placed, checked and serialised
+    here, so a row that is refused is refused before any file is touched.
+    """
+    bodies = _planned(_record_entries(records, root))
+    bodies.update(_planned(_provenance_entries(provenance, root)))
+    return bodies
+
+
 def write_store(records: Iterable[JsonObject], provenance: Iterable[JsonObject], root: Path) -> None:
     """Write records and their provenance to the files the layout assigns them.
 
     Every row is placed, checked and serialised before any file is written, so a row that
     is refused leaves the disk as it was. The files are then written one after another. A
-    run interrupted between two of them is not undone here: the TypeScript snapshots the
-    store and restores it in its write path, which is a later stage.
+    run interrupted between two of them is not undone here: `writes.write` keeps what was
+    on disk and puts it back.
     """
-    bodies = _planned(_record_entries(records, root))
-    bodies.update(_planned(_provenance_entries(provenance, root)))
-    _write(bodies)
+    _write(store_bodies(records, provenance, root))
 
 
 def _lines_by_id(files: Iterable[Path]) -> list[str]:
