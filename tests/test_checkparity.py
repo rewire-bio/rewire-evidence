@@ -228,6 +228,47 @@ def test_the_gate_names_what_differs_from_the_recording(tmp_path: Path) -> None:
     assert "store.records: measured 6, the TypeScript recorded 7" in said
 
 
+def test_the_header_of_the_recorded_report_is_held_with_its_rows(tmp_path: Path) -> None:
+    pinned, first = build(tmp_path / "pinned"), store_only(tmp_path / "first")
+    recorded, dumps = recorded_of(pinned, first, tmp_path / "expected")
+    headed = Dumps([b"Check\trule\tseverity\tsubject\tdetail", *dumps.report[1:]], dumps.columns, dumps.cells)
+    found = verify_checks(pinned, first, recorded, headed)
+    # Every row is the recorded one, so the counts say nothing of the header.
+    assert found.pinned == Lines(9, 9, 9)
+    header = "the header of the report at the pinned commit: from byte 0 this library writes "
+    mine = "'check\\trule\\tseverity\\tsubject\\tdetail'"
+    assert found.problems == [f"{header}{mine} and the other has {mine.replace('check', 'Check')}"]
+    # A recording with no lines at all has no header either.
+    headless = verify_checks(pinned, first, recorded, Dumps([], dumps.columns, dumps.cells))
+    assert headless.problems[0] == f"{header}{mine} and the other has ''"
+
+
+def test_what_is_measured_is_held_to_the_order_and_the_form_the_typescript_wrote(tmp_path: Path) -> None:
+    pinned, first = build(tmp_path / "pinned"), store_only(tmp_path / "first")
+    recorded, dumps = recorded_of(pinned, first, tmp_path / "expected")
+    store = recorded["store"]
+    summaries = recorded["summaries"]
+    assert isinstance(store, dict)
+    assert isinstance(summaries, list)
+    assert isinstance(summaries[0], dict)
+    # The same counts with the keys of one block in another order, and a one written as true.
+    turned: JsonObject = {
+        **recorded,
+        "store": dict(reversed(store.items())),
+        "summaries": [{**summaries[0], "findings": False}, *summaries[1:]],
+    }
+    assert summaries[0]["findings"] == 0
+    assert turned["store"] == store
+    assert turned["summaries"] == summaries
+    assert verify_checks(pinned, first, turned, dumps).problems == [
+        "store: the values are the recorded ones, in another order or form",
+        "summaries: the values are the recorded ones, in another order or form",
+    ]
+    # A whole number is one number in JSON however it is held here.
+    whole: JsonObject = {**recorded, "total_findings": 9.0}
+    assert verify_checks(pinned, first, whole, dumps).problems == []
+
+
 def test_a_committed_report_that_is_not_only_its_rows_is_named(tmp_path: Path) -> None:
     pinned, first = build(tmp_path / "pinned"), store_only(tmp_path / "first")
     recorded, dumps = recorded_of(pinned, first, tmp_path / "expected")
@@ -378,6 +419,7 @@ def test_the_recorded_run_is_of_the_pinned_store_and_the_workflow_pins_its_count
     assert str(STORE["store"]["records"]) == workflow_pin("STORE_RECORDS")
     assert str(STORE["store"]["results"]) == workflow_pin("STORE_LOCATORS")
     assert str(STORE["report"]["lines"] - 1) == workflow_pin("CHECKS_PINNED_ROWS")
+    assert str(STORE["cells"]["lines"]) == workflow_pin("CHECKS_CELLS") == "26130"
     assert STORE["columns"]["lines"] == STORE["store"]["results"]
     assert STORE["store"] == {
         "records": 93216,
@@ -386,6 +428,39 @@ def test_the_recorded_run_is_of_the_pinned_store_and_the_workflow_pins_its_count
         "metric_concepts": 275,
         "unit_concepts": 27,
     }
+
+
+def steps_of(workflow: str) -> list[str]:
+    """The steps of a workflow, each as its text."""
+    return re.split(r"\n(?=      - )", workflow)
+
+
+def test_the_workflow_pins_every_count_of_the_gate_and_loses_no_failure_to_a_pipe() -> None:
+    workflow = (ROOT / ".github/workflows/checks.yml").read_text("utf-8")
+    (gate,) = [step for step in steps_of(workflow) if "scripts/verify_store_checks.py" in step]
+    pins = re.findall(r'"([a-z_.]+):(\$[A-Z_]+|true)"', gate)
+    assert pins == [
+        ("first_rows", "$CHECKS_ROWS"),
+        ("first_rows_reproduced", "$CHECKS_ROWS"),
+        ("first_records", "$CHECKS_RECORDS"),
+        ("pinned_rows", "$CHECKS_PINNED_ROWS"),
+        ("pinned_rows_reproduced", "$CHECKS_PINNED_ROWS"),
+        ("pinned_records", "$STORE_RECORDS"),
+        ("columns.expected", "$STORE_LOCATORS"),
+        ("columns.same", "$STORE_LOCATORS"),
+        ("cells.expected", "$CHECKS_CELLS"),
+        ("cells.same", "$CHECKS_CELLS"),
+        ("baseline_reproduced", "true"),
+    ]
+    # A step that pipes a command into tee takes the status of tee unless it says otherwise.
+    piped = [step for step in steps_of(workflow) if re.search(r"\| tee ", step)]
+    assert len(piped) >= 9
+    assert [step.split("\n")[0] for step in piped if "set -o pipefail" not in step] == []
+    # The powers of ten are the recorded Node's, and the data repository names only a major
+    # version. A step holds the pinned checkout to the major the recordings were made on.
+    (held,) = [step for step in steps_of(workflow) if "store/.github/workflows" in step]
+    assert "recorded_from.node" in held
+    assert STORE["recorded_from"]["node"].startswith("v24.")
 
 
 def test_the_recorded_report_has_the_rows_its_counts_state() -> None:

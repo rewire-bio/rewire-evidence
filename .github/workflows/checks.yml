@@ -37,11 +37,13 @@ env:
   # measured on the store at CHECKS_REF, which is the commit that baseline names and is older
   # than the commit that holds the two files. CHECKS_ROWS is the rows of that report and
   # CHECKS_RECORDS the records it was measured over. CHECKS_PINNED_ROWS is the rows the
-  # TypeScript reports at STORE_REF, as the fixtures job records them.
+  # TypeScript reports at STORE_REF, as the fixtures job records them, and CHECKS_CELLS the
+  # distinct printed values parseCell was recorded reading there.
   CHECKS_REF: 991a09ef6b6b417ff51d265bd87d862f49d4dbe3
   CHECKS_ROWS: "10754"
   CHECKS_RECORDS: "93187"
   CHECKS_PINNED_ROWS: "10754"
+  CHECKS_CELLS: "26130"
 
 jobs:
   checks:
@@ -103,6 +105,22 @@ jobs:
               exit 1
             fi
           done
+
+      # What the recordings state follows the Node they were made on: the sets a pattern
+      # matches, the lowercase mapping, and 10 ** n, which is not the nearest double for every
+      # n on every V8. The data repository's workflows name a major version and no more, so
+      # the build it runs moves without a commit there. This holds the one thing that can be
+      # held from here: that the pinned checkout still names the major the recordings are of.
+      - name: The data repository runs the Node the recordings were made on
+        run: |
+          recorded=$(jq -r .recorded_from.node scripts/expected/store-checks.json)
+          major=${recorded#v}
+          major=${major%%.*}
+          named=$(grep -h 'node-version:' store/.github/workflows/*.yml | tr -d "\"' " | cut -d: -f2 | sort -u | tr '\n' ' ')
+          if [ "$named" != "${major} " ]; then
+            echo "::error::The recordings were made on Node ${recorded}, and the workflows of the pinned checkout name: ${named}. Record again on the Node the data repository runs, and move node-version in the fixtures job with it."
+            exit 1
+          fi
 
       - name: Reproduce every committed record digest
         run: |
@@ -282,7 +300,7 @@ jobs:
         run: |
           set -o pipefail
           uv run --no-sync python scripts/verify_store_checks.py store first-run --json checks.json 2>&1 | tee checks.log
-          for pin in "first_rows:$CHECKS_ROWS" "first_rows_reproduced:$CHECKS_ROWS" "first_records:$CHECKS_RECORDS" "pinned_rows:$CHECKS_PINNED_ROWS" "pinned_rows_reproduced:$CHECKS_PINNED_ROWS" "pinned_records:$STORE_RECORDS" "columns.same:$STORE_LOCATORS" "baseline_reproduced:true"; do
+          for pin in "first_rows:$CHECKS_ROWS" "first_rows_reproduced:$CHECKS_ROWS" "first_records:$CHECKS_RECORDS" "pinned_rows:$CHECKS_PINNED_ROWS" "pinned_rows_reproduced:$CHECKS_PINNED_ROWS" "pinned_records:$STORE_RECORDS" "columns.expected:$STORE_LOCATORS" "columns.same:$STORE_LOCATORS" "cells.expected:$CHECKS_CELLS" "cells.same:$CHECKS_CELLS" "baseline_reproduced:true"; do
             measured=$(jq -r ".${pin%%:*}" checks.json)
             if [ "$measured" != "${pin##*:}" ]; then
               echo "::error::The checks gate measured ${pin%%:*} as ${measured} against a pin of ${pin##*:}."
@@ -302,6 +320,7 @@ jobs:
       # has to find the pinned store no higher than the committed baseline on any count.
       - name: Write the report and the baseline with the commands
         run: |
+          set -o pipefail
           run_date=$(jq -r .run_date store/data/omics/checks-baseline.json)
           uv run --no-sync rewire-evidence checks baseline --root first-run --date "$run_date" --commit "$CHECKS_REF" | tee first-run.log
           cmp "first-run/maintenance/reports/checks-${run_date}.tsv" "store/maintenance/reports/checks-${run_date}.tsv"

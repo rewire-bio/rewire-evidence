@@ -315,6 +315,16 @@ def read_dumps(expected: Path, recorded: JsonObject) -> Dumps:
     )
 
 
+def _written_alike(measured: JsonValue, recorded: JsonValue) -> bool:
+    """Whether two values are written as the same JSON: the keys in one order, true never for one.
+
+    `differences` names where two values disagree and takes 1 and true as equal and keys
+    in any order. The counts of a run are written into a baseline file in the order the
+    TypeScript holds them, so the order and the form are held here as well.
+    """
+    return js_stringify(measured) == js_stringify(recorded)
+
+
 def _verify_first(pinned: Path, first: Path, recorded: JsonObject, found: CheckReport) -> ratchet.Baseline:
     """The first run: the committed report and baseline, from the store at the baseline's commit."""
     baseline_bytes = _bytes(pinned / ratchet.BASELINE_FILE)
@@ -376,8 +386,14 @@ def verify_checks(pinned: Path, first: Path, recorded: JsonObject, dumps: Dumps)
     given = load_input(pinned)
     run = run_all(given)
     found.pinned_records = len(given.records)
-    mine = _report_rows(js_utf8(report_tsv(run.findings)))
+    made = js_utf8(report_tsv(run.findings)).split(b"\n")[:-1]
+    mine = made[1:]
     theirs = list(dumps.report)[1:]
+    # The rows are counted without the header, and the header is a line of the file all the same.
+    if made[:1] != list(dumps.report)[:1]:
+        found.problems.append(
+            f"the header of the report at the pinned commit: {_where(made[0], b''.join(dumps.report[:1]))}"
+        )
     found.pinned = compare_lines(mine, theirs, "the report at the pinned commit", found.problems)
     found.pinned_rules = by_rule(mine, theirs)
     found.columns = compare_lines(
@@ -395,7 +411,10 @@ def verify_checks(pinned: Path, first: Path, recorded: JsonObject, dumps: Dumps)
         "ratchet": ratchet_facts(given, run, baseline, recorded.get("ratchet")),
     }
     for name, value in found.measured.items():
-        found.problems.extend(differences(value, recorded.get(name), name))
+        differing = differences(value, recorded.get(name), name)
+        found.problems.extend(differing)
+        if not differing and not _written_alike(value, recorded.get(name)):
+            found.problems.append(f"{name}: the values are the recorded ones, in another order or form")
     return found
 
 
