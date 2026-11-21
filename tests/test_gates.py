@@ -10,7 +10,14 @@ from pathlib import Path
 import pytest
 
 from rewire_evidence.families import manifest_shard_path
-from rewire_evidence.gates import checks_gate, digests_gate, layout_gate, locators_gate, writes_gate
+from rewire_evidence.gates import (
+    checks_gate,
+    digests_gate,
+    layout_gate,
+    locators_gate,
+    tables_gate,
+    writes_gate,
+)
 from rewire_evidence.jsonl import write_text
 from rewire_evidence.parity import verify_store
 from tests.checked import CHECKED, named
@@ -21,6 +28,8 @@ from tests.test_checkparity import store_only
 from tests.test_locators import RESULTS, recorded_of
 from tests.test_locators import build as build_located
 from tests.test_parity import RELEASE, build
+from tests.test_tableparity import lay_out as lay_out_artifacts
+from tests.test_tableparity import recorded_of as tables_recorded_of
 
 SCRIPTS = Path(__file__).parent.parent / "scripts"
 
@@ -408,3 +417,60 @@ def test_the_checks_script_is_the_gate(tmp_path: Path) -> None:
     # With no --expected the script holds the store to the committed recording, which this is not.
     assert run_script("verify_store_checks.py", str(pinned), str(first)).returncode == 1
     assert "usage:" in run_script("verify_store_checks.py", "--help").stdout
+
+
+def test_the_table_gate_passes_the_tree_it_was_recorded_on_and_fails_another(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = lay_out_artifacts(tmp_path / "store")
+    tables_recorded_of(root, tmp_path / "expected")
+    expected = tmp_path / "expected" / "expected.json"
+    measured = tmp_path / "measured.json"
+    assert tables_gate([str(root), "--json", str(measured)], expected) == 0
+    out = capsys.readouterr()
+    assert out.err == ""
+    assert out.out.startswith(
+        "expecting every committed artifact as the TypeScript read it at abc123\n"
+        "the store at abc123: 4 committed HTML and XML artifacts\n"
+    )
+    assert out.out.endswith(
+        "\nAll 3 tables of 4 committed artifacts are read as the TypeScript reads them, 9 cells in all.\n"
+    )
+    report = json.loads(measured.read_text("utf-8"))
+    assert (report["counts"]["tables"], report["lines"]["same"], report["problems"]) == (3, 7, [])
+
+    (root / "docs/adr/0001.html").unlink()
+    assert tables_gate([str(root), "--expected", str(expected), "--json", str(measured)], expected) == 1
+    err = capsys.readouterr().err
+    assert "  a committed artifact as the reader reads it: 5 lines made here and 7 expected\n" in err
+    assert err.endswith(" problems. 5 of 7 recorded lines are reproduced.\n")
+    assert json.loads(measured.read_text("utf-8"))["counts"]["artifacts"] == 3
+
+
+def test_the_table_gate_cannot_be_run_on_nothing(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    # A tree with the reader's file and an artifact, and no table in it.
+    bare = {"scripts/omics/extract/tables.ts": b"x", "data/page.html": b"<p>no table</p>"}
+    root = lay_out_artifacts(tmp_path / "store", bare)
+    tables_recorded_of(root, tmp_path / "expected")
+    expected = tmp_path / "expected" / "expected.json"
+    assert tables_gate([str(root)], expected) == 2
+    assert capsys.readouterr().err == "Cannot verify: a checkout with no table holds the reader to nothing\n"
+    assert tables_gate([str(tmp_path / "nowhere")], expected) == 2
+    assert capsys.readouterr().err.startswith("Cannot verify: ")
+    assert tables_gate([str(root)], tmp_path / "missing.json") == 2
+    (tmp_path / "expected" / "lines.jsonl.gz").write_bytes(b"not gzip")
+    assert tables_gate([str(root)], expected) == 2
+    assert "lines.jsonl.gz cannot be read" in capsys.readouterr().err
+
+
+def test_the_table_script_is_the_gate(tmp_path: Path) -> None:
+    root = lay_out_artifacts(tmp_path / "store")
+    tables_recorded_of(root, tmp_path / "expected")
+    passed = run_script(
+        "verify_store_tables.py", str(root), "--expected", str(tmp_path / "expected" / "expected.json")
+    )
+    assert passed.returncode == 0, passed.stderr
+    assert "All 3 tables of 4 committed artifacts are read as the TypeScript reads them" in passed.stdout
+    # With no --expected the script holds the tree to the committed recording, which this is not.
+    assert run_script("verify_store_tables.py", str(root)).returncode == 1
+    assert "usage:" in run_script("verify_store_tables.py", "--help").stdout

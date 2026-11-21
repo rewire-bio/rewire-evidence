@@ -44,6 +44,13 @@ env:
   CHECKS_RECORDS: "93187"
   CHECKS_PINNED_ROWS: "10754"
   CHECKS_CELLS: "26130"
+  # The table reader. The HTML and XML artifacts the data repository commits at STORE_REF,
+  # the tables the TypeScript reads out of them, the cells of those tables, and the lines the
+  # fixtures job records of both.
+  TABLE_ARTIFACTS: "97"
+  TABLES: "245"
+  TABLE_CELLS: "17307"
+  TABLE_LINES: "342"
 
 jobs:
   checks:
@@ -99,9 +106,10 @@ jobs:
           registry=$(jq -r .recorded_from.store_ref src/rewire_evidence/data/attribute-registry.json)
           located=$(jq -r .recorded_from.store_ref scripts/expected/store-locators.json)
           checked=$(jq -r .recorded_from.store_ref scripts/expected/store-checks.json)
-          for named in "$held" "$expected" "$recorded" "$validated" "$registry" "$located" "$checked"; do
+          tabled=$(jq -r .recorded_from.store_ref scripts/expected/store-tables.json)
+          for named in "$held" "$expected" "$recorded" "$validated" "$registry" "$located" "$checked" "$tabled"; do
             if [ "$named" != "$STORE_REF" ]; then
-              echo "::error::STORE_REF is ${STORE_REF}, the checkout is ${held}, the pinned layout was measured at ${expected}, the TypeScript was recorded at ${recorded} and at ${validated}, the attribute registry was read at ${registry}, the locators at ${located} and the checks at ${checked}. All eight must be one commit."
+              echo "::error::STORE_REF is ${STORE_REF}, the checkout is ${held}, the pinned layout was measured at ${expected}, the TypeScript was recorded at ${recorded} and at ${validated}, the attribute registry was read at ${registry}, the locators at ${located}, the checks at ${checked} and the tables at ${tabled}. All nine must be one commit."
               exit 1
             fi
           done
@@ -336,6 +344,25 @@ jobs:
             exit 1
           fi
 
+      # Every HTML and XML artifact the pinned checkout commits, read into tables by the
+      # reader, and each artifact and each table written out as the line the TypeScript wrote
+      # for it in scripts/expected/store-tables.jsonl.gz: the caption, the rows and cells
+      # counted, and the digest of the rows, of the rows with small capitals joined and of
+      # the headed blocks. The fixtures job below records those lines from
+      # scripts/omics/extract/tables.ts at the same commit. The script fails on a line that
+      # differs, and the counts are pinned here too.
+      - name: Read every committed table as the TypeScript reads it
+        run: |
+          set -o pipefail
+          uv run --no-sync python scripts/verify_store_tables.py store --json tables.json 2>&1 | tee tables.log
+          for pin in "counts.artifacts:$TABLE_ARTIFACTS" "counts.tables:$TABLES" "counts.cells:$TABLE_CELLS" "lines.expected:$TABLE_LINES" "lines.same:$TABLE_LINES" "module_is_recorded:true"; do
+            measured=$(jq -r ".${pin%%:*}" tables.json)
+            if [ "$measured" != "${pin##*:}" ]; then
+              echo "::error::The table gate measured ${pin%%:*} as ${measured} against a pin of ${pin##*:}."
+              exit 1
+            fi
+          done
+
       - name: Summary
         if: always()
         run: |
@@ -350,6 +377,7 @@ jobs:
             if [ -f validation.log ]; then echo; echo "### Validators"; echo; echo '```'; cat validation.log; echo '```'; fi
             if [ -f locators.log ]; then echo; echo "### Locators"; echo; echo '```'; cat locators.log; echo '```'; fi
             if [ -f checks.log ]; then echo; echo "### Checks pack"; echo; echo '```'; cat checks.log; echo '```'; fi
+            if [ -f tables.log ]; then echo; echo "### Table reader"; echo; echo '```'; cat tables.log; echo '```'; fi
           } >> "$GITHUB_STEP_SUMMARY"
 
   # The write path, held to the data repository's own history. Each case is a merged pull
@@ -488,6 +516,13 @@ jobs:
       - name: Record the checks pack
         working-directory: store
         run: node_modules/.bin/tsx ../scripts/fixtures/record_checks_fixture.mjs
+      # The table reader: every pattern written in scripts/omics/extract/tables.ts as the
+      # compiler reads the file, the tables it reads out of every HTML and XML artifact the
+      # pinned checkout commits, and what it does with sources, captions, sections, headers
+      # and text layers the artifacts have no like of.
+      - name: Record the table reader
+        working-directory: store
+        run: node_modules/.bin/tsx ../scripts/fixtures/record_tables_fixture.mjs
       - name: Keep what was recorded
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -502,6 +537,9 @@ jobs:
             tests/fixtures/js-patterns.json
             tests/fixtures/locator.json
             tests/fixtures/checks.json
+            tests/fixtures/tables.json
+            scripts/expected/store-tables.json
+            scripts/expected/store-tables.jsonl.gz
             scripts/expected/store-checks.json
             scripts/expected/store-checks.tsv.gz
             scripts/expected/store-checks-columns.jsonl.gz
