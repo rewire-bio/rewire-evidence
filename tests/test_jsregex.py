@@ -16,7 +16,7 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
-from rewire_evidence import cells, checks, jsregex, locator, tables
+from rewire_evidence import cells, checks, jsregex, locator, sanity, tables
 from rewire_evidence.js import paired, unit_text
 from rewire_evidence.jsregex import Found, JsPattern, Unsupported
 
@@ -58,7 +58,13 @@ def every_pattern() -> list[tuple[str, str]]:
     return [
         *(
             (held.source, held.flags)
-            for held in (*locator.PATTERNS, *cells.PATTERNS, *checks.PATTERNS, *tables.PATTERNS)
+            for held in (
+                *locator.PATTERNS,
+                *cells.PATTERNS,
+                *checks.PATTERNS,
+                *tables.PATTERNS,
+                *sanity.PATTERNS,
+            )
         ),
         *((case["source"], case["flags"]) for case in CASES["patterns"]),
     ]

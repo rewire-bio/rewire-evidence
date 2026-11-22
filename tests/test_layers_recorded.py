@@ -17,7 +17,7 @@ from typing import Any
 import pytest
 
 from rewire_evidence import cli, grids, layers, markup, office, pdftext, registry, sanity, textlayer
-from rewire_evidence.archive import ArchiveError
+from rewire_evidence.archive import ArchiveError, parse
 from rewire_evidence.classify import Undecodable, classify, decode, encoding_of
 from rewire_evidence.containers import expand_container, zip_entry_names
 from tests.layered import LAYERS, OBJECTS, classification_of, key_of, layer_of, limits_of, node_of, row_for
@@ -57,9 +57,12 @@ def test_the_encoding_of_bytes_is_the_one_the_typescript_names(data: str, expect
 
 
 @pytest.mark.parametrize(("data", "encoding", "expected"), LAYERS["decode"])
-def test_bytes_decode_to_the_text_node_holds(data: str, encoding: str, expected: Any) -> None:
+def test_bytes_decode_to_the_text_node_holds(
+    data: str, encoding: str, expected: str | dict[str, str]
+) -> None:
+    got: str | dict[str, str]
     try:
-        got: Any = decode(bytes.fromhex(data), encoding)
+        got = decode(bytes.fromhex(data), encoding)
     except Undecodable as error:
         got = {"error": str(error)}
     assert got == expected
@@ -73,12 +76,13 @@ def without_zlib_words(problems: list[str]) -> list[str]:
 def test_a_container_expands_to_the_members_the_typescript_reads(
     data: str, limits: dict[str, int] | None, words: str | None, expected: dict[str, Any]
 ) -> None:
-    try:
-        expansion = expand_container(bytes.fromhex(data), limits_of(limits))
-    except ArchiveError as error:
-        assert expected == {"error": str(error)}
+    if "error" in expected:
+        with pytest.raises(ArchiveError) as refused:
+            expand_container(bytes.fromhex(data), limits_of(limits))
+        assert expected == {"error": str(refused.value)}
         return
-    got = {
+    expansion = expand_container(bytes.fromhex(data), limits_of(limits))
+    got: dict[str, Any] = {
         "kind": expansion.kind,
         "members": [
             {"path": member.path, "sha256": member.sha256, "bytes": len(member.content)}
@@ -211,10 +215,12 @@ def test_columns_references_and_escapes_are_the_typescripts() -> None:
     columns = LAYERS["columns"]
     assert [[label, office.column_number(label)] for label, _ in columns["numbers"]] == columns["numbers"]
     for column, expected in columns["labels"]:
-        try:
+        if isinstance(expected, str):
             assert office.column_label(column) == expected
-        except ValueError as error:
-            assert expected == {"error": str(error)}
+        else:
+            with pytest.raises(ValueError, match=f"^{column} is not a column number$") as refused:
+                office.column_label(column)
+            assert expected == {"error": str(refused.value)}
     for text, expected in columns["references"]:
         found = office.parse_reference(text)
         assert (found and {"row": found[0], "column": found[1]}) == expected, text
@@ -259,7 +265,7 @@ def test_the_shared_strings_and_the_sheets_of_a_workbook_are_the_typescripts(
 
 
 def office_result(found: office.OfficeResult | None) -> dict[str, Any] | None:
-    return found and {**asdict(found), "layer": layer_of(found.layer)}
+    return {**asdict(found), "layer": layer_of(found.layer)} if found else None
 
 
 @pytest.mark.parametrize(("name", "expected"), LAYERS["office"])
@@ -273,8 +279,14 @@ def test_an_office_package_gives_the_layer_or_the_reason_the_typescript_gives(
 
 
 @pytest.mark.parametrize(("data", "expected"), LAYERS["office_other"])
-def test_bytes_that_are_no_package_give_no_office_layer(data: str, expected: dict[str, Any] | None) -> None:
-    assert office_result(office.office_layer(bytes.fromhex(data))) == expected
+def test_other_bytes_give_no_office_layer_or_the_one_the_typescript_gives(
+    data: str, expected: dict[str, Any] | None
+) -> None:
+    got = office_result(office.office_layer(bytes.fromhex(data)))
+    if got and expected:
+        got["problems"] = without_zlib_words(got["problems"])
+        expected = {**expected, "problems": without_zlib_words(expected["problems"])}
+    assert got == expected
 
 
 @pytest.mark.parametrize(("normaliser", "text", "built", "layered"), LAYERS["grids"])
@@ -309,19 +321,21 @@ def test_a_cell_prints_a_number_or_a_value_when_the_typescript_says_so(
 def test_the_layer_tree_of_an_object_is_the_typescripts(
     name: str, media_type: str | None, options: dict[str, Any], expected: dict[str, Any]
 ) -> None:
-    try:
-        node = layers.layer_of(
+    def derive() -> layers.LayerNode:
+        return layers.layer_of(
             OBJECTS[name],
             media_type,
             max_depth=options.get("maxDepth", layers.MAX_DEPTH),
             limits=limits_of(options.get("limits")),
             pdftotext=False,
         )
-    except Undecodable as error:
-        assert expected == {"error": str(error)}
-        return
-    got = node_of(node)
-    assert strip_zlib(got) == strip_zlib(expected)
+
+    if "error" in expected:
+        with pytest.raises(Undecodable) as refused:
+            derive()
+        assert expected == {"error": str(refused.value)}
+    else:
+        assert strip_zlib(node_of(derive())) == strip_zlib(expected)
 
 
 def strip_zlib(node: dict[str, Any]) -> dict[str, Any]:
@@ -355,7 +369,12 @@ def test_every_character_counts_as_node_counts_it() -> None:
 
 @pytest.mark.parametrize(("metrics", "normaliser", "expected", "ratios", "usable"), LAYERS["sanity"])
 def test_the_verdict_on_a_layer_is_the_typescripts(
-    metrics: dict[str, Any], normaliser: str, expected: dict[str, Any], ratios: dict[str, float], *, usable: bool
+    metrics: dict[str, Any],
+    normaliser: str,
+    expected: dict[str, Any],
+    ratios: dict[str, float],
+    *,
+    usable: bool,
 ) -> None:
     found = sanity.sanity_of(metrics, normaliser)
     assert asdict(found) == expected
@@ -370,11 +389,13 @@ def test_the_registry_rows_of_an_object_are_the_typescripts(
     found = registry.layers_of_object(row_for(name, patch), OBJECTS[name])
     assert asdict(found) == expected
     # Each row is one the schema reads back as it stands.
-    assert [registry.parse(registry.LAYER_RECORD, record) for record in found.records] == found.records
+    assert [parse(registry.LAYER_RECORD, record) for record in found.records] == found.records
 
 
 @pytest.mark.parametrize("build", LAYERS["builds"])
-def test_a_registry_is_built_and_written_as_the_typescript_builds_and_writes_it(build: dict[str, Any]) -> None:
+def test_a_registry_is_built_and_written_as_the_typescript_builds_and_writes_it(
+    build: dict[str, Any],
+) -> None:
     held = {key_of(name): OBJECTS[name] for name in build["names"] if name not in build["missing"]}
     seen: list[list[Any]] = []
 
@@ -400,7 +421,9 @@ def lay_out(root: Path, files: dict[str, str]) -> None:
 
 WRITTEN = (registry.REGISTRY_FILE, registry.UNSUPPORTED_FILE)
 COMMANDS = [
-    pytest.param(tree, runs, id=f"{tree['name']}-{'-'.join(run['argv'][0] for run in runs if run['argv']) or 'none'}")
+    pytest.param(
+        tree, runs, id=f"{tree['name']}-{'-'.join(run['argv'][0] for run in runs if run['argv']) or 'none'}"
+    )
     for tree in LAYERS["commands"]
     for runs in tree["runs"]
 ]
@@ -429,9 +452,9 @@ def test_the_commands_print_and_write_what_the_typescripts_do(
         if known:
             assert said.out.replace(str(tmp_path), "<root>") == run["out"]
             assert said.err.replace(str(tmp_path), "<root>") == run["err"]
-        written = {file: (tmp_path / file).read_text("utf-8") for file in WRITTEN if (tmp_path / file).exists()}
+        written = {
+            file: (tmp_path / file).read_text("utf-8") for file in WRITTEN if (tmp_path / file).exists()
+        }
         assert written == run["written"]
-    assert registry.read_registry(tmp_path) == [
-        registry.parse(registry.LAYER_RECORD, row)
-        for row in map(__import__("json").loads, runs[-1]["written"].get(registry.REGISTRY_FILE, "").splitlines())
-    ]
+    held = runs[-1]["written"].get(registry.REGISTRY_FILE, "")
+    assert registry.serialise_registry(registry.read_registry(tmp_path)) == held

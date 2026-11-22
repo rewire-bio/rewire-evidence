@@ -659,6 +659,14 @@ jobs:
       - name: Record the archive read side
         working-directory: store
         run: node_modules/.bin/tsx ../scripts/fixtures/record_archive_fixture.mjs
+      # Layer derivation: what classify, the container readers, the markup scanner, the Office
+      # readers, the grid builder, the sanity gate and the registry build do with bytes the
+      # stored objects have no like of, and what `npm run layers --` prints and writes on
+      # small trees. The stored objects themselves are held by the layers job. This runner
+      # has no pdftotext, and the recorder refuses to run on one that has.
+      - name: Record the layer derivation
+        working-directory: store
+        run: node_modules/.bin/tsx ../scripts/fixtures/record_layers_fixture.mjs
       - name: Keep what was recorded
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -675,6 +683,7 @@ jobs:
             tests/fixtures/checks.json
             tests/fixtures/tables.json
             tests/fixtures/archive.json
+            tests/fixtures/layers.json
             scripts/expected/store-archive.json
             scripts/expected/store-archive.jsonl.gz
             scripts/expected/store-tables.json

@@ -87,6 +87,12 @@ ignore = [
 "tests/test_cells.py" = [
   "RUF001",  # the cells are the ones a paper prints, with its dashes and its bold digits
 ]
+"tests/layered.py" = [
+  "RUF001",  # the source records are named in characters JavaScript orders by unit
+]
+"tests/test_layers.py" = [
+  "RUF001",  # the spaces are the ones JavaScript counts as white space
+]
 "tests/test_checks.py" = [
   "RUF001",  # the cases are characters JavaScript and Python order or match differently
 ]
