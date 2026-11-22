@@ -703,3 +703,156 @@ jobs:
             git diff --stat -- tests/fixtures scripts/expected src/rewire_evidence/data
             exit 1
           fi
+
+  # Layer derivation, held to the registry the data repository commits: every text layer and
+  # table grid derived again from the stored bytes, and each committed line required whole.
+  #
+  # The bytes are not in a checkout. The objects a public release mirrors are fetched once
+  # into a folder that is cached on the digest of the manifest, and the gate fails if one of
+  # them is missing. The restricted objects need credentials this repository does not have:
+  # their rows are counted as not checked, and the counts are pinned so that a run cannot
+  # check fewer and pass.
+  #
+  # A row copies its object's store, visibility and source records from the manifest, and
+  # the manifest has moved since the registry was written. LAYERS_REF is the commit that
+  # wrote the registry, the newest that touches the file, and the rows are derived from its
+  # manifest, which scripts/expected/store-layers.json holds by digest.
+  #
+  # A PDF layer is what pdftotext writes, and the registry names version 26.08.0. No package
+  # index serves that release, so it is built from the source the digest below names, with
+  # the poppler-data files beside it. The runner is macOS on Apple silicon because that is
+  # where the registry was written: the same source built on Linux, for x86-64 or for arm64,
+  # with gcc or with clang, was measured writing other bytes for 9 to 16 of the 110 public
+  # PDFs that are stored as they are. docs/stages/p10.md has the measurement.
+  layers:
+    runs-on: macos-15
+    timeout-minutes: 40
+    env:
+      LAYERS_REF: e70b112078c6ba72112155caf3b091e166a405c5
+      POPPLER: "26.08.0"
+      POPPLER_SHA256: dc906e68cea698109706ac6aa3d2c9d4512fcfcac42d90b8afcda486d1b9abd0
+      POPPLER_DATA: "0.4.12"
+      POPPLER_DATA_SHA256: c835b640a40ce357e1b83666aabd95edffa24ddddd49b8daff63adb851cdab74
+      # The objects of the manifest a public release mirrors and the ones none does, the
+      # registry rows and unsupported rows of each, and the rows of each normaliser that the
+      # public objects give.
+      LAYER_OBJECTS: "871"
+      LAYER_RESTRICTED_OBJECTS: "296"
+      LAYER_ROWS: "2240"
+      LAYER_ROWS_NOT_CHECKED: "355"
+      LAYER_UNSUPPORTED: "232"
+      LAYER_UNSUPPORTED_NOT_CHECKED: "13"
+      LAYER_REGISTRY_LINES: "2595"
+      LAYER_UNSUPPORTED_LINES: "245"
+      LAYER_TEXT_ROWS: "1438"
+      LAYER_XML_ROWS: "235"
+      LAYER_HTML_ROWS: "120"
+      LAYER_JATS_GRID_ROWS: "164"
+      LAYER_HTML_GRID_ROWS: "71"
+      LAYER_SHEET_ROWS: "61"
+      LAYER_DOCUMENT_ROWS: "9"
+      LAYER_PDF_ROWS: "142"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: uv sync --locked --group dev
+
+      # The manifest and the two generated files, at the pinned commit and at the commit
+      # that wrote the registry. Nothing else of either tree is read.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: rewire-bio/rewire-benchmark-data
+          ref: ${{ env.STORE_REF }}
+          path: store
+          sparse-checkout: |
+            data/archive/objects
+            data/omics/layers
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: rewire-bio/rewire-benchmark-data
+          ref: ${{ env.LAYERS_REF }}
+          path: layers-ref
+          sparse-checkout: |
+            data/archive/objects
+            data/omics/layers
+      - name: The checkouts are the pinned commits, and the registry is the same file in both
+        run: |
+          for pair in "store:$STORE_REF:store_ref" "layers-ref:$LAYERS_REF:layers_ref"; do
+            IFS=: read -r folder pinned named <<< "$pair"
+            held=$(git -C "$folder" rev-parse HEAD)
+            expected=$(jq -r ".recorded_from.${named}" scripts/expected/store-layers.json)
+            if [ "$held" != "$pinned" ] || [ "$expected" != "$pinned" ]; then
+              echo "::error::${folder} is at ${held}, the workflow pins ${pinned} and the expectation names ${expected}."
+              exit 1
+            fi
+          done
+          cmp store/data/omics/layers/registry.jsonl layers-ref/data/omics/layers/registry.jsonl
+          cmp store/data/omics/layers/unsupported.jsonl layers-ref/data/omics/layers/unsupported.jsonl
+
+      - name: Libraries pdftotext is built against
+        run: brew install cmake pkg-config freetype fontconfig jpeg-turbo libpng libtiff openjpeg little-cms2
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        id: poppler
+        with:
+          path: ~/poppler
+          key: poppler-${{ runner.os }}-${{ runner.arch }}-${{ env.POPPLER_SHA256 }}-${{ env.POPPLER_DATA_SHA256 }}
+      - name: Build the pdftotext the registry names
+        if: steps.poppler.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          curl -sSLO "https://poppler.freedesktop.org/poppler-${POPPLER}.tar.xz"
+          curl -sSLO "https://poppler.freedesktop.org/poppler-data-${POPPLER_DATA}.tar.gz"
+          echo "${POPPLER_SHA256}  poppler-${POPPLER}.tar.xz" | shasum -a 256 -c -
+          echo "${POPPLER_DATA_SHA256}  poppler-data-${POPPLER_DATA}.tar.gz" | shasum -a 256 -c -
+          tar xf "poppler-${POPPLER}.tar.xz"
+          tar xf "poppler-data-${POPPLER_DATA}.tar.gz"
+          cmake -S "poppler-${POPPLER}" -B poppler-build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$HOME/poppler" \
+            -DENABLE_BOOST=OFF -DENABLE_QT5=OFF -DENABLE_QT6=OFF -DENABLE_GLIB=OFF -DENABLE_CPP=OFF \
+            -DENABLE_NSS3=OFF -DENABLE_GPGME=OFF -DENABLE_LIBCURL=OFF -DENABLE_GTK_DOC=OFF \
+            -DBUILD_GTK_TESTS=OFF -DBUILD_QT5_TESTS=OFF -DBUILD_QT6_TESTS=OFF -DBUILD_CPP_TESTS=OFF \
+            -DBUILD_MANUAL_TESTS=OFF -DENABLE_LIBTIFF=ON -DENABLE_DCTDECODER=libjpeg \
+            -DENABLE_LIBOPENJPEG=openjpeg2 -DENABLE_LCMS=ON
+          cmake --build poppler-build -j4
+          cmake --install poppler-build
+          make -C "poppler-data-${POPPLER_DATA}" install prefix="$HOME/poppler"
+      - name: The pdftotext on the path is that build
+        run: |
+          echo "$HOME/poppler/bin" >> "$GITHUB_PATH"
+          echo "DYLD_LIBRARY_PATH=$HOME/poppler/lib" >> "$GITHUB_ENV"
+          named=$(DYLD_LIBRARY_PATH="$HOME/poppler/lib" "$HOME/poppler/bin/pdftotext" -v 2>&1 | head -1)
+          expected=$(jq -r .pdftotext scripts/expected/store-layers.json)
+          if [ "$named" != "$expected" ] || [ "$expected" != "pdftotext version ${POPPLER}" ]; then
+            echo "::error::pdftotext names itself as '${named}', the expectation states '${expected}' and the workflow builds ${POPPLER}."
+            exit 1
+          fi
+
+      # About 670 MB the first time and nothing after it, until the manifest changes.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: objects
+          key: layer-objects-${{ hashFiles('store/data/archive/objects/*.jsonl') }}
+      - name: Fetch the objects a public release mirrors
+        run: uv run --no-sync python scripts/fetch_public_objects.py store objects
+
+      - name: Derive every layer again and require the committed lines
+        run: |
+          set -o pipefail
+          uv run --no-sync python scripts/verify_store_layers.py store layers-ref objects --json layers.json 2>&1 | tee layers.log
+          for pin in "objects.public:$LAYER_OBJECTS" "objects.checked:$LAYER_OBJECTS" "objects.restricted:$LAYER_RESTRICTED_OBJECTS" "objects.restricted_not_checked:$LAYER_RESTRICTED_OBJECTS" "rows.expected:$LAYER_REGISTRY_LINES" "rows.made:$LAYER_ROWS" "rows.same:$LAYER_ROWS" "rows_not_checked:$LAYER_ROWS_NOT_CHECKED" "unsupported.expected:$LAYER_UNSUPPORTED_LINES" "unsupported.made:$LAYER_UNSUPPORTED" "unsupported.same:$LAYER_UNSUPPORTED" "not_checked.unsupported:$LAYER_UNSUPPORTED_NOT_CHECKED" "written[\"data/omics/layers/registry.jsonl\"].same:$LAYER_REGISTRY_LINES" "written[\"data/omics/layers/unsupported.jsonl\"].same:$LAYER_UNSUPPORTED_LINES" "normalisers[\"text-utf8@1\"].same:$LAYER_TEXT_ROWS" "normalisers[\"europepmc-fulltext-xml@1\"].same:$LAYER_XML_ROWS" "normalisers[\"html-text@1\"].same:$LAYER_HTML_ROWS" "normalisers[\"jats-table-grid@1\"].same:$LAYER_JATS_GRID_ROWS" "normalisers[\"html-table-grid@1\"].same:$LAYER_HTML_GRID_ROWS" "normalisers[\"ooxml-sheet-tsv@1\"].same:$LAYER_SHEET_ROWS" "normalisers[\"ooxml-document-text@1\"].same:$LAYER_DOCUMENT_ROWS" "normalisers[\"pdf-text-layer@1\"].same:$LAYER_PDF_ROWS" "stale_rows:$LAYER_ROWS" "stale.store:$LAYER_ROWS"; do
+            measured=$(jq -r ".${pin%:*}" layers.json)
+            if [ "$measured" != "${pin##*:}" ]; then
+              echo "::error::The layer gate measured ${pin%:*} as ${measured} against a pin of ${pin##*:}."
+              exit 1
+            fi
+          done
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## Layers"
+            if [ -f layers.log ]; then echo; echo '```'; cat layers.log; echo '```'; fi
+          } >> "$GITHUB_STEP_SUMMARY"
