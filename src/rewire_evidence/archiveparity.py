@@ -13,6 +13,14 @@ line the checkout commits; the work list summary and the reclassification plan a
 TypeScript holds them; each command's output and exit status; and each TypeScript file the
 port was made from to be the file the recording was made from.
 
+A line read the same from a file framed otherwise is still another file, and the licence
+map and a committed triage queue are in no other gate. So the recording also holds the
+SHA-256 of every file of the checkout it read, and the gate requires each: the source
+records, the map, the manifest shards, the candidates, the receipts and the committed
+queues. A committed queue is as old as the day it was generated and need not be the queue
+of today, so the recording states how many of its lines today's queue still holds, and
+the gate requires that number.
+
 The recording was made of a checkout with no object cache, so `verify` and `status` report
 every object as missing. A checkout that has a cache is not what was recorded, and the gate
 says so and does not run. `ARCHIVE_CACHE` names the cache, as it does for the TypeScript, so
@@ -77,6 +85,8 @@ class ArchiveReport:
     commands: Lines = field(default_factory=Lines)
     #: TypeScript files the port was made from, and those that are the files recorded.
     modules: Lines = field(default_factory=Lines)
+    #: Files of the checkout the read side reads, and those that are the files recorded.
+    inputs: Lines = field(default_factory=Lines)
     #: The committed triage queues that are the queue as it is generated today.
     committed_queues: list[str] = field(default_factory=list)
     #: Rows of the committed queues, and those that are rows of the queue generated today.
@@ -273,30 +283,35 @@ def _listed(recorded: Mapping[str, JsonValue], name: str) -> list[JsonObject]:
     return cast("list[JsonObject]", held)
 
 
-def _modules(root: Path, recorded: JsonObject, found: ArchiveReport) -> None:
-    """Whether each TypeScript file the port was made from is the file the recording was made from."""
-    for module in _listed(recorded, "modules"):
-        found.modules.expected += 1
-        path = root / cast("str", module["file"])
-        if path.is_file() and sha256_hex(path.read_bytes()) == module["sha256"]:
-            found.modules.same += 1
+def _files(root: Path, recorded: JsonObject, name: str, tally: Lines, problems: list[str]) -> None:
+    """Whether each file the recording names under `name` is, byte for byte, the file recorded.
+
+    `modules` are the TypeScript files the port was made from, and `inputs` the files of the
+    checkout the read side reads.
+    """
+    for held in _listed(recorded, name):
+        tally.expected += 1
+        path = root / cast("str", held["file"])
+        if path.is_file() and sha256_hex(path.read_bytes()) == held["sha256"]:
+            tally.same += 1
         else:
-            found.problems.append(
-                f"{module['file']} in the checkout is not the file the recording was made from"
-            )
-    found.modules.made = found.modules.expected
+            problems.append(f"{held['file']} in the checkout is not the file the recording was made from")
+    tally.made = tally.expected
 
 
 def _queues(root: Path, date: str, triage: JsonObject, found: ArchiveReport) -> None:
     """The triage queue against the recorded one, and against the queues the checkout commits.
 
     A committed queue is as old as the day it was generated, so it is not required to be
-    the queue of today. Its lines are counted, and those that today's queue still holds.
+    the queue of today. Its lines are counted, and those that today's queue still holds,
+    and both counts have to be the ones the TypeScript recorded. A queue the recording
+    names and the checkout lacks holds no line, and is named among the files that differ.
     """
     rendered = licence.render_triage(licence.build_triage(root), date)
     generated = set(rendered.split("\n"))
-    queues = [file for file in cast("list[str]", triage.get("queues") or []) if (root / file).is_file()]
-    for file in queues:
+    for file in cast("list[str]", triage.get("queues") or []):
+        if not (root / file).is_file():
+            continue
         rows = [line for line in archive.raw_lines(root / file) if line and not line.startswith("#")]
         found.queue_rows.expected += len(rows)
         found.queue_rows.same += sum(1 for row in rows if row in generated)
@@ -307,6 +322,12 @@ def _queues(root: Path, date: str, triage: JsonObject, found: ArchiveReport) -> 
         found.problems.append("the triage queue is not the one the TypeScript generated")
     if found.committed_queues != triage.get("committed"):
         found.problems.append("the committed queues that are the queue generated are not the ones recorded")
+    held = (found.queue_rows.same, found.queue_rows.expected)
+    if held != (triage.get("held"), triage.get("lines")):
+        found.problems.append(
+            f"the queue generated holds {held[0]} of the {held[1]} lines of the committed queues, "
+            f"and the TypeScript recorded {triage.get('held')} of {triage.get('lines')}"
+        )
 
 
 def verify_archive(root: Path, recorded: JsonObject, dump: Sequence[bytes]) -> ArchiveReport:
@@ -327,7 +348,8 @@ def verify_archive(root: Path, recorded: JsonObject, dump: Sequence[bytes]) -> A
     date = triage.get("date")
     if not isinstance(date, str):
         raise StoreError("the recorded expectation does not name the date of the triage queue")
-    _modules(root, recorded, found)
+    _files(root, recorded, "modules", found.modules, found.problems)
+    _files(root, recorded, "inputs", found.inputs, found.problems)
     made = archive_lines(root, date, found)
     found.lines = compare_lines(made, dump, "the checkout as the read side reads it", found.problems)
     counts: JsonObject = dict(found.counts)
@@ -364,6 +386,7 @@ def read_archive_dump(expected: Path, recorded: JsonObject) -> list[bytes]:
 def summary(found: ArchiveReport) -> str:
     """The report as the lines the gate prints."""
     counts, lines, modules, commands = found.counts, found.lines, found.modules, found.commands
+    inputs = found.inputs
     written = [
         f"  {name.replace('_', ' ')} read by the schema and written back as committed: "
         f"{tally.same:,} of {tally.read:,}, {tally.refused:,} refused"
@@ -383,6 +406,7 @@ def summary(found: ArchiveReport) -> str:
                 f"{found.queue_rows.same:,} of {found.queue_rows.expected:,}"
             ),
             f"  TypeScript files that are the files recorded: {modules.same} of {modules.expected}",
+            f"  files of the checkout that are the files recorded: {inputs.same} of {inputs.expected}",
             f"  commands that print what the TypeScript printed: {commands.same} of {commands.expected}",
             f"  lines the TypeScript recorded, reproduced: {lines.same:,} of {lines.expected:,}",
         ]
@@ -400,6 +424,7 @@ def to_json(found: ArchiveReport) -> str:
             "written": {name: tally.row() for name, tally in found.written.items()},
             "commands": found.commands.row(),
             "modules": found.modules.row(),
+            "inputs": found.inputs.row(),
             "committed_queues": found.committed_queues,
             "queue_rows": found.queue_rows.row(),
             "problems": found.problems,

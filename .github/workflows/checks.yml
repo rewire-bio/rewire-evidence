@@ -55,8 +55,12 @@ env:
   # the pinned checkout commits, its source records and the strings of its licence map, the
   # rows of the triage queue as it is generated there, the lines the fixtures job records of
   # all of them, the commands it records and the TypeScript files it records them from.
+  # ARCHIVE_INPUTS is the files of the checkout the read side reads, each held by its digest.
   # ARCHIVE_QUEUE_ROWS is the lines of the triage queue the checkout commits, which is two
   # days older than the checkout: every one of them is still a line of the queue generated.
+  # QUEUE_REF is the commit that wrote that queue, the only one that touches the file. The
+  # queue generated from the source records and the licence map of that commit has to be
+  # the committed file byte for byte.
   ARCHIVE_ROWS: "1167"
   ARCHIVE_RECEIPTS: "1526"
   ARCHIVE_RESOLVE_RECEIPTS: "1731"
@@ -67,7 +71,9 @@ env:
   ARCHIVE_LINES: "9696"
   ARCHIVE_COMMANDS: "9"
   ARCHIVE_MODULES: "12"
+  ARCHIVE_INPUTS: "22"
   ARCHIVE_QUEUE_ROWS: "1083"
+  QUEUE_REF: 98da2c478ad8df25209fdff78ad116926f1e84de
 
 jobs:
   checks:
@@ -395,7 +401,7 @@ jobs:
         run: |
           set -o pipefail
           uv run --no-sync python scripts/verify_store_archive.py store --json archive.json 2>&1 | tee archive.log
-          for pin in "counts.manifest_rows:$ARCHIVE_ROWS" "written.manifest_rows.same:$ARCHIVE_ROWS" "counts.receipts:$ARCHIVE_RECEIPTS" "written.receipts.same:$ARCHIVE_RECEIPTS" "counts.resolve_receipts:$ARCHIVE_RESOLVE_RECEIPTS" "written.resolve_receipts.same:$ARCHIVE_RESOLVE_RECEIPTS" "counts.candidates:$ARCHIVE_CANDIDATES" "written.candidates.same:$ARCHIVE_CANDIDATES" "counts.sources:$ARCHIVE_SOURCES" "counts.licences:$ARCHIVE_LICENCES" "counts.triage_rows:$ARCHIVE_TRIAGE_ROWS" "lines.expected:$ARCHIVE_LINES" "lines.same:$ARCHIVE_LINES" "commands.same:$ARCHIVE_COMMANDS" "modules.same:$ARCHIVE_MODULES" "queue_rows.expected:$ARCHIVE_QUEUE_ROWS" "queue_rows.same:$ARCHIVE_QUEUE_ROWS"; do
+          for pin in "counts.manifest_rows:$ARCHIVE_ROWS" "written.manifest_rows.same:$ARCHIVE_ROWS" "counts.receipts:$ARCHIVE_RECEIPTS" "written.receipts.same:$ARCHIVE_RECEIPTS" "counts.resolve_receipts:$ARCHIVE_RESOLVE_RECEIPTS" "written.resolve_receipts.same:$ARCHIVE_RESOLVE_RECEIPTS" "counts.candidates:$ARCHIVE_CANDIDATES" "written.candidates.same:$ARCHIVE_CANDIDATES" "counts.sources:$ARCHIVE_SOURCES" "counts.licences:$ARCHIVE_LICENCES" "counts.triage_rows:$ARCHIVE_TRIAGE_ROWS" "lines.expected:$ARCHIVE_LINES" "lines.same:$ARCHIVE_LINES" "commands.same:$ARCHIVE_COMMANDS" "modules.same:$ARCHIVE_MODULES" "inputs.same:$ARCHIVE_INPUTS" "queue_rows.expected:$ARCHIVE_QUEUE_ROWS" "queue_rows.same:$ARCHIVE_QUEUE_ROWS"; do
             measured=$(jq -r ".${pin%%:*}" archive.json)
             if [ "$measured" != "${pin##*:}" ]; then
               echo "::error::The archive gate measured ${pin%%:*} as ${measured} against a pin of ${pin##*:}."
@@ -447,6 +453,42 @@ jobs:
             exit 1
           fi
 
+      # The one committed file the read side writes: the triage queue. It is older than the
+      # pinned commit, so it is generated again from the commit that wrote it, where it has
+      # to be the committed file byte for byte. The checkout holds the source records, the
+      # licence map and the queue as they stood there, and nothing else.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: rewire-bio/rewire-benchmark-data
+          ref: ${{ env.QUEUE_REF }}
+          path: queue-run
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /data/entities/sources.jsonl
+            /data/archive/licence-map.tsv
+            /maintenance/reports/licence-triage-*.tsv
+
+      - name: Write the committed triage queue again from the commit that wrote it
+        run: |
+          held=$(git -C queue-run rev-parse HEAD)
+          if [ "$held" != "$QUEUE_REF" ]; then
+            echo "::error::QUEUE_REF is ${QUEUE_REF} and the checkout is ${held}."
+            exit 1
+          fi
+          date=$(jq -r .triage.date scripts/expected/store-archive.json)
+          queue="maintenance/reports/licence-triage-${date}.tsv"
+          # The pinned commit still holds the queue as that commit wrote it.
+          cmp "queue-run/${queue}" "store/${queue}"
+          uv run --no-sync rewire-evidence licence triage --root queue-run --stdout --date "$date" > queue.tsv
+          cmp queue.tsv "store/${queue}"
+          rows=$(grep -vc '^#' queue.tsv)
+          if [ "$rows" != "$ARCHIVE_QUEUE_ROWS" ]; then
+            echo "::error::The queue written again has ${rows} lines against a pin of ${ARCHIVE_QUEUE_ROWS}."
+            exit 1
+          fi
+          echo "The triage queue of ${date} is written again byte for byte from ${QUEUE_REF}: ${rows} lines." > queue.log
+          cat queue.log
+
       - name: Summary
         if: always()
         run: |
@@ -463,6 +505,7 @@ jobs:
             if [ -f checks.log ]; then echo; echo "### Checks pack"; echo; echo '```'; cat checks.log; echo '```'; fi
             if [ -f tables.log ]; then echo; echo "### Table reader"; echo; echo '```'; cat tables.log; echo '```'; fi
             if [ -f archive.log ]; then echo; echo "### Archive read side"; echo; echo '```'; cat archive.log; echo '```'; fi
+            if [ -f queue.log ]; then echo; echo "### Committed triage queue"; echo; echo '```'; cat queue.log; echo '```'; fi
           } >> "$GITHUB_STEP_SUMMARY"
 
   # The write path, held to the data repository's own history. Each case is a merged pull

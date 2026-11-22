@@ -5,6 +5,7 @@ from __future__ import annotations
 import gzip
 import json
 import re
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -37,6 +38,11 @@ RECEIPTS = "data/omics/audits/2026-11-17-archive-fetch.receipts.jsonl"
 RESOLVED = "data/omics/audits/2026-11-17-licence-resolve.receipts.jsonl"
 QUEUE = f"maintenance/reports/licence-triage-{DATE}.tsv"
 OLDER = "maintenance/reports/licence-triage-2025-12-01.tsv"
+NOT_RECORDED = " in the checkout is not the file the recording was made from"
+COUNTED = (
+    "the queue generated holds {} of the {} lines of the committed queues, "
+    "and the TypeScript recorded 12 of 13"
+)
 
 
 def scenario(name: str) -> dict[str, Any]:
@@ -65,6 +71,21 @@ def lay_out(root: Path) -> Path:
     return root
 
 
+def inputs_of(root: Path) -> list[str]:
+    """The files of a tree the read side reads, in the order the recorder names them."""
+    files = [
+        worklist.SOURCES,
+        licence.LICENCE_MAP,
+        *(f"data/archive/objects/{shard}.jsonl" for shard in "0123456789abcdef"),
+        licence.CANDIDATES,
+        RECEIPTS,
+        RESOLVED,
+        OLDER,
+        QUEUE,
+    ]
+    return [file for file in files if (root / file).is_file()]
+
+
 def recorded_of(root: Path, folder: Path) -> JsonObject:
     """An expectation measured on a tree as it stands, as the committed one was by the TypeScript."""
     found = ArchiveReport()
@@ -87,6 +108,9 @@ def recorded_of(root: Path, folder: Path) -> JsonObject:
             {"file": module["file"], "sha256": sha256_hex((root / module["file"]).read_bytes())}
             for module in STORE["modules"]
         ],
+        "inputs": [
+            {"file": file, "sha256": sha256_hex((root / file).read_bytes())} for file in inputs_of(root)
+        ],
         "counts": dict(found.counts),
         "dump": {
             "file": "lines.jsonl.gz",
@@ -99,6 +123,7 @@ def recorded_of(root: Path, folder: Path) -> JsonObject:
             "sha256": sha256_hex(queue),
             "queues": [file for file in (OLDER, QUEUE) if (root / file).is_file()],
             "committed": [QUEUE] if (root / QUEUE).is_file() else [],
+            **queue_lines(root, queue),
         },
         "summary": worklist.summarise(root),
         "plan": reclassify.plan_reclassify(root),
@@ -106,6 +131,19 @@ def recorded_of(root: Path, folder: Path) -> JsonObject:
     }
     (folder / "expected.json").write_text(json.dumps(recorded), encoding="utf-8")
     return recorded
+
+
+def queue_lines(root: Path, queue: str) -> dict[str, int]:
+    """The lines of the committed queues, and those the queue generated holds, as the recorder counts."""
+    generated = set(queue.split("\n"))
+    lines = [
+        line
+        for file in (OLDER, QUEUE)
+        if (root / file).is_file()
+        for line in (root / file).read_text("utf-8").split("\n")
+        if line and not line.startswith("#")
+    ]
+    return {"lines": len(lines), "held": sum(line in generated for line in lines)}
 
 
 def verified(root: Path, recorded: JsonObject, folder: Path) -> ArchiveReport:
@@ -152,9 +190,10 @@ def test_the_gate_passes_the_tree_it_was_recorded_on(tmp_path: Path) -> None:
         "resolve_receipts": {"read": 1, "refused": 0, "same": 1},
         "candidates": {"read": 8, "refused": 0, "same": 8},
     }
-    assert (found.commands.row(), found.modules.row()) == (
+    assert (found.commands.row(), found.modules.row(), found.inputs.row()) == (
         {"made": 9, "expected": 9, "same": 9},
         {"made": 12, "expected": 12, "same": 12},
+        {"made": 8, "expected": 8, "same": 8},
     )
     assert found.committed_queues == [QUEUE]
     # The older queue has two rows fewer and one that has since left the queue.
@@ -172,12 +211,14 @@ def test_the_gate_passes_the_tree_it_was_recorded_on(tmp_path: Path) -> None:
         "  committed queues that are the queue generated: 1",
         "  lines of the committed queues that are lines of the queue generated: 12 of 13",
         "  TypeScript files that are the files recorded: 12 of 12",
+        "  files of the checkout that are the files recorded: 8 of 8",
         "  commands that print what the TypeScript printed: 9 of 9",
         "  lines the TypeScript recorded, reproduced: 84 of 84",
     ]
     report = json.loads(archiveparity.to_json(found))
     assert report["counts"] == found.counts
     assert report["queue_rows"] == {"made": 14, "expected": 13, "same": 12}
+    assert report["inputs"] == {"made": 8, "expected": 8, "same": 8}
     assert archiveparity.summary(ArchiveReport()).startswith("the store at : 0 manifest rows\n")
 
 
@@ -203,7 +244,8 @@ def test_the_gate_names_what_differs_from_the_recording(tmp_path: Path) -> None:
     assert (first["archive_tier"], first["store"]) == ("t0-public", "r2")
     put(root, shard, 0, canonical_line(first | {"archive_tier": "t2-verbatim-nd"}))
     problems = verified(root, recorded, folder).problems
-    assert problems[0].startswith("the checkout as the read side reads it, line ")
+    assert problems[0] == f"{shard}{NOT_RECORDED}"
+    assert problems[1].startswith("the checkout as the read side reads it, line ")
     assert "plan: not what the TypeScript holds, or not in its order" in problems
     assert sum("does not print what the TypeScript printed" in problem for problem in problems) == 2
     put(root, shard, 0, canonical_line(first))
@@ -213,7 +255,8 @@ def test_the_gate_names_what_differs_from_the_recording(tmp_path: Path) -> None:
     put(root, shard, 0, json.dumps(dict(reversed(first.items())), separators=(",", ":")))
     found = verified(root, recorded, folder)
     assert found.problems == [
-        "manifest_rows: 15 of 16 rows the schema read are written back as the line the checkout commits"
+        f"{shard}{NOT_RECORDED}",
+        "manifest_rows: 15 of 16 rows the schema read are written back as the line the checkout commits",
     ]
     assert found.lines.same == found.lines.expected
 
@@ -260,16 +303,74 @@ def test_the_gate_holds_the_files_the_port_was_made_from_and_the_queues(tmp_path
     (root / QUEUE).write_bytes((root / QUEUE).read_bytes() + b"# edited\n")
     (root / OLDER).unlink()
     found = verified(root, recorded, folder)
-    assert found.problems == ["the committed queues that are the queue generated are not the ones recorded"]
+    assert found.problems == [
+        f"{OLDER}{NOT_RECORDED}",
+        f"{QUEUE}{NOT_RECORDED}",
+        "the committed queues that are the queue generated are not the ones recorded",
+        COUNTED.format(7, 7),
+    ]
     assert (found.committed_queues, found.queue_rows.expected) == ([], 7)
-    stale = recorded | {"triage": recorded["triage"] | {"sha256": "0" * 64, "committed": []}}  # type: ignore[operator]
-    assert verified(root, stale, folder).problems == [
+    assert found.inputs.row() == {"made": 8, "expected": 8, "same": 6}
+    stale = recorded | {"triage": recorded["triage"] | {"sha256": "0" * 64}}  # type: ignore[operator]
+    assert verified(lay_out(tmp_path / "fresh"), stale, folder).problems == [
         "the triage queue is not the one the TypeScript generated"
     ]
     summary = recorded | {"summary": {"sources": 1}}
     assert verified(lay_out(tmp_path / "third"), summary, folder).problems == [
         "summary: not what the TypeScript holds, or not in its order"
     ]
+
+
+def test_a_committed_queue_that_was_edited_cut_short_or_removed_fails_the_gate(tmp_path: Path) -> None:
+    folder = tmp_path / "expected"
+    recorded = recorded_of(lay_out(tmp_path / "store"), folder)
+    expected = str(folder / "expected.json")
+
+    def held(name: str, change: Callable[[list[str]], list[str]] | None) -> list[str]:
+        root = lay_out(tmp_path / name)
+        if change is None:
+            (root / OLDER).unlink()
+        else:
+            lines = (root / OLDER).read_text("utf-8").split("\n")
+            (root / OLDER).write_bytes("\n".join(change(lines)).encode("utf-8"))
+        assert archive_gate([str(root), "--expected", expected], folder / "expected.json") == 1
+        problems = verified(root, recorded, folder).problems
+        assert problems[0] == f"{OLDER}{NOT_RECORDED}"
+        return problems[1:]
+
+    # The older queue is its comment lines, a header, four rows today's queue holds and one it does not.
+    lines = (tmp_path / "store" / OLDER).read_text("utf-8").split("\n")
+    row = next(at for at, line in enumerate(lines) if line and not line.startswith(("#", "source_id")))
+    assert held("edited", lambda held: [*held[:row], f"{held[row]}x", *held[row + 1 :]]) == [
+        COUNTED.format(11, 13)
+    ]
+    assert held("cut", lambda held: [*held[:row], *held[row + 1 :]]) == [COUNTED.format(11, 12)]
+    assert held("removed", None) == [COUNTED.format(7, 7)]
+    # A change that leaves every row a row of today's queue is still another file.
+    assert held("commented", lambda held: ["# a comment", *held]) == []
+    assert held("unended", lambda held: held[:-1]) == []
+
+
+def test_a_file_framed_otherwise_is_another_file_though_every_line_reads_the_same(tmp_path: Path) -> None:
+    folder = tmp_path / "expected"
+    recorded = recorded_of(lay_out(tmp_path / "store"), folder)
+    shard = "data/archive/objects/5.jsonl"
+    changes: list[tuple[str, Callable[[bytes], bytes]]] = [
+        (licence.LICENCE_MAP, lambda held: b"# a comment\n" + held),
+        (shard, lambda held: held.removesuffix(b"\n")),
+        (shard, lambda held: held + b"\n"),
+        (licence.CANDIDATES, lambda held: held.removesuffix(b"\n")),
+        (RESOLVED, lambda held: held + b"\n\n"),
+    ]
+    for at, (file, change) in enumerate(changes):
+        root = lay_out(tmp_path / f"tree-{at}")
+        (root / file).write_bytes(change((root / file).read_bytes()))
+        found = verified(root, recorded, folder)
+        assert found.problems == [f"{file}{NOT_RECORDED}"]
+        # Every line is read as it was and written back as committed, so nothing else can tell.
+        assert found.lines.same == found.lines.expected == 84
+        assert all(tally.same == tally.read for tally in found.written.values())
+        assert found.inputs.row() == {"made": 8, "expected": 8, "same": 7}
 
 
 def test_the_gate_cannot_be_run_on_what_was_not_recorded(
@@ -281,6 +382,7 @@ def test_the_gate_cannot_be_run_on_what_was_not_recorded(
     for name, said_of in (
         ("triage", "has no triage"),
         ("modules", "has no list of modules"),
+        ("inputs", "has no list of inputs"),
         ("commands", "has no list of commands"),
         ("dump", "does not hold dump"),
     ):
@@ -414,7 +516,13 @@ def test_the_recording_is_of_the_pinned_store_and_the_workflow_pins_its_counts()
     assert str(STORE["dump"]["lines"]) == workflow_pin("ARCHIVE_LINES") == "9696"
     assert str(len(STORE["commands"])) == workflow_pin("ARCHIVE_COMMANDS") == "9"
     assert str(len(STORE["modules"])) == workflow_pin("ARCHIVE_MODULES") == "12"
-    assert workflow_pin("ARCHIVE_QUEUE_ROWS") == "1083"
+    assert str(len(STORE["inputs"])) == workflow_pin("ARCHIVE_INPUTS") == "22"
+    triage = STORE["triage"]
+    assert str(triage["lines"]) == str(triage["held"]) == workflow_pin("ARCHIVE_QUEUE_ROWS") == "1083"
+    # Every file the read side reads is held by its digest: the queues, the receipts and the rest.
+    held = {entry["file"] for entry in STORE["inputs"]}
+    assert {*triage["queues"], *STORE["files"]["receipts"], *STORE["files"]["resolve_receipts"]} < held
+    assert {worklist.SOURCES, licence.LICENCE_MAP, licence.CANDIDATES, "data/archive/objects/f.jsonl"} < held
     assert all(counts[name] == 0 for name in counts if name.endswith("_refused"))
     assert [command["argv"][:2] for command in STORE["commands"]] == [argv[:2] for argv in COMMANDS]
     # Nothing moves at the pinned commit: reclassify is a no-op on the committed manifest.
@@ -444,9 +552,30 @@ def test_the_recording_is_of_the_pinned_store_and_the_workflow_pins_its_counts()
         ("lines.same", "$ARCHIVE_LINES"),
         ("commands.same", "$ARCHIVE_COMMANDS"),
         ("modules.same", "$ARCHIVE_MODULES"),
+        ("inputs.same", "$ARCHIVE_INPUTS"),
         ("queue_rows.expected", "$ARCHIVE_QUEUE_ROWS"),
         ("queue_rows.same", "$ARCHIVE_QUEUE_ROWS"),
     ]
+
+
+def test_the_committed_queue_is_written_again_from_the_commit_that_wrote_it() -> None:
+    workflow = (ROOT / ".github/workflows/checks.yml").read_text("utf-8")
+    steps = re.split(r"\n(?=      - )", workflow)
+    queue_ref = workflow_pin("QUEUE_REF")
+    assert re.fullmatch(r"[0-9a-f]{40}", queue_ref)
+    assert queue_ref != workflow_pin("STORE_REF")
+    (checkout,) = [step for step in steps if "ref: ${{ env.QUEUE_REF }}" in step]
+    assert "repository: rewire-bio/rewire-benchmark-data" in checkout
+    assert "path: queue-run" in checkout
+    (gate,) = [step for step in steps if "--root queue-run" in step]
+    # The commit is the one named, the queue there is the pinned one, and the queue written
+    # again is that file byte for byte, with its lines counted.
+    assert '[ "$held" != "$QUEUE_REF" ]' in gate
+    assert 'cmp "queue-run/${queue}" "store/${queue}"' in gate
+    assert 'licence triage --root queue-run --stdout --date "$date" > queue.tsv' in gate
+    assert 'cmp queue.tsv "store/${queue}"' in gate
+    assert '[ "$rows" != "$ARCHIVE_QUEUE_ROWS" ]' in gate
+    assert steps.index(checkout) < steps.index(gate)
 
 
 def test_the_recorded_lines_are_of_the_kinds_the_counts_state() -> None:

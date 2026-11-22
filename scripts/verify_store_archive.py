@@ -15,7 +15,11 @@ candidate, and for each row of the triage queue.
 The gate writes the same lines from the checkout and requires each one. It requires every
 manifest row, receipt and candidate the schema reads to be written back as the committed
 line, the work list summary and the reclassification plan as the TypeScript holds them, what
-each command prints, and that each TypeScript file in the checkout is the file recorded.
+each command prints, and that each TypeScript file in the checkout is the file recorded. It
+requires each file of the checkout the read side reads to be the file recorded, byte for
+byte: the source records, the licence map, the manifest shards, the candidates, the receipts
+and the committed triage queues. And it requires the queue generated to hold as many lines
+of the committed queues as the TypeScript counted.
 
 The work is in `rewire_evidence.archiveparity` and `rewire_evidence.gates`, where the tests
 cover it. This file is the command.

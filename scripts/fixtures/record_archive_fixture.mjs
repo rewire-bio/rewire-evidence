@@ -18,7 +18,9 @@
 //       digest; each candidate built again from its own observations; the latest receipt of
 //       each source; and the triage queue as render writes it. The JSON file states the
 //       commit, the counts, the SHA-256 of the lines, the SHA-256 of each TypeScript file
-//       read, the work list summary, the reclassification plan, and what each command prints.
+//       read and of each file of the checkout read, how many lines of the committed triage
+//       queues the queue generated still holds, the work list summary, the reclassification
+//       plan, and what each command prints.
 //   tests/fixtures/archive.json
 //       What the schemas say of the rows, receipts and candidates in archive_cases.mjs, what
 //       the small functions return, how Node reads each URL and expands each gzip file, and
@@ -222,7 +224,23 @@ if (!queues.length) throw new Error("the checkout commits no triage queue to tak
 const triageDate = queues.at(-1).slice("licence-triage-".length, -".tsv".length);
 const rendered = triage.render(queue, triageDate);
 for (const text of rendered.split("\n").slice(0, -1)) push("triage", text);
-const committedQueues = queues.filter((name) => fs.readFileSync(path.join(store, "maintenance/reports", name), "utf8") === rendered).map((name) => `maintenance/reports/${name}`);
+const queueFiles = queues.map((name) => `maintenance/reports/${name}`);
+const committedQueues = queueFiles.filter((file) => fs.readFileSync(path.join(store, file), "utf8") === rendered);
+// A committed queue is as old as the day it was generated. Its lines, and those the queue
+// generated from this checkout still holds.
+const queueLines = queueFiles.flatMap((file) => readLines(file).filter((text) => text && !text.startsWith("#")));
+const generatedLines = new Set(rendered.split("\n"));
+// Every file of the checkout read above, so that the bytes of each are part of what was
+// recorded: a line read the same from a file framed otherwise is still another file.
+const INPUTS = [
+  "data/entities/sources.jsonl",
+  "data/archive/licence-map.tsv",
+  ...schema.objectShards.map((shard) => `data/archive/objects/${shard}.jsonl`),
+  "data/archive/licence-candidates.jsonl",
+  ...fetchFiles,
+  ...resolveFiles,
+  ...queueFiles,
+].filter((file) => fs.existsSync(path.join(store, file)));
 
 const content = lines.map((text) => `${text}\n`).join("");
 const data = Buffer.from(content, "utf8");
@@ -277,6 +295,7 @@ fs.writeFileSync(
   members({
     recorded_from: JSON.stringify(recordedFrom),
     modules: rows(MODULES.map((file) => ({ file, sha256: sha256(fs.readFileSync(path.join(store, file))) }))),
+    inputs: rows(INPUTS.map((file) => ({ file, sha256: sha256(fs.readFileSync(path.join(store, file))) }))),
     counts: JSON.stringify({
       licences: map.size,
       sources: licences.size,
@@ -295,7 +314,7 @@ fs.writeFileSync(
     }),
     files: JSON.stringify({ receipts: fetchFiles, resolve_receipts: resolveFiles }),
     dump: JSON.stringify({ file: dumpName, lines: lines.length, sha256: sha256(data), kinds: counts }),
-    triage: JSON.stringify({ date: triageDate, sha256: digest(rendered), queues: queues.map((name) => `maintenance/reports/${name}`), committed: committedQueues }),
+    triage: JSON.stringify({ date: triageDate, sha256: digest(rendered), queues: queueFiles, committed: committedQueues, lines: queueLines.length, held: queueLines.filter((text) => generatedLines.has(text)).length }),
     summary: JSON.stringify(worklist.summarise(here)),
     verification: JSON.stringify({
       objects: verification.objects,
