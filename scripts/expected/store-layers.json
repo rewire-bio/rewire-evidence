@@ -1,0 +1,9 @@
+{
+ "recorded_from": {"store_ref":"91f76cf8e61cba9d6037a01a19c9aa3051184900","layers_ref":"e70b112078c6ba72112155caf3b091e166a405c5"},
+ "registry": {"file":"data/omics/layers/registry.jsonl","lines":2595,"sha256":"882c03a8a1b9c023567b71af3d2f75c234508e88e02a00ca144402c18a55b13b"},
+ "unsupported": {"file":"data/omics/layers/unsupported.jsonl","lines":245,"sha256":"42e0d2586f38522cfc4f30dc9c9ecd586f629cae15c060ec96e52a9f572367ac"},
+ "manifest": {"files":"data/archive/objects/<0-f>.jsonl","rows":1167,"sha256":"5043ab97e55cdd5b4115699427ad83f8fa1d4a455380666bf621c21d353acb32"},
+ "pdftotext": "pdftotext version 26.08.0",
+ "normalisers": {"europepmc-fulltext-xml@1":259,"html-table-grid@1":119,"html-text@1":198,"jats-table-grid@1":175,"ooxml-document-text@1":9,"ooxml-sheet-tsv@1":65,"pdf-text-layer@1":201,"text-utf8@1":1569},
+ "stale_members": ["store"]
+}
