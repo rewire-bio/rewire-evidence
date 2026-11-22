@@ -452,25 +452,25 @@ MIN_COLUMNS: Final = 3
 MIN_ROWS: Final = 3
 
 _S: Final = f"[{SPACE_CLASS}]"
-_SIGN: Final = r"[+\-‐‑−]?"
+_SIGN: Final = r"[+\-\u2010\u2011\u2212]?"
 #: A number as a paper prints one, the whole of the cell: a comparator or a bracket, digits
 #: with thousands separators and a decimal part, an exponent, a unit, and a closing bracket
 #: or a footnote mark.
 _NUMBER: Final = re.compile(
-    rf"[(\[{{<>≤≥~≈]*{_S}*{_SIGN}[0-9][0-9,  ]*(?:\.[0-9]+)?"
-    rf"(?:{_S}*(?:[eE]|[×x]{_S}*10){_S}*\^?{_S}*{_SIGN}[0-9]+)?"
-    rf"(?:{_S}*(?:bp|kb|Mb|Gb|kB|MB|GB|min|ms|mM|nM|%|‰|[KkMGBbshm]))?"
-    r"[)\]}%*†‡]*"
+    rf"[(\[{{<>\u2264\u2265~\u2248]*{_S}*{_SIGN}[0-9][0-9,\u00a0 ]*(?:\.[0-9]+)?"
+    rf"(?:{_S}*(?:[eE]|[\u00d7x]{_S}*10){_S}*\^?{_S}*{_SIGN}[0-9]+)?"
+    rf"(?:{_S}*(?:bp|kb|Mb|Gb|kB|MB|GB|min|ms|mM|nM|%|\u2030|[KkMGBbshm]))?"
+    r"[)\]}%*\u2020\u2021]*"
 )
 #: What a table prints where it has no value. A heading is none of these.
 _PLACEHOLDERS: Final = frozenset(
     {
-        "-", "--", "–", "—", "−", "n/a", "na", "nd", "ns", "yes", "no", "true", "false",
-        "✓", "✔", "✕", "✖", "✗", "✘", "√", "×", "•",
+        "-", "--", "\u2013", "\u2014", "\u2212", "n/a", "na", "nd", "ns", "yes", "no", "true", "false",
+        "\u2713", "\u2714", "\u2715", "\u2716", "\u2717", "\u2718", "\u221a", "\u00d7", "\u2022",
     }
 )  # fmt: skip
 #: Where one part of a compound value ends and the next begins.
-_PARTS: Final = re.compile(rf"[{SPACE_CLASS}±]*(?:±|\+/-|/|–|—|,|;|→){_S}*|{_S}+")
+_PARTS: Final = re.compile(rf"[{SPACE_CLASS}\u00b1]*(?:\u00b1|\+/-|/|\u2013|\u2014|,|;|\u2192){_S}*|{_S}+")
 _SPACES: Final = re.compile(f"{_S}+")
 
 

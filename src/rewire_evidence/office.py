@@ -246,7 +246,7 @@ def part(package: OfficePackage, path: str) -> str | None:
     if content.startswith(_UTF16_MARK):
         body = content[2:]
         return body[: len(body) - len(body) % 2].decode("utf-16-le", "surrogatepass")
-    return content.decode("utf-8", "replace").removeprefix("﻿")
+    return content.decode("utf-8", "replace").removeprefix("\ufeff")
 
 
 class _Declared(XmlHandler):
@@ -672,9 +672,9 @@ class _DocumentReader(XmlHandler):
             else:
                 self.end_line()
         elif name == "nobreakhyphen":
-            self.current().append("‑")
+            self.current().append("\u2011")
         elif name == "softhyphen":
-            self.current().append("­")
+            self.current().append("\u00ad")
         elif name == "sym" and attributes.get("char"):
             code = parse_int(attributes["char"], 16)
             if 0 < code <= _LAST_CHARACTER:

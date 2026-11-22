@@ -3,12 +3,12 @@
 `scripts/verify_store_digests.py`, `scripts/verify_store_layout.py`,
 `scripts/verify_store_schema.py`, `scripts/verify_store_validation.py`,
 `scripts/verify_store_writes.py`, `scripts/verify_store_locators.py`,
-`scripts/verify_store_checks.py` and `scripts/verify_store_tables.py` each call one function
-here and do nothing else, so
-everything a gate does is inside the library, where the tests and the coverage floor reach
-it.
+`scripts/verify_store_checks.py`, `scripts/verify_store_tables.py`,
+`scripts/verify_store_archive.py` and `scripts/verify_store_layers.py` each call one function
+here and do nothing else, so everything a gate does is inside the library, where the tests
+and the coverage floor reach it.
 
-Exit status, for all eight: 0 when everything reproduces, 1 on any disagreement, 2 when the run
+Exit status, for every one: 0 when everything reproduces, 1 on any disagreement, 2 when the run
 could not be made. A disagreement never exits 2, and a run that could not be made never
 exits 1, so CI can tell a store that has drifted from a job that was set up wrongly.
 

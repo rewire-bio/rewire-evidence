@@ -95,7 +95,7 @@ def metrics_of(text: str, pdf_pages: int | None = None) -> JsonObject:
     return {
         "characters": len(text),
         "non_space": len(text) - spaces,
-        "replacement": text.count("�"),
+        "replacement": text.count("\ufffd"),
         "printable": len(text) - len(_CONTROLS.findall(text)),
         "digits": digits,
         "letters": letters,

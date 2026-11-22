@@ -39,7 +39,7 @@ BASE_ROW: dict[str, Any] = {
     "derived_from": None,
     "derivation": None,
     "previous_path": None,
-    "source_ids": ["s2", "s10", "S1", "é", "\U0001f600", "～"],
+    "source_ids": ["s2", "s10", "S1", "\u00e9", "\U0001f600", "\uff5e"],
 }
 
 

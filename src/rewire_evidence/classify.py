@@ -125,7 +125,7 @@ class _Element:
 
 def _first_element(text: str) -> _Element | None:
     """The first markup token, with a prolog, doctype or comment skipped."""
-    rest = text.removeprefix("﻿").lstrip(SPACE)
+    rest = text.removeprefix("\ufeff").lstrip(SPACE)
     doctype: str | None = None
     prolog = False
     for _ in range(_STEPS):

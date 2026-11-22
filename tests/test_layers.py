@@ -195,7 +195,7 @@ def _starts(raw: str) -> list[int]:
     return starts
 
 
-SPACED = st.text(alphabet="ab \t\n  ﻿\u0085\U0001f600", max_size=60)
+SPACED = st.text(alphabet="ab \t\n\u00a0\u2003\ufeff\u0085\U0001f600", max_size=60)
 
 
 @given(SPACED)
@@ -293,7 +293,7 @@ def test_a_package_whose_directory_names_a_workbook_and_whose_bytes_are_no_zip_d
 def test_text_that_is_already_utf8_is_its_own_layer(text: str) -> None:
     data = text.encode("utf-8")
     layer = layers.text_layer(data)
-    if text.startswith("﻿"):
+    if text.startswith("\ufeff"):
         assert (layer.identity, layer.derivation) == (False, "text-utf8@1 decode utf-8-bom to utf-8")
         return
     assert (layer.identity, layer.content, layer.characters) == (True, data, len(text))
@@ -303,11 +303,11 @@ def test_text_that_is_already_utf8_is_its_own_layer(text: str) -> None:
 
 def test_half_a_surrogate_pair_is_written_as_node_writes_it() -> None:
     # Two halves that end up side by side are one character, and a half alone is U+FFFD.
-    joined = layer_from_text(b"", "😀", "text-utf8@1", "a case")
+    joined = layer_from_text(b"", "\U0001f600", "text-utf8@1", "a case")
     assert (joined.content, joined.characters) == ("\U0001f600".encode(), 1)
     alone = layer_from_text(b"", "a\ud83d", "text-utf8@1", "a case")
-    assert (alone.content, alone.characters) == (js_utf8("a�"), 2)
-    assert character_count("😀\ude00") == 2
+    assert (alone.content, alone.characters) == (js_utf8("a\ufffd"), 2)
+    assert character_count("\U0001f600\ude00") == 2
 
 
 def test_a_normaliser_refuses_bytes_that_are_not_text() -> None:
@@ -341,7 +341,7 @@ def metrics_by_the_letter(text: str) -> dict[str, int | None]:
         code = ord(character)
         space, digit = code in sets[0], code in sets[1]
         letter = not digit and code in sets[2]
-        counts["replacement"] += character == "�"
+        counts["replacement"] += character == "\ufffd"
         breaks += character == "\f"
         counts["printable"] += not ((code < 0x20 and character not in "\t\n\r\f") or 0x7F <= code <= 0x9F)
         counts["non_space"] += not space
@@ -480,7 +480,7 @@ def programs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 def test_a_pdf_layer_is_what_pdftotext_writes_and_names_its_version(programs: Path) -> None:
     data = OBJECTS["pdf"]
     layer = pdftext.pdf_layer(data)
-    assert layer.content == "page one é\fpage two\f".encode()
+    assert layer.content == "page one \u00e9\fpage two\f".encode()
     assert (layer.characters, layer.identity, layer.tool) == (20, False, "pdftotext")
     assert layer.tool_version == pdftext.pdftotext_version() == "pdftotext version 9.99.0"
     assert layer.derivation == "pdf-text-layer@1 pdftotext -layout -enc UTF-8 - - (pdftotext version 9.99.0)"

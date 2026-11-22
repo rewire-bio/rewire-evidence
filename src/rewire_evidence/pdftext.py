@@ -37,7 +37,7 @@ MAX_OUTPUT: Final = 64 * 1024 * 1024
 
 _VERSION: Final = re.compile(rf"pdftotext version[{SPACE_CLASS}]+[^{SPACE_CLASS}]")
 _LINE_END: Final = re.compile(r"\r?\n")
-_TERMINATOR: Final = r"\n\r  "
+_TERMINATOR: Final = r"\n\r\u2028\u2029"
 #: `/^Pages:\s+(\d+)$/m`, whose lines end at any of JavaScript's four line terminators.
 _PAGES: Final = re.compile(
     rf"(?:\A|(?<=[{_TERMINATOR}]))Pages:[{SPACE_CLASS}]+([0-9]+)(?=[{_TERMINATOR}]|\Z)"

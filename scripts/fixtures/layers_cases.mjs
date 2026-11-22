@@ -128,7 +128,7 @@ const plainWorkbook = pack({
   "xl/worksheets/sheet1.xml": sheetXml(SHEET_ROWS),
   "xl/worksheets/other.xml": sheetXml('<row><c><v>1</v></c><c><v>2</v></c></row><row><c t="s"><v>1</v></c><c t="s"><v>3</v></c><c t="s"><v>9</v></c><c t="s"><v>x</v></c></row>'),
   "xl/worksheets/sheet3.xml": sheetXml(""),
-  "xl/worksheets/abs.xml": sheetXml('<row r="2"><c r="C2"><v>😀 z</v></c></row>'),
+  "xl/worksheets/abs.xml": sheetXml('<row r="2"><c r="C2"><v>\ud83d\ude00 z</v></c></row>'),
 });
 const megabyte = many(1000, many(1000, "a"));
 const hugeSheet = many(65, '<row><c t="s"><v>0</v></c></row>');
@@ -143,7 +143,7 @@ export const packages = {
   workbookTooManyRows: pack({ "xl/workbook.xml": workbookXml([["Long", 1, null]]), "xl/worksheets/sheet1.xml": sheetXml('<row r="250001"><c r="A250001"><v>1</v></c></row>') }),
   workbookTooManyColumns: pack({ "xl/workbook.xml": workbookXml([["Wide", 1, null]]), "xl/worksheets/sheet1.xml": sheetXml('<row r="1"><c r="FAO1"><v>1</v></c></row>') }),
   workbookTooManyCharacters: pack({ "xl/workbook.xml": workbookXml([["Big", 1, null]]), "xl/sharedStrings.xml": stringsXml([`<si><t>${megabyte}</t></si>`]), "xl/worksheets/sheet1.xml": sheetXml(hugeSheet) }),
-  workbookUtf16: pack({ "xl/workbook.xml": Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(workbookXml([["W", 1, null]]), "utf16le"), Buffer.from([0x41])]), "xl/worksheets/sheet1.xml": Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), bytes(sheetXml('<row r="1"><c r="A1"><v>﻿bom</v></c></row>'))]) }),
+  workbookUtf16: pack({ "xl/workbook.xml": Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(workbookXml([["W", 1, null]]), "utf16le"), Buffer.from([0x41])]), "xl/worksheets/sheet1.xml": Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), bytes(sheetXml('<row r="1"><c r="A1"><v>\ufeffbom</v></c></row>'))]) }),
   workbookBadMember: zip([{ name: "xl/workbook.xml", data: workbookXml([["S", 1, null]]) }, { name: "xl/worksheets/sheet1.xml", data: "x", stored: raw("\xff\xff\xff"), patch: {} }]),
   plainDocument: pack({
     "[Content_Types].xml": contentTypes(TYPES.docx, "/word/document.xml"),
@@ -180,26 +180,26 @@ const classifyInputs = [
   [raw("\x89PNG\r\n"), null], [raw("\xff\xd8\xff\xe0"), null], ["GIF89a", null], ["GIF", null],
   ["hello\n", null], ["a\0b", null], [raw("caf\xe9 " + many(16, "x")), null], [raw("\xe9" + many(19, "x")), null], [raw("\xe9" + many(18, "x")), null],
   [raw("\xe9\0" + many(40, "x")), null], [raw("\xef\xbb\xbfhello"), null], [raw("\xef\xbb\xbf"), null], [raw("\xef\xbb\xbf\xff\0<html>"), null],
-  [raw("\xef\xbb\xbf\xef\xbb\xbf<html>"), null], [Buffer.concat([raw("\xff\xfe"), Buffer.from("<html>😀", "utf16le")]), null],
+  [raw("\xef\xbb\xbf\xef\xbb\xbf<html>"), null], [Buffer.concat([raw("\xff\xfe"), Buffer.from("<html>\ud83d\ude00", "utf16le")]), null],
   [raw("\xff\xfea\0b"), null], [raw("\xff\xfe\x3d\xd8a\0\0\xde"), null], [raw("\xff\xfe"), null], [raw("\xfe\xff\0<\0a\0>"), null], [raw("\xfe\xff"), null],
   [raw("\xfe\xff\0a\0"), null], [raw("\xfe\xff\xd8\x3d\0a"), null],
-  ["<html>", null], ["<HTML lang=en>", null], ["<Html>", null], ["  \n\t<html>", null], ["  <html>", null], ["\u0085<html>", null],
+  ["<html>", null], ["<HTML lang=en>", null], ["<Html>", null], ["  \n\t<html>", null], ["\u00a0\u2028<html>", null], ["\u0085<html>", null],
   ["<!DOCTYPE html><p>x", null], ["<!doctype HTML PUBLIC \"-//W3C//DTD HTML 4.01//EN\"><x>", null], ["<!DOCTYPE\nhtml><x>", null], ["<!doctypehtml><x>", null],
   ["<!DOCTYPE article [ <!ENTITY x '>'> ]><article>", null], ["<!DOCTYPE a ]><b>", null], ["<!doctype html", null], ["<!DOCTYPE svg><svg>", null],
   ["<?xml version='1.0'?><article>", null], ["<?xml?><a>", null], ["<?XML ?>\n<a:b.c-d_e x='1'>", null], ["<?xmlx ?><a>", null], ["<?php echo 1 ?><div>", null],
   ["<?xml version='1.0'", null], ["<?xml ?><?xml-stylesheet ?><!-- c --><!DOCTYPE x><x>", null], ["<!-- c --><div>", null], ["<!--><div>", null], ["<!-- open", null],
   [many(16, "<!-- c -->") + "<html>", null], [many(17, "<!-- c -->") + "<html>", null], ["<div align=center>", null], ["<DIV>", null], ["<article>", null],
-  ["<svg>", null], ["<p>", null], ["<unknown", null], ["<1a>", null], ["< a>", null], ["<_a>", null], ["<aé>", null], ["<K>", null], ["x<html>", null],
+  ["<svg>", null], ["<p>", null], ["<unknown", null], ["<1a>", null], ["< a>", null], ["<_a>", null], ["<a\u00e9>", null], ["<\u212a>", null], ["x<html>", null],
   [many(4090, " ") + "<html>", null], [many(4091, " ") + "<html>", null], [many(4095, " ") + "<html>", null], [many(5000, " ") + "<html>", null],
-  ["<!--" + many(2040, "😀") + "--><html>", null], ["<!--" + many(2045, "😀") + "--><html>", null],
-  ["<!-- " + many(2043, "😀") + "--><html>", null], ["<!-- " + many(2044, "😀") + "--><html>", null],
+  ["<!--" + many(2040, "\ud83d\ude00") + "--><html>", null], ["<!--" + many(2045, "\ud83d\ude00") + "--><html>", null],
+  ["<!-- " + many(2043, "\ud83d\ude00") + "--><html>", null], ["<!-- " + many(2044, "\ud83d\ude00") + "--><html>", null],
 ];
 export const classifyCases = [
   ...classifyInputs.map(([data, hint]) => [hex(data), hint]),
   ...["hello", "<p>", "<div>", "<article>", "<html>", "<?xml ?><a>", "", "a,b\n1,2\n", "<!DOCTYPE x><div>"].flatMap((text) => HINTS.map((hint) => [hex(text), hint])),
 ];
 export const decodeCases = [
-  ["utf-8", "café"], ["utf-8-bom", raw("\xef\xbb\xbfcaf\xc3\xa9\xff")], ["utf-8-bom", raw("\xef\xbb\xbf\xed\xa0\x80\xc3")],
+  ["utf-8", "caf\u00e9"], ["utf-8-bom", raw("\xef\xbb\xbfcaf\xc3\xa9\xff")], ["utf-8-bom", raw("\xef\xbb\xbf\xed\xa0\x80\xc3")],
   ["utf-16le", raw("\xff\xfea\0\x3d\xd8\0\xdeb")], ["utf-16le", raw("\xff\xfe\0\xde\x3d\xd8")], ["utf-16be", raw("\xfe\xff\0a\xd8\x3d\xde\0")],
   ["utf-16be", raw("\xfe\xff\0a\0")], ["utf-16be", raw("\xfe\xff")], ["latin-1", raw("caf\xe9\x80\xff")],
 ].map(([encoding, data]) => [hex(data), encoding]);
@@ -260,16 +260,16 @@ export const scanCases = [
   ["html", "<svg><svg/><g>x</g></svg>tail"], ["html", "a<!-- comment -->b<!-- open"], ["html", "a<![CDATA[<raw> &amp; ]]>b<![CDATA[open"], ["html", "a<!DOCTYPE x [ <!ENTITY y '>'> ]>b<!open"],
   ["html", "a<?pi <x> ?>b<?open"], ["html", "a < b and <unterminated"], ["html", "<a href='x>y' title=\"q>r\">link</a>"], ["html", "<a href='unclosed>text"], ["html", "<>empty</><1>digit</1>< p>space</ p>"],
   ["html", "x<p/>y<br/>z<hr>w"], ["html", "&lt;p&gt; &amp;amp; &#x41;<p>&nbsp;x&nbsp;</p>"], ["html", "<nav>&lt;</nav><p>&unknown;</p>"], ["html", "<P CLASS='a'>upper</P><Td>cell</Td>"],
-  ["html", TABLE], ["html", "  lead   and\ttrail  \n\n\n\nnext  line \n"], ["html", "\n\n\n"], ["html", ""], ["html", "<p></p><p> </p>"], ["html", "tail<p>"],
+  ["html", TABLE], ["html", "  lead   and\ttrail  \n\n\n\nnext\u00a0\u2003line \n"], ["html", "\n\n\n"], ["html", ""], ["html", "<p></p><p> </p>"], ["html", "tail<p>"],
   ["html", "<pre>  keep?\n  no  </pre><table><tr><td>a</td><td></td><td>c</td></tr></table>"], ["html", "<form><table><caption>Cap</caption><tr><th>h</th></tr></table></form>"],
   ["xml", "<article><front><article-meta><title-group><article-title>T</article-title></title-group></article-meta></front><body><sec><title>S</title><p>a <italic>b</italic> c<sup>2</sup></p></sec></body></article>"],
   ["xml", "<p>x<inline-graphic>data</inline-graphic>y<processing-meta><a/></processing-meta>z</p>"], ["xml", "<p>e=<mml:math><mml:mi>m</mml:mi></mml:math><m:r>c</m:r><tex-math>\\alpha</tex-math></p>"],
   ["xml", "<table-wrap><label>Table 1</label><caption><title>Cap</title><p>more</p></caption>" + TABLE + "</table-wrap>"], ["xml", "<row><entry>a</entry><entry>b</entry></row><unknown>u</unknown><x>i</x>"],
   ["html", "a<![CDATA[]]>b&shy;<p>&shy;</p>c"], ["html", "<script><![CDATA[x]]>y</script>z<style>a <b"],
-  ["xml", "<?xml version=\"1.0\"?><!DOCTYPE article><article xmlns:xlink=\"x\"><ext-link xlink:href=\"u\">l</ext-link></article>"], ["xml", "a\r\nb\rc d﻿e\u0085f\u000bg\u000ch"],
+  ["xml", "<?xml version=\"1.0\"?><!DOCTYPE article><article xmlns:xlink=\"x\"><ext-link xlink:href=\"u\">l</ext-link></article>"], ["xml", "a\r\nb\rc\u2028d\ufeffe\u0085f\u000bg\u000ch"],
 ];
-export const tidyCases = ["", "\n", "a", " a ", "a\n", "\na", "a\n\n\n\nb", "a \t b\n\n c  d \n\n\n", "\n\n a\n\n", "a\r\nb", "a b\u0085c\u001cd", "  \n \n  ", "a\n \nb\n\t\n\nc", "﻿a﻿ b", "one  two   three\n  four"];
-export const tidyTextCases = ["😀  a 😀\n\n\n \ud83d b\ude00", "\ud83d \ude00"];
+export const tidyCases = ["", "\n", "a", " a ", "a\n", "\na", "a\n\n\n\nb", "a \t b\n\n c\u00a0\u2003d \n\n\n", "\n\n a\n\n", "a\r\nb", "a\u2028b\u0085c\u001cd", "  \n \n  ", "a\n \nb\n\t\n\nc", "\ufeffa\ufeff b", "one  two   three\n  four"];
+export const tidyTextCases = ["\ud83d\ude00  a \ud83d\ude00\n\n\n \ud83d b\ude00", "\ud83d \ude00"];
 
 // ---------------------------------------------------------------------------------------
 // The office scanner and its parts
@@ -286,17 +286,17 @@ export const nameCases = [
   ["XL/workbook.xml"], ["a.txt", "b/c.txt"], ["xl/"], ["word/document.xml/"],
 ];
 export const columnCases = {
-  numbers: ["A", "Z", "AA", "AZ", "BA", "ZZ", "AAA", "XFD", "FAO", "ZZZZZZZ", "AAAAAAAA", "", "a", "A1", "Ä", " A"],
+  numbers: ["A", "Z", "AA", "AZ", "BA", "ZZ", "AAA", "XFD", "FAO", "ZZZZZZZ", "AAAAAAAA", "", "a", "A1", "\u00c4", " A"],
   labels: [1, 26, 27, 52, 53, 702, 703, 4096, 16384, 0, -1],
-  references: ["A1", "$B$2", "c3", " D4 ", "XFD1048576", "A0", "A00", "A", "1", "A1B", "$A", "AAAAAAAA1", "A12345678", "ß1", "ı1", "ﬁ1", "A１", "A1:B2", "", "A 1", "$$A1", "A$$1", "ſı1"],
-  escapes: ["plain", "a\tb\nc\rd\fe\\f", "\u0000\u0001\u000b\u001f\u007f\u0080 ", "\\t stays doubled", "", "😀 "],
+  references: ["A1", "$B$2", "c3", " D4 ", "XFD1048576", "A0", "A00", "A", "1", "A1B", "$A", "AAAAAAAA1", "A12345678", "\u00df1", "\u01311", "\ufb011", "A\uff11", "A1:B2", "", "A 1", "$$A1", "A$$1", "\u017f\u01311"],
+  escapes: ["plain", "a\tb\nc\rd\fe\\f", "\u0000\u0001\u000b\u001f\u007f\u0080\u00a0", "\\t stays doubled", "", "\ud83d\ude00\u2028"],
 };
 export const documentCases = [
   "", documentXml(""), documentXml(p("one") + p("") + p("three")), documentXml(tr([tc(p("a")), tc(p("b"))])), documentXml(`<w:tbl>${tr([tc(p("a")), tc(""), tc("")])}${tr([])}${tr([tc(""), tc(p("z"))])}</w:tbl>`),
   "</w:tc></w:tr></w:p>stray", "<w:tc><w:p><w:r><w:t>cell with no row</w:t></w:r></w:p></w:tc><w:p/>", "<w:tr><w:tc><w:p><w:r><w:t>a </w:t></w:r></w:p><w:p><w:r><w:t> b</w:t></w:r></w:p></w:tc>",
   "<w:t>a</w:t></w:t></w:t><w:t>b", "<w:instrText><w:t>skipped</w:t><w:fallback>deep</w:fallback></w:instrText></w:delText></w:delText><w:t>kept</w:t>", "<w:p><w:t>x</w:t><w:br/><w:t>y</w:t><w:cr/></w:p><w:p><w:tab/></w:p>",
   "<w:p><w:sym w:char=\"41\"/><w:sym w:char=\"0x42\"/><w:sym w:char=\"D800\"/><w:sym w:char=\"110000\"/><w:sym w:char=\"0\"/><w:sym w:char=\"-41\"/><w:sym w:char=\"\"/><w:sym w:char=\"1F600\"/></w:p>",
-  "<w:tc><w:tr><w:tc><w:t>inner\\\t</w:t></w:tc></w:tr><w:t>outer</w:t></w:tc>", "<w:p><w:t>é &amp; &#x1F600;\r\n</w:t></w:p>", "<w:t>no paragraph</w:t>",
+  "<w:tc><w:tr><w:tc><w:t>inner\\\t</w:t></w:tc></w:tr><w:t>outer</w:t></w:tc>", "<w:p><w:t>\u00e9 &amp; &#x1F600;\r\n</w:t></w:p>", "<w:t>no paragraph</w:t>",
 ];
 const STRINGS = ["zero", "one", ""];
 export const sheetCases = [
@@ -312,7 +312,7 @@ export const partCases = [
   {}, { "xl/workbook.xml": workbookXml([]) }, { "xl/workbook.xml": workbookXml([["A", 1, "r1"], ["B", 2, "r2"], ["", 3, ""]]), "xl/_rels/workbook.xml.rels": relsXml([["r1", "/abs.xml"], ["r2", "rel.xml"], ["", "x"], ["r3", ""]]) },
   { "xl/workbook.xml": "<sheet/><Sheet Name=\"Mixed\" r:Id=\"z\"/><definedName name=\"n\"/>", "xl/sharedStrings.xml": stringsXml(SHARED) },
   { "xl/sharedStrings.xml": "<t>outside</t><si><t>a</t><rPh><t>p</t></rPh><t>b</t></rPh></rPh><t>c</t><si><t>nested open</t></si><t>after</t></t></t></si><si><r><rPr/><t>r1</t></r><t/></si>" },
-  { "xl/sharedStrings.xml": Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from("<si><t>wide 😀</t></si>", "utf16le")]) }, { "xl/sharedStrings.xml": Buffer.from([0xff]) },
+  { "xl/sharedStrings.xml": Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from("<si><t>wide \ud83d\ude00</t></si>", "utf16le")]) }, { "xl/sharedStrings.xml": Buffer.from([0xff]) },
 ].map((members) => Object.fromEntries(Object.entries(members).map(([name, data]) => [name, hex(data)])));
 
 // ---------------------------------------------------------------------------------------
@@ -336,8 +336,8 @@ export const gridCases = [
   ["html-table-grid@1", "<table><thead><tr><td>h</td></tr><tbody><tr><td>b</td></tr><tfoot><tr><td>f</td></tr></table>"], ["html-table-grid@1", "<table><tbody><tr><td>b</td></tr></tbody><thead><tr><td>late head</td></tr></thead></table>"],
   ["html-table-grid@1", "<table><thead></thead><tr><td>a</td><td>b</td><td>c</td></tr><tr><td>1</td><td>2</td><td>3</td></tr><tr><td>4</td><td>5</td><td>6</td></tr></table>"],
   ["html-table-grid@1", "<table><thead><thead><tr><th>deep</th></tr></thead><tr><th>still head</th></tr></thead></thead><tr><td>body</td></tr></table>"],
-  ["html-table-grid@1", grid([plain(["", " ", " "]), [cell("td", "<br>"), cell("td", " x  y "), cell("td", "<script>s</script>")]])], ["html-table-grid@1", grid([plain(["😀 a", "b😀", "😀"]), plain(["1", "2", "3"]), plain(["4", "5", "6"])])],
-  ["html-table-grid@1", "<p>😀😀 before</p>" + HEADED], ["html-table-grid@1", "<table><caption>unclosed<tr><td>cell</td></tr></table>"], ["html-table-grid@1", "<label>stray</label><caption>stray</caption><table><label>L</label><tr><td>x</td></tr></table>"],
+  ["html-table-grid@1", grid([plain(["", " ", "\u00a0"]), [cell("td", "<br>"), cell("td", " x  y "), cell("td", "<script>s</script>")]])], ["html-table-grid@1", grid([plain(["\ud83d\ude00 a", "b\ud83d\ude00", "\ud83d\ude00"]), plain(["1", "2", "3"]), plain(["4", "5", "6"])])],
+  ["html-table-grid@1", "<p>\ud83d\ude00\ud83d\ude00 before</p>" + HEADED], ["html-table-grid@1", "<table><caption>unclosed<tr><td>cell</td></tr></table>"], ["html-table-grid@1", "<label>stray</label><caption>stray</caption><table><label>L</label><tr><td>x</td></tr></table>"],
   ["jats-table-grid@1", "<table-wrap><label>T<label>nested</label> end</label><caption/><table><tr><td>a</td></tr></table><table><caption>own</caption><tr><td>b</td></tr></table></table-wrap></table-wrap>"],
   ["jats-table-grid@1", "<table-wrap><caption>open cap<table><tr><td>a</td></tr></table></table-wrap><table-wrap><label></label><label>second</label><table><tr><td>b</td></tr></table></table-wrap>"],
   ["html-table-grid@1", grid([plain(["a", "b", "c"]).concat(many(4100, "<td></td>")), plain(["z"])])], ["html-table-grid@1", grid([[cell("td", "a", ' colspan="1000" rowspan="1000"'), cell("td", "b", ' colspan="1000" rowspan="1000"'), cell("td", "c")], plain(["d"])])],
@@ -362,23 +362,23 @@ export const candidateCases = [
   g(3, 3, [[0, 0, "M"], [0, 1, "A"], [0, 1, "dup"], [0, 2, "F"], ...filled(BODY).map(([r, c, t]) => [r + 1, c, t])]),
 ];
 export const printCases = [
-  "", " ", "1", "0.5", ".5", "5.", "1,234.5", "1 234", "1 234", "-1", "+1", "−1", "‐1", "–1", "1e-4", "1E4", "1e", "3 x 10^-4", "3×10−4", "3 × 10 ^ 4", "<0.05", ">= 5", "≤5", "~3", "≈ 3", "(1.5)", "[2]", "{3}",
-  "5%", "5 %", "5‰", "12bp", "3 kb", "4Mb", "5 Gb", "6kB", "7 MB", "8GB", "9 min", "10ms", "1 mM", "2nM", "3K", "4k", "5M", "6G", "7B", "8b", "9s", "1h", "2m", "5x", "5 km", "1*", "2†", "3‡%)", "((1))", "1%%", "0.722 / 0.948",
-  "76.1 {71.1–80.6}", "0.020 ± 3e-4", "1 +/- 2", "1,2", "1;2", "1 → 2", "1 — 2", "1 2 3", "1 a", "a 1", "19,237 raQTLs", "10-cl./binary", "1/", "/1", "1 // 2", "± 1", "1 ±", "±", "-", "--", "---", "–", "—",
-  "−", "n/a", "N/A", "na", "NA", "nd", "ns", "yes", "No", "TRUE", "false", "✓", "✔", "✕", "✖", "✗", "✘", "√", "×", "•", "x", "none", " - ", "İ", "1\n2", "1 2", "１", "1.2.3", "1e4e5", "1,", ",1",
-  "0x10", "1_000", "$5", "5$", "±0.5", "1 ± 0.5 ± 0.1", "0.5 %", "5   kb",
+  "", " ", "1", "0.5", ".5", "5.", "1,234.5", "1 234", "1\u00a0234", "-1", "+1", "\u22121", "\u20101", "\u20131", "1e-4", "1E4", "1e", "3 x 10^-4", "3\u00d710\u22124", "3 \u00d7 10 ^ 4", "<0.05", ">= 5", "\u22645", "~3", "\u2248 3", "(1.5)", "[2]", "{3}",
+  "5%", "5 %", "5\u2030", "12bp", "3 kb", "4Mb", "5 Gb", "6kB", "7 MB", "8GB", "9 min", "10ms", "1 mM", "2nM", "3K", "4k", "5M", "6G", "7B", "8b", "9s", "1h", "2m", "5x", "5 km", "1*", "2\u2020", "3\u2021%)", "((1))", "1%%", "0.722 / 0.948",
+  "76.1 {71.1\u201380.6}", "0.020 \u00b1 3e-4", "1 +/- 2", "1,2", "1;2", "1 \u2192 2", "1 \u2014 2", "1 2 3", "1 a", "a 1", "19,237 raQTLs", "10-cl./binary", "1/", "/1", "1 // 2", "\u00b1 1", "1 \u00b1", "\u00b1", "-", "--", "---", "\u2013", "\u2014",
+  "\u2212", "n/a", "N/A", "na", "NA", "nd", "ns", "yes", "No", "TRUE", "false", "\u2713", "\u2714", "\u2715", "\u2716", "\u2717", "\u2718", "\u221a", "\u00d7", "\u2022", "x", "none", " - ", "\u0130", "1\n2", "1\u20282", "\uff11", "1.2.3", "1e4e5", "1,", ",1",
+  "0x10", "1_000", "$5", "5$", "\u00b10.5", "1 \u00b1 0.5 \u00b1 0.1", "0.5\u00a0%", "5 \u00a0 kb",
 ];
 
 // ---------------------------------------------------------------------------------------
 // Trees, metrics and the registry
 // ---------------------------------------------------------------------------------------
 
-const HTML_PAGE = `<!DOCTYPE html><html><head><title>T</title><style>p{}</style></head><body><h1>Results</h1>${HEADED}<p>Done ✓</p></body></html>`;
+const HTML_PAGE = `<!DOCTYPE html><html><head><title>T</title><style>p{}</style></head><body><h1>Results</h1>${HEADED}<p>Done \u2713</p></body></html>`;
 const JATS = `<?xml version="1.0"?><article><body><sec><title>R</title><table-wrap><label>Table 1</label><caption><p>Scores</p></caption>${TABLE}</table-wrap></sec></body></article>`;
 const CONTROL_PAGE = `<html><body><table><tr><td>${many(40, "&#1;")}</td><td>x</td></tr></table></body></html>`;
 const nested = (depth, data) => (depth === 0 ? data : gz(nested(depth - 1, data)));
 export const objects = {
-  text: bytes("plain text\nsecond line\n"), crlf: bytes("a\r\nb\r\n"), bom: raw("\xef\xbb\xbfwith a mark\n"), latin: raw("caf\xe9 " + many(30, "x")), wide: Buffer.concat([raw("\xff\xfe"), Buffer.from("wide 😀\n", "utf16le"), raw("\x3d\xd8")]),
+  text: bytes("plain text\nsecond line\n"), crlf: bytes("a\r\nb\r\n"), bom: raw("\xef\xbb\xbfwith a mark\n"), latin: raw("caf\xe9 " + many(30, "x")), wide: Buffer.concat([raw("\xff\xfe"), Buffer.from("wide \ud83d\ude00\n", "utf16le"), raw("\x3d\xd8")]),
   wideOdd: raw("\xfe\xff\0a\0"), markdown: bytes("<div align=\"center\">\n\n# Title\n"), html: bytes(HTML_PAGE), jats: bytes(JATS), xmlNoTable: bytes("<article><body><p>Just prose &amp; more.</p></body></article>"),
   emptyHtml: bytes("<html><head><script>x</script></head><body><nav>n</nav></body></html>"), controlPage: bytes(CONTROL_PAGE), replaced: raw("\xef\xbb\xbf<html><body><table><tr><td>\xff\xfe\xfd</td><td>ok</td></tr></table></body></html>"),
   pdf: bytes("%PDF-1.4\n%%EOF\n"), png: raw("\x89PNG\r\n\x1a\n"), ole: raw("\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"), binary: raw("\0\x01\x02"), empty: Buffer.alloc(0),
@@ -392,8 +392,8 @@ export const treeCases = [
   ["gz3", null, { maxDepth: 2 }], ["gzText", null, { maxDepth: 0 }], ["zipPlain", null, { maxDepth: 1 }], ["zipPlain", null, { limits: SMALL }], ["plainWorkbook", null, { limits: SMALL }], ["tarGz", null, { limits: { maxMembers: 1024, maxMemberBytes: 16, maxTotalBytes: 1024 } }],
 ];
 export const metricTexts = [
-  "", "plain text 123\n", " \t\n\r\f  ﻿\u0085\u001c", "\u0000\u0001\u0008\u0009\u000a\u000b\u000c\u000d\u000e\u001f\u007f\u0080\u009f ", "�� a�", "\f\fpage\f", "+.)! +.+( and =>> then !!!!! end", "((((",
-  "٣१１𝟎²½Ⅳ〇", "é中𝐀ʰªא̀‿€", "😀😀a😀", "a.b,c;d", "...a...." + many(3, ".."), many(1000, "+") + "ab", many(400, "+.") + many(200, "a"),
+  "", "plain text 123\n", " \t\n\r\f\u00a0\u2003\ufeff\u0085\u001c", "\u0000\u0001\u0008\u0009\u000a\u000b\u000c\u000d\u000e\u001f\u007f\u0080\u009f\u00a0", "\ufffd\ufffd a\ufffd", "\f\fpage\f", "+.)! +.+( and =>> then !!!!! end", "((((",
+  "\u0663\u0967\uff11\ud835\udfce\u00b2\u00bd\u2163\u3007", "\u00e9\u4e2d\ud835\udc00\u02b0\u00aa\u05d0\u0300\u203f\u20ac", "\ud83d\ude00\ud83d\ude00a\ud83d\ude00", "a.b,c;d", "...a...." + many(3, ".."), many(1000, "+") + "ab", many(400, "+.") + many(200, "a"),
 ];
 const m = (characters, non_space, replacement, printable, digits, letters, punctuation, page_breaks = 0, pdf_pages = null, longest = 0) => ({ characters, non_space, replacement, printable, digits, letters, punctuation, longest_punctuation_run: longest, page_breaks, pdf_pages });
 export const sanityCases = [
@@ -405,7 +405,7 @@ export const sanityCases = [
   [m(100, 90, 0, 100, 10, 70, 10, 3, 4), "text-utf8@1"], [m(100, 90, 0, 100, 10, 70, 10, 0, 0), "pdf-text-layer@1"], [m(3, 0, 0, 3, 0, 0, 0, 3, 2), "pdf-text-layer@1"], [m(2000, 1900, 30, 1900, 0, 100, 1800, 0, 1), "pdf-text-layer@1"],
   [m(3, 1, 0, 2, 0, 1, 0), "text-utf8@1"], [m(8, 8, 0, 7, 0, 8, 0), "text-utf8@1"], [m(2000, 2000, 1, 1999, 0, 2000, 0), "text-utf8@1"], [m(200, 200, 2, 200, 0, 198, 2), "text-utf8@1"],
 ];
-const baseRow = { sha256: null, bytes: 0, media_type: "text/plain", layer: "exact-bytes", origin: "https://example.org/a", requested_url: null, first_seen_at: "2026-11-17T16:10:11Z", store: "r2", mirrors: [], visibility: "restricted", archive_tier: "t4-private", observed_licence: null, exposure: "policy", derived_from: null, derivation: null, previous_path: null, source_ids: ["s2", "s10", "S1", "é", "😀", "～"] };
+const baseRow = { sha256: null, bytes: 0, media_type: "text/plain", layer: "exact-bytes", origin: "https://example.org/a", requested_url: null, first_seen_at: "2026-11-17T16:10:11Z", store: "r2", mirrors: [], visibility: "restricted", archive_tier: "t4-private", observed_licence: null, exposure: "policy", derived_from: null, derivation: null, previous_path: null, source_ids: ["s2", "s10", "S1", "\u00e9", "\ud83d\ude00", "\uff5e"] };
 export const rowFor = (name, patch = {}) => ({ ...baseRow, sha256: sha256(objects[name]), bytes: objects[name].length, ...patch });
 export const objectCases = [
   ...Object.keys(objects).filter((name) => !["workbookTooManyCharacters"].includes(name)).map((name) => [name, {}]), ["text", { media_type: "text/html", store: "github-release", mirrors: ["r2"], visibility: "public", archive_tier: "t0-public", source_ids: ["only"] }],
