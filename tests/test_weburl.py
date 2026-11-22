@@ -1,7 +1,7 @@
 """The URL parser, held to what Node's `URL` does.
 
 `tests/fixtures/js-semantics.json` holds the protocol `new URL(text)` finds for 1,600 inputs,
-or null where it throws, and the host and hostname it reads out of those and 150 more.
+or null where it throws, and the host and hostname it reads out of those and 101 more.
 `scripts/fixtures/record_js_fixture.mjs` records it with Node's built-ins.
 """
 
@@ -11,7 +11,7 @@ import ipaddress
 from urllib.parse import quote
 
 import pytest
-from hypothesis import given
+from hypothesis import assume, given
 from hypothesis import strategies as st
 
 from rewire_evidence import js
@@ -123,8 +123,11 @@ def test_an_ipv6_address_is_written_as_rfc_5952_writes_it(
     held: list[int], scheme: str, port: int | None
 ) -> None:
     # The standard's serialiser and RFC 5952 choose the same run of zeros, which is the one
-    # Python's `ipaddress` compresses.
+    # Python's `ipaddress` compresses. An address that maps an IPv4 one is left out, because
+    # later versions of Python write its last two pieces as that address and the standard
+    # does not.
     address = ipaddress.IPv6Address(b"".join(piece.to_bytes(2, "big") for piece in held))
+    assume(address.ipv4_mapped is None)
     name = f"[{address.compressed}]"
     port = None if scheme == "file" else port
     host = (
