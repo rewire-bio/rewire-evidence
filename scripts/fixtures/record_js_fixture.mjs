@@ -13,7 +13,9 @@
 //                                     lone surrogates, the UTF-8 bytes a string is hashed
 //                                     as, string comparison, what JSON.parse refuses, what counts
 //                                     as true, trimming, Number of text, lowercase, strict
-//                                     equality, localeCompare on record IDs, and the URL parser.
+//                                     equality, localeCompare on record IDs, the URL parser
+//                                     and the host it reads, padEnd, sort with no comparator,
+//                                     a pattern that ignores case, and a path of no text.
 //
 // CI runs this and fails if either file changes, so a fixture cannot drift from the script
 // that claims to have produced it.
@@ -231,6 +233,42 @@ for (const text of [
   `http://1.2.3.${"0".repeat(long)}4`, `http://${"9".repeat(long)}.2.3.4`, `file://${"1".repeat(long)}/a`,
 ])
   urls.push(text);
+// What the archive work list and the licence triage queue read off a URL: its host and its
+// hostname in lowercase, or null where the parser throws. More hosts follow that the list
+// above has few of: an IPv6 address as it is written out again, a file URL, and a host of a
+// scheme that is not special, which keeps what was written with escapes where it needs them.
+const hostUrls = [
+  "https://[::1]/", "https://[::1]:8443/", "https://[::1]:443/", "http://[::1]:80/", "https://[::]/", "https://[0:0:0:0:0:0:0:0]/", "https://[2001:DB8:0:0:0:0:0:1]/", "https://[1:0:0:2:0:0:0:3]/", "https://[1:0:0:0:2:0:0:0]/", "https://[0:0:1:0:0:1:0:0]/",
+  "https://[1:2:3:4:5:6:7:8]/", "https://[1:2:3:4:5:6:7::]/", "https://[::2:3:4:5:6:7:8]/", "https://[1:0:3:4:5:6:7:8]/", "https://[1:0:0:4:5:6:7:8]/", "https://[1:2:3:4:5:6:0:0]/", "https://[0:0:3:4:5:6:7:8]/", "https://[0:2:0:4:0:6:0:8]/", "https://[A:B:C:D:E:F:0:0]/", "https://[00AB:0:0:0::]/", "https://[::ffff:1.2.3.4]/",
+  "https://[::1.2.3.4]/", "https://[1:2:3:4:5:6:1.2.3.4]/", "https://[::255.255.255.255]/", "https://[1::0.0.0.0]/", "https://[ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff]/", "https://[1::8]:65535/", "https://user@[1::8]:1/", "ws://[::1]:80", "wss://[::1]:443", "ftp://[::1]:21/", "ftp://[::1]:22/",
+  "foo://[::1]", "foo://[::1]:80/a", "foo://[2001:DB8::]/", "foo://[::1.2.3.4]:9/", "s3://[1::]:443",
+  "file:///tmp/a", "file:///", "file://", "file:", "file:a", "file:/a", "file://host/a", "file://HOST/a", "file://localhost/a", "file://LOCALHOST/a", "file://local%68ost/a", "file://localhost", "file://localhost.x/a", "file://c:/a", "file://c|/a", "file://C:", "file://cd:/a", "file://[::1]/a", "file://[0:0:0:0:0:0:0:1]/a",
+  "file://1.2.3.4/a", "file://0x7f.1/a", "file://1.2.3.4.5/a", "file://ho st/a", "file://host:80/a", "file://a%41/b", "file:\\\\host\\a", "file:/\\host/a", "file://host?q", "file://host#f", "file://host\\a", " file://host/a ", "FILE://Host/a", "file://%00/a", "file://a_b/c",
+  "s3://Bucket/key", "s3://Bucket:9000/key", "s3://b\u00e9/key", "s3://B\u00c9/key", "s3://a\u0001b/key", "s3://a\u001fb/key", "s3://a\u007fb/key", "s3://a~b/key", "s3://a\u0080b", "s3://\ud83d\ude00/k", "s3://\ud83d/k", "s3://a\ude00b/k", "s3://\u4f8b\u3048:80/", "s3://a%41%zz%/k", "s3://a b/k", "s3://xn--bcher-kva/k", "s3://A.B:080",
+  "s3://", "s3:///a", "s3://:80", "s3://a:", "s3://u:p@H\u00e9/", "foo:bar", "foo:/bar", "doi:10.1/x", "mailto:a@example.org", "urn:isbn:1", "data:text/plain,x", "git+ssh://Git@GitHub.com/a/b", "hf://Datasets/a",
+];
+const hostOf = (text) => {
+  try {
+    const url = new URL(text);
+    return { host: url.host.toLowerCase(), hostname: url.hostname.toLowerCase() };
+  } catch {
+    return null;
+  }
+};
+// What the archive read side leaves to a built-in. `padEnd` counts UTF-16 units, so a
+// character beyond U+FFFF is padded as two. `sort()` with no comparator orders by the text
+// of each element in UTF-16 units, and the text of a pair is `name,count`, so a name that
+// is the start of another comes after it when the other goes on with a character below the
+// comma. The pairs are recorded as the lines `scripts/licence/counts.ts` prints of them. A pattern with the `i` flag and no `u` flag does not take U+017F for an `s`. And
+// `ARCHIVE_CACHE` set to nothing names a cache that does not exist, where the same text
+// joined to a folder and a file is a path under the working directory.
+const padded = [["cc-by", 20], ["cc-by", 5], ["cc-by", 3], ["", 4], ["\ud83d\ude00", 4], ["a\ud83d\ude00b", 6], ["\ud83d", 3], ["\u00e9", 3], ["e\u0301", 4], ["\uff21", 4], ["string-unresolved", 22], ["\ud83e\uddec\ud83e\uddec", 4], ["\ud83e\uddec\ud83e\uddec", 5], ["\ud83d\ude00", 20], ["\uff21", 20], ["cc", 20]];
+const pairLists = [
+  [["a", 5], ["a b", 1]], [["a b", 1], ["a", 5]], [["cc-by", 3], ["cc", 12], ["cc-by-nc", 1], ["cc0", 7]], [["x", 10], ["x y", 9], ["x+", 2], ["x,", 1], ["x-", 4]],
+  [["\uffff", 1], ["\ud800\udc00", 2]], [["b", 2], ["a", 10], ["B", 3], ["", 4]], [["licence-text", 100], ["licence text", 20], ["licence", 3]], [["\ud83d\ude00", 2], ["cc", 1], ["\uff21", 3]], [],
+];
+const idSets = [["\uffff", "\ud800\udc00"], ["\ud800\udc00", "\uffff"], ["b", "a", "B", "a"], ["s10", "s9", "s1", "S2"], ["z", "\u00e9", "e\u0301", "\ud83d\ude00", "\uff5e"], ["a-b", "a b", "a", "a,b"], []];
+const prefixed = ["https://a", "http://a", "HTTPS://a", "HtTp://a", "http\u017f://a", "HTTP\u017f://a", "http\u017F://a", "https:/a", "https//a", " https://a", "ftp://a", "httpss://a", "http://", "https://", "", "h", "\u212attps://a", "http:\\\\a", "xhttps://a"];
 const protocolOf = (text) => {
   try {
     return new URL(text).protocol;
@@ -272,6 +310,12 @@ const semantics = {
   url: urls.map((text) => [text, protocolOf(text), URL.canParse(text.trim())]),
   compared: comparedValues.map((text) => [text, comparedFields.map((field) => compared(text, field))]),
   url_idna: idnaUrls.map((text) => [text, protocolOf(text)]),
+  url_host: [...urls, ...hostUrls].map((text) => [text, hostOf(text)]),
+  pad_end: padded.map(([text, width]) => [text, width, text.padEnd(width)]),
+  pair_order: pairLists.map((pairs) => [pairs, [...pairs].sort().map(([name, count]) => `  ${name.padEnd(20)} ${String(count).padStart(6)}`)]),
+  distinct_sorted: idSets.map((ids) => [ids, [...new Set(ids)].sort()]),
+  http_prefix: prefixed.map((text) => [text, /^https?:\/\//i.test(text)]),
+  empty_path: { exists: fs.existsSync(""), joined: path.join("", "ab", "key.gz") },
 };
 fs.mkdirSync(path.join(root, "tests/fixtures"), { recursive: true });
 fs.writeFileSync(path.join(root, "tests/fixtures/js-semantics.json"), JSON.stringify(semantics, null, 1) + "\n");

@@ -251,21 +251,12 @@ def test_a_host_is_read_as_node_reads_it_or_not_at_all() -> None:
         assert (None if found is None else found._asdict()) == recorded, url
     assert not set(undecided) & set(DECIDED)
     assert set(DECIDED) <= {url for url, _ in ARCHIVE["urls"]}
-    # What is passed over: IDNA, IPv6, a file URL, and nothing else.
-    assert len(undecided) == 19
+    # What is passed over: a host only IDNA mapping can judge, and nothing else.
+    assert len(undecided) == 12
     for url in undecided:
-        assert not url.isascii() or "xn--" in url.lower() or "[" in url or url.startswith("file:")
-
-
-def test_an_opaque_host_that_needs_escapes_is_not_guessed() -> None:
-    assert weburl.host_of("s3://Bucket:9000/key") == weburl.Host("bucket:9000", "bucket")
-    for url in ("s3://b\u00e9/key", "s3://a\x01b/key", "s3://a\x7fb/key"):
-        with pytest.raises(weburl.UndecidedHost, match="percent escapes"):
+        assert not url.isascii() or "xn--" in url.lower()
+        with pytest.raises(weburl.UndecidedHost, match="needs IDNA mapping"):
             weburl.host_of(url)
-    with pytest.raises(weburl.UndecidedHost, match="IPv6"):
-        weburl.host_of("https://[::1]:8443/")
-    with pytest.raises(weburl.UndecidedHost, match="file URL"):
-        weburl.host_of("file:///tmp/a")
 
 
 # ---------------------------------------------------------------------------------------

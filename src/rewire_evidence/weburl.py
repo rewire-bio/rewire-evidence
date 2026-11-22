@@ -10,10 +10,15 @@ only what decides whether parsing fails and what the scheme is. A path, a query 
 fragment cannot make it fail, so they are not read. What can: no scheme, credentials with
 no host, a host the host parser refuses, and a port that is not a number up to 65535.
 
-One part is not ported. A host with a character outside ASCII, or a label starting `xn--`,
-goes through Unicode's IDNA mapping (UTS 46), which is a table of some thousands of ranges
-that changes with each Unicode version. `protocol_of` raises `UndecidedHost` for such a host
-and does not guess. No URL in the store has one.
+One part is not ported. The host of a special scheme with a character outside ASCII, or a
+label starting `xn--`, goes through Unicode's IDNA mapping (UTS 46): a table of some
+thousands of ranges that changes with each Unicode version, then normalisation and the
+rules for joiners and for text that runs both ways, all by the Unicode version Node was
+built with, which is not the one Python's `unicodedata` holds. `protocol_of` and `host_of`
+raise `UndecidedHost` for such a host and do not guess. No URL in the store has one.
+
+Everything else is answered: a name, an IPv4 address in any of its spellings, an IPv6
+address, the host of a `file:` URL, and the host of a scheme that is not special.
 
 `tests/fixtures/js-semantics.json` holds what Node answers for a list of inputs, and the
 tests hold this module to it.
@@ -36,6 +41,7 @@ _ESCAPE = re.compile(rb"%([0-9A-Fa-f]{2})")
 _DIGITS = re.compile(r"[0-9]+")
 _DRIVE = re.compile(r"[A-Za-z][:|]")
 _IPV4_IN_IPV6 = re.compile(r"(?:0|[1-9][0-9]{0,2})(?:\.(?:0|[1-9][0-9]{0,2})){3}")
+_SURROGATE = re.compile("[\ud800-\udfff]")
 _HEX_PIECE = re.compile(r"[0-9A-Fa-f]{1,4}")
 _MAX_PORT = 65535
 _PIECES = 8
@@ -102,49 +108,72 @@ def _ipv4_ok(domain: str) -> bool:
     return all(number <= _BYTE for number in held[:-1]) and held[-1] < 256 ** (5 - len(held))
 
 
-def _ipv6_ok(address: str) -> bool:  # noqa: C901, PLR0912 - the standard's parser, step for step
-    """The standard's IPv6 parser, as far as whether it fails."""
-    pieces = 0
-    compressed = False
+def _ipv6(address: str) -> list[int] | None:  # noqa: C901, PLR0912 - the standard's parser, step for step
+    """The standard's IPv6 parser: the eight pieces of an address, or None where it fails."""
+    held: list[int] = []
+    # Where the run of zeros `::` stands for begins, once one has been read.
+    compress: int | None = None
     rest = address
     if rest.startswith(":"):
         if not rest.startswith("::"):
-            return False
+            return None
         rest = rest[2:]
-        pieces = 1
-        compressed = True
+        held.append(0)
+        compress = 1
     while rest:
-        if pieces == _PIECES:
-            return False
+        if len(held) == _PIECES:
+            return None
         if rest[0] == ":":
-            if compressed:
-                return False
+            if compress is not None:
+                return None
             rest = rest[1:]
-            pieces += 1
-            compressed = True
+            held.append(0)
+            compress = len(held)
             continue
         piece = _HEX_PIECE.match(rest)
         if piece is None:
-            return False
+            return None
         after = rest[piece.end() :]
         if after.startswith("."):
             # The last 32 bits written as an IPv4 address, which takes two pieces.
-            if pieces > _PIECES - 2 or not _IPV4_IN_IPV6.fullmatch(rest):
-                return False
-            if any(int(number) > _BYTE for number in rest.split(".")):
-                return False
-            pieces += 2
-            rest = ""
+            if len(held) > _PIECES - 2 or not _IPV4_IN_IPV6.fullmatch(rest):
+                return None
+            numbers = [int(number) for number in rest.split(".")]
+            if any(number > _BYTE for number in numbers):
+                return None
+            held.extend([numbers[0] << 8 | numbers[1], numbers[2] << 8 | numbers[3]])
             break
         if after.startswith(":"):
             after = after[1:]
             if not after:
-                return False
+                return None
         elif after:
-            return False
-        pieces += 1
+            return None
+        held.append(int(piece.group(), 16))
         rest = after
-    return compressed or pieces == _PIECES
+    if compress is None:
+        return held if len(held) == _PIECES else None
+    return [*held[:compress], *([0] * (_PIECES - len(held))), *held[compress:]]
+
+
+def _ipv6_text(pieces: list[int]) -> str:
+    """The standard's IPv6 serialiser: lowercase hexadecimal, with `::` for the first of the
+    longest runs of two or more pieces that are zero.
+    """
+    start, length = -1, 1
+    at = 0
+    while at < _PIECES:
+        end = at
+        while end < _PIECES and pieces[end] == 0:
+            end += 1
+        if end - at > length:
+            start, length = at, end - at
+        at = end + 1
+    if start < 0:
+        return ":".join(f"{piece:x}" for piece in pieces)
+    before = ":".join(f"{piece:x}" for piece in pieces[:start])
+    after = ":".join(f"{piece:x}" for piece in pieces[start + length :])
+    return f"{before}::{after}"
 
 
 def _domain(host: str) -> str:
@@ -158,7 +187,7 @@ def _domain(host: str) -> str:
 def _host_ok(host: str, *, special: bool) -> bool:
     """The standard's host parser, as far as whether it fails."""
     if host.startswith("["):
-        return host.endswith("]") and _ipv6_ok(host[1:-1])
+        return host.endswith("]") and _ipv6(host[1:-1]) is not None
     if not special:
         return not any(character in _FORBIDDEN_HOST for character in host)
     domain = _domain(host)
@@ -206,16 +235,20 @@ def _authority(rest: str, *, special: bool) -> tuple[str, str] | None:
     return host, port
 
 
-def _file_ok(rest: str) -> bool:
-    """The file, file slash and file host states: `rest` is what follows `file:`."""
+def _file_host(rest: str) -> str | None:
+    """The file, file slash and file host states: `rest` is what follows `file:`.
+
+    The host as it is written, nothing where the URL has none, and None where the host
+    parser refuses the one it has. A drive letter where a host would stand is a path.
+    """
     if len(rest) < 2 or rest[0] not in "/\\" or rest[1] not in "/\\":  # noqa: PLR2004 - two slashes
-        return True
+        return ""
     after = rest[2:]
     end = next((index for index, character in enumerate(after) if character in "/\\?#"), len(after))
     host = after[:end]
     if not host or _DRIVE.fullmatch(host):
-        return True
-    return _host_ok(host, special=True)
+        return ""
+    return host if _host_ok(host, special=True) else None
 
 
 def protocol_of(text: str) -> str | None:
@@ -230,7 +263,7 @@ def protocol_of(text: str) -> str | None:
     scheme = found.group().lower()
     rest = stripped[found.end() + 1 :]
     if scheme == "file":
-        accepted = _file_ok(rest)
+        accepted = _file_host(rest) is not None
     elif scheme in SPECIAL:
         accepted = _authority_ok(rest.lstrip("/\\"), special=True)
     elif rest.startswith("//"):
@@ -267,13 +300,16 @@ def _ipv4_text(domain: str) -> str:
 def _host_text(host: str, *, special: bool) -> str:
     """A host the host parser accepted, as the standard serialises it, in lowercase."""
     if host.startswith("["):
-        raise UndecidedHost(f"the host {host!r} is an IPv6 address, which is not written out here")
+        # The host parser accepted it, so it has pieces.
+        return f"[{_ipv6_text(_ipv6(host[1:-1]) or [])}]"
     if not special:
-        # An opaque host keeps what was written, with a control or a character beyond ASCII
-        # as a percent escape.
-        if any(not " " < character < "\x7f" for character in host):
-            raise UndecidedHost(f"the host {host!r} needs percent escapes, which are not written here")
-        return host.lower()
+        # An opaque host keeps what was written, with a control or a character beyond `~` as
+        # the percent escapes of its UTF-8. Half of a surrogate pair is U+FFFD to the parser.
+        whole = _SURROGATE.sub("\ufffd", host)
+        return "".join(
+            character if " " < character < "\x7f" else "".join(f"%{byte:02X}" for byte in character.encode())
+            for character in whole
+        ).lower()
     domain = _domain(host)
     return _ipv4_text(domain) if _ends_in_a_number(domain) else domain.lower()
 
@@ -281,9 +317,8 @@ def _host_text(host: str, *, special: bool) -> str:
 def host_of(text: str) -> Host | None:
     """`new URL(text)`'s `host` and `hostname` in lowercase, or None where `new URL` throws.
 
-    Raises `UndecidedHost` for a host that only IDNA mapping can judge, for an IPv6 address,
-    for an opaque host that needs percent escapes and for a `file:` URL: none of those is
-    written out here, and no URL in the store has one.
+    Raises `UndecidedHost` for a host that only IDNA mapping can judge, and for nothing
+    else. No URL in the store has one.
     """
     stripped = _TAB_OR_NEWLINE.sub("", text.strip(_EDGE))
     found = _SCHEME.match(stripped)
@@ -292,7 +327,12 @@ def host_of(text: str) -> Host | None:
     scheme = found.group().lower()
     rest = stripped[found.end() + 1 :]
     if scheme == "file":
-        raise UndecidedHost(f"{text!r} is a file URL, whose host is not read here")
+        # A file URL has no port, and `localhost` is no host at all.
+        written = _file_host(rest)
+        if written is None:
+            return None
+        name = _host_text(written, special=True) if written else ""
+        return Host("", "") if name == "localhost" else Host(name, name)
     special = scheme in SPECIAL
     if not special and not rest.startswith("//"):
         return Host("", "")
