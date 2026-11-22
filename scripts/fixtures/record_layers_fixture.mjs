@@ -282,7 +282,7 @@ const recorded = {
   prints: cases.printCases.map((text) => [text, grid.printsNumber(text), grid.printsValue(text)]),
   objects: cases.objectHex,
   trees: cases.treeCases.map(([name, mediaType, options]) => [name, mediaType, options, attempt(() => nodeOf(layers.layerOf(cases.objects[name], { mediaType, pdftotext: false, ...options })))]),
-  walks: ["tarGz", "zipPlain", "text"].map((name) => [name, layers.walk(layers.layerOf(cases.objects[name], { pdftotext: false })).map((step) => [step.node.sha256, step.parent, step.path])]),
+  walks: ["gz3", "zipPlain", "text"].map((name) => [name, layers.walk(layers.layerOf(cases.objects[name], { pdftotext: false })).map((step) => [step.node.sha256, step.parent, step.path])]),
   metrics: cases.metricTexts.map(metricsOf),
   metrics_of_every_character: everyCharacter(),
   thresholds: sanity.thresholds,
