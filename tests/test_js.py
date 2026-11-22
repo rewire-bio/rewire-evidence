@@ -140,6 +140,20 @@ def test_a_list_is_joined_with_nothing_for_null_and_for_what_is_absent() -> None
     assert js.join([], ", ") == ""
 
 
+@pytest.mark.parametrize(("text", "width", "expected"), SEMANTICS["pad_end"])
+def test_text_is_padded_to_a_width_in_utf16_units(text: str, width: int, expected: str) -> None:
+    assert js.pad_end(text, width) == expected
+
+
+@given(st.text(max_size=12), st.integers(0, 30))
+def test_padding_adds_spaces_up_to_the_width_and_never_cuts(text: str, width: int) -> None:
+    padded = js.pad_end(text, width)
+    assert padded.startswith(text)
+    assert set(padded[len(text) :]) <= {" "}
+    assert js.units(padded) == max(width, js.units(text))
+    assert js.pad_end(padded, width) == padded
+
+
 @pytest.mark.parametrize(("text", "end", "expected", "length"), SEMANTICS["slice"])
 def test_text_is_measured_and_cut_in_utf16_units(text: str, end: int, expected: str, length: int) -> None:
     assert js.slice_units(text, end) == expected

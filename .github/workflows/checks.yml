@@ -51,6 +51,29 @@ env:
   TABLES: "245"
   TABLE_CELLS: "17307"
   TABLE_LINES: "342"
+  # The archive read side. The manifest rows, fetch receipts, licence receipts and candidates
+  # the pinned checkout commits, its source records and the strings of its licence map, the
+  # rows of the triage queue as it is generated there, the lines the fixtures job records of
+  # all of them, the commands it records and the TypeScript files it records them from.
+  # ARCHIVE_INPUTS is the files of the checkout the read side reads, each held by its digest.
+  # ARCHIVE_QUEUE_ROWS is the lines of the triage queue the checkout commits, which is two
+  # days older than the checkout: every one of them is still a line of the queue generated.
+  # QUEUE_REF is the commit that wrote that queue, the only one that touches the file. The
+  # queue generated from the source records and the licence map of that commit has to be
+  # the committed file byte for byte.
+  ARCHIVE_ROWS: "1167"
+  ARCHIVE_RECEIPTS: "1526"
+  ARCHIVE_RESOLVE_RECEIPTS: "1731"
+  ARCHIVE_CANDIDATES: "1091"
+  ARCHIVE_SOURCES: "1497"
+  ARCHIVE_LICENCES: "97"
+  ARCHIVE_TRIAGE_ROWS: "1091"
+  ARCHIVE_LINES: "9696"
+  ARCHIVE_COMMANDS: "9"
+  ARCHIVE_MODULES: "12"
+  ARCHIVE_INPUTS: "22"
+  ARCHIVE_QUEUE_ROWS: "1083"
+  QUEUE_REF: 98da2c478ad8df25209fdff78ad116926f1e84de
 
 jobs:
   checks:
@@ -107,9 +130,10 @@ jobs:
           located=$(jq -r .recorded_from.store_ref scripts/expected/store-locators.json)
           checked=$(jq -r .recorded_from.store_ref scripts/expected/store-checks.json)
           tabled=$(jq -r .recorded_from.store_ref scripts/expected/store-tables.json)
-          for named in "$held" "$expected" "$recorded" "$validated" "$registry" "$located" "$checked" "$tabled"; do
+          archived=$(jq -r .recorded_from.store_ref scripts/expected/store-archive.json)
+          for named in "$held" "$expected" "$recorded" "$validated" "$registry" "$located" "$checked" "$tabled" "$archived"; do
             if [ "$named" != "$STORE_REF" ]; then
-              echo "::error::STORE_REF is ${STORE_REF}, the checkout is ${held}, the pinned layout was measured at ${expected}, the TypeScript was recorded at ${recorded} and at ${validated}, the attribute registry was read at ${registry}, the locators at ${located}, the checks at ${checked} and the tables at ${tabled}. All nine must be one commit."
+              echo "::error::STORE_REF is ${STORE_REF}, the checkout is ${held}, the pinned layout was measured at ${expected}, the TypeScript was recorded at ${recorded} and at ${validated}, the attribute registry was read at ${registry}, the locators at ${located}, the checks at ${checked}, the tables at ${tabled} and the archive at ${archived}. All ten must be one commit."
               exit 1
             fi
           done
@@ -363,6 +387,108 @@ jobs:
             fi
           done
 
+      # The manifest, the receipts, the licence map and the candidates of the pinned checkout
+      # as the archive read side reads them, each written out as the line the TypeScript
+      # wrote for it in scripts/expected/store-archive.jsonl.gz: the verdict of its schema,
+      # the digest of the line written back, the tier the classifier gives an object and how
+      # reclassify reads it, the work item and the queue row of every source. The fixtures
+      # job below records those lines from shared/archive and scripts/archive and
+      # scripts/licence at the same commit. Every row a schema reads has to be written back
+      # as the committed line. The script fails on a line that differs, on a command that
+      # prints anything else, and on a TypeScript file that is not the one recorded, and the
+      # counts are pinned here too.
+      - name: Read the manifest, the receipts and the licence map as the TypeScript reads them
+        run: |
+          set -o pipefail
+          uv run --no-sync python scripts/verify_store_archive.py store --json archive.json 2>&1 | tee archive.log
+          for pin in "counts.manifest_rows:$ARCHIVE_ROWS" "written.manifest_rows.same:$ARCHIVE_ROWS" "counts.receipts:$ARCHIVE_RECEIPTS" "written.receipts.same:$ARCHIVE_RECEIPTS" "counts.resolve_receipts:$ARCHIVE_RESOLVE_RECEIPTS" "written.resolve_receipts.same:$ARCHIVE_RESOLVE_RECEIPTS" "counts.candidates:$ARCHIVE_CANDIDATES" "written.candidates.same:$ARCHIVE_CANDIDATES" "counts.sources:$ARCHIVE_SOURCES" "counts.licences:$ARCHIVE_LICENCES" "counts.triage_rows:$ARCHIVE_TRIAGE_ROWS" "lines.expected:$ARCHIVE_LINES" "lines.same:$ARCHIVE_LINES" "commands.same:$ARCHIVE_COMMANDS" "modules.same:$ARCHIVE_MODULES" "inputs.same:$ARCHIVE_INPUTS" "queue_rows.expected:$ARCHIVE_QUEUE_ROWS" "queue_rows.same:$ARCHIVE_QUEUE_ROWS"; do
+            measured=$(jq -r ".${pin%%:*}" archive.json)
+            if [ "$measured" != "${pin##*:}" ]; then
+              echo "::error::The archive gate measured ${pin%%:*} as ${measured} against a pin of ${pin##*:}."
+              exit 1
+            fi
+          done
+
+      # The commands themselves, which are `npm run archive -- worklist`, `status`, `verify`
+      # and `reclassify --dry-run`, and the two licence scripts. Each has to print what the
+      # TypeScript printed at the pinned commit and leave with its status, and none may write.
+      - name: Print what the archive and licence commands print
+        run: |
+          date=$(jq -r .triage.date scripts/expected/store-archive.json)
+          said() {
+            at=$1; shift
+            status=0
+            uv run --no-sync rewire-evidence "$@" > said.out || status=$?
+            recorded=$(jq -r ".commands[${at}].status" scripts/expected/store-archive.json)
+            if [ "$status" != "$recorded" ]; then
+              echo "::error::'$*' left with status ${status}, and the TypeScript's left with ${recorded}."
+              exit 1
+            fi
+            if jq -e ".commands[${at}] | has(\"stdout\")" scripts/expected/store-archive.json > /dev/null; then
+              jq -j ".commands[${at}].stdout" scripts/expected/store-archive.json | cmp - said.out
+            else
+              printed=$(sha256sum said.out | cut -d ' ' -f 1)
+              if [ "$printed" != "$(jq -r ".commands[${at}].stdout_sha256" scripts/expected/store-archive.json)" ]; then
+                echo "::error::'$*' did not print what the TypeScript printed."
+                exit 1
+              fi
+            fi
+          }
+          said 0 archive worklist --root store
+          said 1 archive worklist --root store --json
+          said 2 archive status --root store
+          said 3 archive status --root store --json
+          said 4 archive verify --root store
+          said 5 archive reclassify --root store --dry-run
+          said 6 archive reclassify --root store --dry-run --json
+          said 7 licence triage --root store --stdout --date "$date"
+          said 8 licence counts store
+          if [ "$(jq -r '.commands | length' scripts/expected/store-archive.json)" != "$ARCHIVE_COMMANDS" ]; then
+            echo "::error::The recording holds another number of commands than the ${ARCHIVE_COMMANDS} run here."
+            exit 1
+          fi
+          if [ -n "$(git -C store status --porcelain)" ]; then
+            echo "::error::A command wrote to the pinned store."
+            git -C store status --porcelain
+            exit 1
+          fi
+
+      # The one committed file the read side writes: the triage queue. It is older than the
+      # pinned commit, so it is generated again from the commit that wrote it, where it has
+      # to be the committed file byte for byte. The checkout holds the source records, the
+      # licence map and the queue as they stood there, and nothing else.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: rewire-bio/rewire-benchmark-data
+          ref: ${{ env.QUEUE_REF }}
+          path: queue-run
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /data/entities/sources.jsonl
+            /data/archive/licence-map.tsv
+            /maintenance/reports/licence-triage-*.tsv
+
+      - name: Write the committed triage queue again from the commit that wrote it
+        run: |
+          held=$(git -C queue-run rev-parse HEAD)
+          if [ "$held" != "$QUEUE_REF" ]; then
+            echo "::error::QUEUE_REF is ${QUEUE_REF} and the checkout is ${held}."
+            exit 1
+          fi
+          date=$(jq -r .triage.date scripts/expected/store-archive.json)
+          queue="maintenance/reports/licence-triage-${date}.tsv"
+          # The pinned commit still holds the queue as that commit wrote it.
+          cmp "queue-run/${queue}" "store/${queue}"
+          uv run --no-sync rewire-evidence licence triage --root queue-run --stdout --date "$date" > queue.tsv
+          cmp queue.tsv "store/${queue}"
+          rows=$(grep -vc '^#' queue.tsv)
+          if [ "$rows" != "$ARCHIVE_QUEUE_ROWS" ]; then
+            echo "::error::The queue written again has ${rows} lines against a pin of ${ARCHIVE_QUEUE_ROWS}."
+            exit 1
+          fi
+          echo "The triage queue of ${date} is written again byte for byte from ${QUEUE_REF}: ${rows} lines." > queue.log
+          cat queue.log
+
       - name: Summary
         if: always()
         run: |
@@ -378,6 +504,8 @@ jobs:
             if [ -f locators.log ]; then echo; echo "### Locators"; echo; echo '```'; cat locators.log; echo '```'; fi
             if [ -f checks.log ]; then echo; echo "### Checks pack"; echo; echo '```'; cat checks.log; echo '```'; fi
             if [ -f tables.log ]; then echo; echo "### Table reader"; echo; echo '```'; cat tables.log; echo '```'; fi
+            if [ -f archive.log ]; then echo; echo "### Archive read side"; echo; echo '```'; cat archive.log; echo '```'; fi
+            if [ -f queue.log ]; then echo; echo "### Committed triage queue"; echo; echo '```'; cat queue.log; echo '```'; fi
           } >> "$GITHUB_STEP_SUMMARY"
 
   # The write path, held to the data repository's own history. Each case is a merged pull
@@ -523,6 +651,14 @@ jobs:
       - name: Record the table reader
         working-directory: store
         run: node_modules/.bin/tsx ../scripts/fixtures/record_tables_fixture.mjs
+      # The archive read side and the licence map: every manifest row, receipt and candidate
+      # of the pinned checkout held to its schema and written back, the work list, the triage
+      # queue and the reclassification plan, what each command prints, and what the schemas,
+      # the manifest writes, the cache check and the classifier do with rows and trees the
+      # checkout has no like of.
+      - name: Record the archive read side
+        working-directory: store
+        run: node_modules/.bin/tsx ../scripts/fixtures/record_archive_fixture.mjs
       - name: Keep what was recorded
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -538,6 +674,9 @@ jobs:
             tests/fixtures/locator.json
             tests/fixtures/checks.json
             tests/fixtures/tables.json
+            tests/fixtures/archive.json
+            scripts/expected/store-archive.json
+            scripts/expected/store-archive.jsonl.gz
             scripts/expected/store-tables.json
             scripts/expected/store-tables.jsonl.gz
             scripts/expected/store-checks.json

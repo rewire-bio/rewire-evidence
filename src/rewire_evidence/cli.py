@@ -9,6 +9,12 @@
     rewire-evidence locator parse LOCATOR...
     rewire-evidence checks report [--root ROOT] [--date YYYY-MM-DD] [--out REPORT.tsv]
     rewire-evidence checks baseline [--root ROOT] [--date YYYY-MM-DD] [--commit SHA] [--out REPORT.tsv]
+    rewire-evidence archive worklist [--root ROOT] [--json]
+    rewire-evidence archive verify [--root ROOT]
+    rewire-evidence archive status [--root ROOT] [--json]
+    rewire-evidence archive reclassify [--root ROOT] [--dry-run] [--json] [--quiet]
+    rewire-evidence licence triage [--root ROOT] [--date YYYY-MM-DD] [--out QUEUE.tsv] [--stdout]
+    rewire-evidence licence counts [ROOT]
 
 `check` loads the store at ROOT, the working directory by default, through every check
 `loadRecords` makes, and prints the line the TypeScript prints: how many records match their
@@ -83,8 +89,9 @@ from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import TextIO
 
-from rewire_evidence import ratchet
+from rewire_evidence import archivesaid, ratchet
 from rewire_evidence.agreement import check_summary
+from rewire_evidence.archivesaid import Said
 from rewire_evidence.attributes import said
 from rewire_evidence.canonical import js_indented, js_utf8, utf16_key
 from rewire_evidence.descriptions import DescriptionProblem, row_problems
@@ -160,6 +167,33 @@ def _parser() -> argparse.ArgumentParser:
         run.add_argument("--root", type=Path, default=Path(), help="a rewire-benchmark-data checkout")
         run.add_argument("--date", type=_date, default=None, help="the date of the run, today's by default")
         run.add_argument("--out", type=Path, default=None, help="write the report here")
+    archived = groups.add_parser("archive", help="the source archive, read side").add_subparsers(
+        dest="action", required=True
+    )
+    for name, about in (
+        ("worklist", "the fetch work list: sources, URLs, classes and hosts"),
+        ("verify", "hold every cached object to the manifest"),
+        ("status", "what the archive holds of the work list"),
+        ("reclassify", "read every manifest row's licence again and write the tier it justifies"),
+    ):
+        # The TypeScript takes every option on every command and each uses the ones it reads.
+        command = archived.add_parser(name, help=about)
+        command.add_argument("--root", type=Path, default=Path(), help="a rewire-benchmark-data checkout")
+        command.add_argument("--json", action="store_true", help="print the summary as JSON")
+        command.add_argument("--dry-run", action="store_true", help="write nothing")
+        command.add_argument("--quiet", action="store_true", help="say nothing on standard error")
+    licensed = groups.add_parser("licence", help="the licence map").add_subparsers(
+        dest="action", required=True
+    )
+    triage = licensed.add_parser("triage", help="the queue of sources with no licence determined")
+    triage.add_argument("--root", type=Path, default=Path(), help="a rewire-benchmark-data checkout")
+    triage.add_argument("--date", type=_date, default=None, help="the date of the queue, today's by default")
+    triage.add_argument("--out", type=Path, default=None, help="write the queue here")
+    triage.add_argument("--stdout", action="store_true", help="print the queue and write no file")
+    counted = licensed.add_parser("counts", help="the measured licence numbers")
+    counted.add_argument(
+        "root", type=Path, nargs="?", default=Path(), help="a rewire-benchmark-data checkout"
+    )
     actions = commands.add_subparsers(dest="action", required=True)
     check = actions.add_parser("check", help="hold every record to every check loadRecords makes")
     check.add_argument("root", type=Path, nargs="?", default=Path(), help="a rewire-benchmark-data checkout")
@@ -358,7 +392,32 @@ def _baseline(args: argparse.Namespace) -> str:
     return ratchet.baseline(_checks(args), _milliseconds)
 
 
-_ACTIONS: dict[str, Callable[[argparse.Namespace], str]] = {
+def _worklist(args: argparse.Namespace) -> Said:
+    return archivesaid.say_worklist(args.root, as_json=args.json)
+
+
+def _verify(args: argparse.Namespace) -> Said:
+    return archivesaid.say_verify(args.root)
+
+
+def _status(args: argparse.Namespace) -> Said:
+    return archivesaid.say_status(args.root, as_json=args.json)
+
+
+def _reclassify(args: argparse.Namespace) -> Said:
+    return archivesaid.say_reclassify(args.root, dry_run=args.dry_run, as_json=args.json, quiet=args.quiet)
+
+
+def _triage(args: argparse.Namespace) -> Said:
+    date = today() if args.date is None else args.date
+    return archivesaid.say_triage(args.root, date, out=args.out, to_stdout=args.stdout)
+
+
+def _counts(args: argparse.Namespace) -> Said:
+    return archivesaid.say_counts(args.root)
+
+
+_ACTIONS: dict[str, Callable[[argparse.Namespace], str | Said]] = {
     "check": _check,
     "descriptions": _listed,
     "add": _add,
@@ -367,6 +426,12 @@ _ACTIONS: dict[str, Callable[[argparse.Namespace], str]] = {
     "parse": _parse,
     "report": _report,
     "baseline": _baseline,
+    "worklist": _worklist,
+    "verify": _verify,
+    "status": _status,
+    "reclassify": _reclassify,
+    "triage": _triage,
+    "counts": _counts,
 }
 #: What a write is called when it is refused, as the TypeScript calls it.
 _WRITTEN = {"add": "The batch", "change": "The changed records"}
@@ -384,7 +449,7 @@ def main(arguments: Sequence[str] | None = None) -> int:
         # The TypeScript prints its usage for no locator and for one that starts with nothing.
         parser.error("locator parse takes a locator")
     try:
-        printed = _ACTIONS[args.action](args)
+        done = _ACTIONS[args.action](args)
     except UndecidedHost as error:
         _write(sys.stderr, f"Cannot judge the store: {error}")
         return UNDECIDED
@@ -396,8 +461,11 @@ def main(arguments: Sequence[str] | None = None) -> int:
         if args.action in _WRITTEN:
             _write(sys.stderr, f"{_WRITTEN[args.action]} failed validation; the store is unchanged.")
         return REFUSED
-    if _write(sys.stdout, printed):
-        return 0
+    said = done if isinstance(done, Said) else Said(done)
+    for line in said.err:
+        _write(sys.stderr, line)
+    if _write(sys.stdout, said.out):
+        return said.status
     # The work is done and only the saying of it failed. A write is made and checked by now,
     # and stays: it is not a refusal. For anything else what is printed is the result.
     made = args.action in _WRITTEN and not args.dry_run

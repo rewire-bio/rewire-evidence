@@ -257,6 +257,14 @@ def units(text: str) -> int:
     return len(text.encode("utf-16-le", "surrogatepass")) // 2
 
 
+def pad_end(text: str, width: int) -> str:
+    """`text.padEnd(width)`, which counts UTF-16 units: a character beyond U+FFFF takes two.
+
+    `str.ljust` counts characters, and would pad such a name one space wider.
+    """
+    return text + " " * (width - units(text))
+
+
 def is_integer(value: JsonValue) -> bool:
     """`Number.isInteger(value)`. A whole number too large for an `int` here is still one."""
     if isinstance(value, bool):

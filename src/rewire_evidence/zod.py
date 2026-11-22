@@ -28,6 +28,7 @@ every place, recorded from zod, and the tests hold this module to it.
 from __future__ import annotations
 
 import abc
+import copy
 import math
 import re
 from collections.abc import Callable, Mapping, Sequence
@@ -476,7 +477,9 @@ class Object(Schema):
             result = member.run(held.get(key, MISSING))
             payload.issues.extend(issue.under(key) for issue in result.issues)
             if not present:
-                if not result.issues:
+                if isinstance(member, Default):
+                    parsed[key] = _kept(result.value)
+                elif not result.issues:
                     payload.issues.append(
                         Raised(
                             "invalid_type", (key,), "Invalid input: expected nonoptional, received undefined"
@@ -540,6 +543,20 @@ class Nullable(Schema):
         return payload if payload.value is None else self.inner.run(payload.value)
 
 
+@dataclass(frozen=True)
+class Default(Schema):
+    """`schema.default(value)`: a member left out is read as the value, which is not checked."""
+
+    inner: Schema = field(default_factory=Unknown)
+    value: JsonValue = None
+
+    def _parse(self, payload: Payload) -> Payload:
+        if isinstance(payload.value, Missing):
+            payload.value = copy.deepcopy(self.value)
+            return payload
+        return self.inner.run(payload.value)
+
+
 # ---- the spellings the validators use -------------------------------------------------
 
 
@@ -586,6 +603,11 @@ def optional(inner: Schema) -> Schema:
 def nullable(inner: Schema) -> Schema:
     """`inner.nullable()`."""
     return Nullable(inner=inner)
+
+
+def default(inner: Schema, value: JsonValue) -> Schema:
+    """`inner.default(value)`."""
+    return Default(inner=inner, value=value)
 
 
 def nullish(inner: Schema) -> Schema:
