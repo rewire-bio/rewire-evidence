@@ -94,6 +94,15 @@ ignore = [
   "RUF001",  # the patterns are the TypeScript's, with the dashes and signs a paper prints
   "RUF003",  # as RUF001, where a comment shows a cell
 ]
+"src/rewire_evidence/grids.py" = [
+  "RUF001",  # the patterns are the TypeScript's, with the dashes, signs and marks a table prints
+]
+"src/rewire_evidence/office.py" = [
+  "RUF001",  # the hyphens are the two characters a Word document names
+]
+"src/rewire_evidence/pdftext.py" = [
+  "RUF001",  # the line terminators are JavaScript's four
+]
 "scripts/**" = [
   "INP001",  # scripts are not a package
   "T201",    # a command-line gate prints
