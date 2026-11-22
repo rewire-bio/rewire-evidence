@@ -25,9 +25,9 @@ from typing import Final, cast
 from rewire_evidence import archive, zod
 from rewire_evidence.archive import ARCHIVE_TIERS, DEFAULT_ARCHIVE_TIER, ArchiveError, visibility_of
 from rewire_evidence.canonical import JsonObject, JsonValue, utf16_key
-from rewire_evidence.js import member, trim
+from rewire_evidence.js import member, pad_end, trim
 from rewire_evidence.weburl import host_of
-from rewire_evidence.worklist import attributes_of, source_class_of, source_records, text_of
+from rewire_evidence.worklist import attributes_of, source_class_of, source_id, source_records, text_of
 
 LICENCE_MAP: Final = "data/archive/licence-map.tsv"
 CANDIDATES: Final = "data/archive/licence-candidates.jsonl"
@@ -122,7 +122,7 @@ def read_source_licences(root: Path) -> Licences:
     licences: Licences = {}
     for record in source_records(root):
         licence = attributes_of(record).get("licence")
-        licences[cast("str", record["id"])] = licence if isinstance(licence, str) and trim(licence) else None
+        licences[source_id(record)] = licence if isinstance(licence, str) and trim(licence) else None
     return licences
 
 
@@ -409,7 +409,9 @@ def build_triage(root: Path) -> list[JsonObject]:
 def reason_counts(rows: Sequence[Mapping[str, JsonValue]]) -> list[str]:
     """A line for each reason the queue holds, in the order of `TRIAGE_REASONS`."""
     reasons = [row["reason"] for row in rows]
-    return [f"  {reason.ljust(22)} {reasons.count(reason)}" for reason in TRIAGE_REASONS if reason in reasons]
+    return [
+        f"  {pad_end(reason, 22)} {reasons.count(reason)}" for reason in TRIAGE_REASONS if reason in reasons
+    ]
 
 
 def render_triage(rows: Sequence[Mapping[str, JsonValue]], date: str) -> str:
@@ -435,7 +437,7 @@ def _counted(names: Sequence[JsonValue]) -> list[str]:
     """`[...counts].sort()`: a line for each name, ordered as JavaScript orders `name,count`."""
     counts = {cast("str", name): names.count(name) for name in names}
     ordered = sorted(counts.items(), key=lambda held: utf16_key(f"{held[0]},{held[1]}"))
-    return [f"  {name.ljust(20)} {str(count).rjust(6)}" for name, count in ordered]
+    return [f"  {pad_end(name, 20)} {str(count).rjust(6)}" for name, count in ordered]
 
 
 def counts_report(root: Path) -> str:
@@ -459,7 +461,7 @@ def counts_report(root: Path) -> str:
         "",
         "sources by tier",
         *(
-            f"  {tier.ljust(20)} {str(tiers.count(tier)).rjust(6)}  {visibility_of(tier)}"
+            f"  {pad_end(tier, 20)} {str(tiers.count(tier)).rjust(6)}  {visibility_of(tier)}"
             for tier in ARCHIVE_TIERS
         ),
         f"  publication resting on determinations 1 and 2: {bound}",

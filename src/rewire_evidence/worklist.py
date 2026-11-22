@@ -5,7 +5,9 @@ One entry per source record. Sources that share a URL share one transfer and one
 object, so the fetcher groups by URL. Nothing here fetches or writes.
 
 A line of `sources.jsonl` that is not an object is passed over. The TypeScript passes over
-everything but a null, on which it throws.
+everything but a null, on which it throws. A source record whose `id` is not text is refused
+with its file and line. The TypeScript reads on with an `id` that is `undefined` or a number,
+and the record schema refuses such a record wherever the store is validated.
 """
 
 from __future__ import annotations
@@ -18,7 +20,7 @@ from typing import Final, cast
 from rewire_evidence import archive
 from rewire_evidence.canonical import JsonObject, JsonValue
 from rewire_evidence.js import lower, trim
-from rewire_evidence.jsonl import parse_value
+from rewire_evidence.jsonl import StoreError, parse_value
 from rewire_evidence.weburl import host_of
 
 SOURCES: Final = "data/entities/sources.jsonl"
@@ -65,14 +67,24 @@ def attributes_of(record: Mapping[str, JsonValue]) -> JsonObject:
 
 
 def source_records(root: Path) -> Iterator[JsonObject]:
-    """Every source record of `data/entities/sources.jsonl`, in file order."""
+    """Every source record of `data/entities/sources.jsonl`, in file order.
+
+    Raises `StoreError` for a source record whose `id` is not text.
+    """
     path = root / SOURCES
     for number, line in enumerate(archive.raw_lines(path), 1):
         if archive.blank(line):
             continue
         record = parse_value(line, f"{path}:{number}")
         if isinstance(record, dict) and record.get("kind") == "source":
+            if not isinstance(record.get("id"), str):
+                raise StoreError(f"{path}:{number}: a source record whose id is not text")
             yield record
+
+
+def source_id(record: Mapping[str, JsonValue]) -> str:
+    """The ID of a record `source_records` gave, which is text."""
+    return cast("str", record["id"])
 
 
 def read_work_list(root: Path) -> JsonObject:

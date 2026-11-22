@@ -623,7 +623,9 @@ def has_object(key: str, root: Path) -> bool:
 def cached_files(root: Path) -> list[tuple[str, Path]]:
     """Every key the cache holds a file for, with the file, in the order the folders list them."""
     base = cache_root(root)
-    if not base.exists():
+    # `ARCHIVE_CACHE` set to no text at all names no folder to Node, whose `existsSync("")` is
+    # false. To Python a path of no text is the working directory, which is always there.
+    if os.environ.get("ARCHIVE_CACHE") == "" or not base.exists():
         return []
     found = []
     for folder in sorted(base.iterdir(), key=lambda path: utf16_key(path.name)):
