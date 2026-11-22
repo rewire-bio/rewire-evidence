@@ -20,7 +20,7 @@ import functools
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Final
+from typing import Final, cast
 
 from rewire_evidence import jsregex
 from rewire_evidence.canonical import JsonObject
@@ -117,10 +117,7 @@ class Ratios:
 
 
 def _count(metrics: Mapping[str, object], name: str) -> int:
-    held = metrics[name]
-    if not isinstance(held, int):
-        raise TypeError(f"the metric {name} is not a count")
-    return held
+    return cast("int", metrics[name])
 
 
 def ratios_of(metrics: Mapping[str, object]) -> Ratios:

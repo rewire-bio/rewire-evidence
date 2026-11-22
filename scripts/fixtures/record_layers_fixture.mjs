@@ -275,7 +275,7 @@ const recorded = {
   sheets: cases.sheetCases.map(([text, strings]) => sheetOf(text, strings)),
   parts: cases.partCases.map(partsOf),
   office: Object.entries(cases.packages).map(([name, data]) => [name, attempt(() => officeOf(office.officeLayer(data)))]),
-  office_other: [cases.objects.text, cases.objects.zipPlain, Buffer.concat([Buffer.from("junk"), cases.packages.macroWorkbook]), Buffer.concat([Buffer.from([0x1f, 0x8b]), cases.packages.macroWorkbook])].map((data) => [data.toString("hex"), attempt(() => officeOf(office.officeLayer(data)))]),
+  office_other: [cases.objects.text, cases.objects.zipPlain, Buffer.concat([Buffer.from("junk"), cases.packages.macroWorkbook]), Buffer.concat([Buffer.from([0x1f, 0x8b]), cases.packages.macroWorkbook]), Buffer.concat([Buffer.from("XK"), cases.packages.macroWorkbook.subarray(2)]), Buffer.concat([Buffer.from([0x1f, 0x8b]), cases.packages.macroWorkbook.subarray(2)])].map((data) => [data.toString("hex"), attempt(() => officeOf(office.officeLayer(data)))]),
   grids: cases.gridCases.map(([normaliser, text]) => gridOf(normaliser, text)),
   grid_for: layers.normalisers.map((name) => [name, grid.gridNormaliserFor(name)]),
   candidates: cases.candidateCases.map((table) => [table, grid.candidateHeader({ rows: table.rows, columns: table.columns, cells: table.cells }, { thead: table.thead })]),

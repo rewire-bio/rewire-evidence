@@ -77,9 +77,15 @@ def _local_name(name: str) -> str:
 
 
 def _attributes(body: str) -> dict[str, str]:
+    """The attributes of a tag by local name, the last of a name winning.
+
+    The TypeScript holds them in a plain object, where assigning text to `__proto__` sets
+    nothing, so an attribute of that name is not held here either.
+    """
     return {
-        _local_name(found.group(1)): read_characters(found.group(2) or found.group(3) or "")
+        name: read_characters(found.group(2) or found.group(3) or "")
         for found in _ATTRIBUTE.finditer(body)
+        if (name := _local_name(found.group(1))) != "__proto__"
     }
 
 

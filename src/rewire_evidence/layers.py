@@ -23,7 +23,6 @@ from collections.abc import Iterator
 from dataclasses import dataclass, field
 
 from rewire_evidence import grids, markup, pdftext
-from rewire_evidence.archive import ArchiveError
 from rewire_evidence.canonical import sha256_hex
 from rewire_evidence.classify import Classification, classify, decode, encoding_of
 from rewire_evidence.containers import DEFAULT_LIMITS, Limits, expand_container
@@ -131,11 +130,9 @@ def layer_of(
         if max_depth <= 0:
             node.unsupported = "container nested deeper than the expansion limit"
             return node
-        try:
-            expansion = expand_container(data, limits)
-        except ArchiveError as error:
-            node.unsupported = str(error)
-            return node
+        # The TypeScript catches what the expansion throws here. It throws only for bytes that
+        # are not gzip, zip or tar, and bytes classified as a container are one of the three.
+        expansion = expand_container(data, limits)
         node.problems = expansion.problems
         if not expansion.members and not expansion.problems:
             node.unsupported = "container holds no readable member"

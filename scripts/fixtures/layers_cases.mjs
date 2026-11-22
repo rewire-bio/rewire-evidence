@@ -265,6 +265,7 @@ export const scanCases = [
   ["xml", "<article><front><article-meta><title-group><article-title>T</article-title></title-group></article-meta></front><body><sec><title>S</title><p>a <italic>b</italic> c<sup>2</sup></p></sec></body></article>"],
   ["xml", "<p>x<inline-graphic>data</inline-graphic>y<processing-meta><a/></processing-meta>z</p>"], ["xml", "<p>e=<mml:math><mml:mi>m</mml:mi></mml:math><m:r>c</m:r><tex-math>\\alpha</tex-math></p>"],
   ["xml", "<table-wrap><label>Table 1</label><caption><title>Cap</title><p>more</p></caption>" + TABLE + "</table-wrap>"], ["xml", "<row><entry>a</entry><entry>b</entry></row><unknown>u</unknown><x>i</x>"],
+  ["html", "a<![CDATA[]]>b&shy;<p>&shy;</p>c"], ["html", "<script><![CDATA[x]]>y</script>z<style>a <b"],
   ["xml", "<?xml version=\"1.0\"?><!DOCTYPE article><article xmlns:xlink=\"x\"><ext-link xlink:href=\"u\">l</ext-link></article>"], ["xml", "a\r\nb\rc d﻿e\u0085f\u000bg\u000ch"],
 ];
 export const tidyCases = ["", "\n", "a", " a ", "a\n", "\na", "a\n\n\n\nb", "a \t b\n\n c  d \n\n\n", "\n\n a\n\n", "a\r\nb", "a b\u0085c\u001cd", "  \n \n  ", "a\n \nb\n\t\n\nc", "﻿a﻿ b", "one  two   three\n  four"];
@@ -341,7 +342,10 @@ export const gridCases = [
   ["jats-table-grid@1", "<table-wrap><caption>open cap<table><tr><td>a</td></tr></table></table-wrap><table-wrap><label></label><label>second</label><table><tr><td>b</td></tr></table></table-wrap>"],
   ["html-table-grid@1", grid([plain(["a", "b", "c"]).concat(many(4100, "<td></td>")), plain(["z"])])], ["html-table-grid@1", grid([[cell("td", "a", ' colspan="1000" rowspan="1000"'), cell("td", "b", ' colspan="1000" rowspan="1000"'), cell("td", "c")], plain(["d"])])],
   ["html-table-grid@1", "<table><tr><td rowspan=\"3\">a</td></tr></table>"], ["html-table-grid@1", grid([[cell("td", "x", ' colspan="4000"'), cell("td", "y", ' colspan="200"'), cell("td", "z")]])],
-  ["html-table-grid@1", "<table></table><table><tr></tr></table><table><tr><td></td></tr></table>"], ["jats-table-grid@1", "<table><tr><entry>cals</entry><th>h</th></tr></table>"],
+  ["html-table-grid@1", "<table></table><table><tr></tr></table><table><tr><td></td></tr></table>"],
+  ["html-table-grid@1", "<table><caption>cap <label>inner label</label> tail</caption><tr><td>x</td></tr></table>"],
+  ["html-table-grid@1", grid([[many(4100, "<td>a</td>")], [many(4100, "<td>b</td>")], plain(["c"])])],
+  ["html-table-grid@1", grid([[cell("td", "a", ' colspan="1000" rowspan="1000"'), cell("td", "b", ' colspan="1000" rowspan="1000"')], [cell("td", "c", ' colspan="2"'), cell("td", "d")]])], ["jats-table-grid@1", "<table><tr><entry>cals</entry><th>h</th></tr></table>"],
 ];
 const g = (rows, columns, cells, thead = false) => ({ rows, columns, thead, cells: cells.map(([r, c, text, header = false, rs = 1, cs = 1]) => ({ row: r, column: c, row_span: rs, column_span: cs, header, start: text === "" ? null : 0, end: text === "" ? null : 1, text })) });
 const filled = (texts, header = []) => texts.flatMap((line, r) => line.map((text, c) => [r, c, text, header.includes(r)]));

@@ -119,13 +119,14 @@ def _expand_gzip(data: bytes, limits: Limits) -> Expansion:
     return Expansion("gzip", members=[_member(gzip_name(data) or "content", content)])
 
 
-def _until_nul(text: str) -> str:
+def until_nul(text: str) -> str:
+    r"""`text.replace(/\0.*$/, "")`: the text up to a NUL that nothing after ends a line."""
     return _FROM_NUL.sub("", text, count=1)
 
 
 def _octal(data: bytes) -> int:
     """A tar size field: the octal number it opens with, 0 for no text, and -1 for anything else."""
-    text = trim(_until_nul(data.decode("latin-1")))
+    text = trim(until_nul(data.decode("latin-1")))
     if not text:
         return 0
     digits = _OCTAL.match(text)
@@ -141,8 +142,8 @@ def _expand_tar(data: bytes, limits: Limits) -> Expansion:
         header = data[at : at + _BLOCK]
         if not any(header):
             break
-        raw_name = _until_nul(_text(header[:100]))
-        prefix = _until_nul(_text(header[345:500]))
+        raw_name = until_nul(_text(header[:100]))
+        prefix = until_nul(_text(header[345:500]))
         size = _octal(header[124:136])
         kind = chr(header[156] or 0x30)
         if size < 0:
@@ -155,7 +156,7 @@ def _expand_tar(data: bytes, limits: Limits) -> Expansion:
             break
         at = start + -(-size // _BLOCK) * _BLOCK
         if kind == "L":
-            long_name = _until_nul(_text(data[start:end]))
+            long_name = until_nul(_text(data[start:end]))
             continue
         name = long_name if long_name is not None else (f"{prefix}/{raw_name}" if prefix else raw_name)
         long_name = None
@@ -208,7 +209,7 @@ def zip_entry_names(data: bytes, limit: int = 64) -> list[str]:
     return names
 
 
-def _inflate(raw: bytes, limit: int) -> bytes:
+def inflate_raw(raw: bytes, limit: int) -> bytes:
     """`zlib.inflateRawSync(raw, { maxOutputLength })`, or `ArchiveError` where it throws."""
     stream = zlib.decompressobj(wbits=-zlib.MAX_WBITS)
     try:
@@ -268,7 +269,7 @@ def _expand_zip(data: bytes, limits: Limits) -> Expansion:  # noqa: C901, PLR091
             content = raw
         elif method == _DEFLATED:
             try:
-                content = _inflate(raw, limits.max_member_bytes)
+                content = inflate_raw(raw, limits.max_member_bytes)
             except ArchiveError as error:
                 out.problems.append(f"zip member {name} did not expand: {error}")
                 continue
