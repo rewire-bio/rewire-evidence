@@ -319,7 +319,8 @@ export const partCases = [
   {}, { "xl/workbook.xml": workbookXml([]) }, { "xl/workbook.xml": workbookXml([["A", 1, "r1"], ["B", 2, "r2"], ["", 3, ""]]), "xl/_rels/workbook.xml.rels": relsXml([["r1", "/abs.xml"], ["r2", "rel.xml"], ["", "x"], ["r3", ""]]) },
   { "xl/workbook.xml": "<sheet/><Sheet Name=\"Mixed\" r:Id=\"z\"/><definedName name=\"n\"/>", "xl/sharedStrings.xml": stringsXml(SHARED) },
   { "xl/sharedStrings.xml": "<t>outside</t><si><t>a</t><rPh><t>p</t></rPh><t>b</t></rPh></rPh><t>c</t><si><t>nested open</t></si><t>after</t></t></t></si><si><r><rPr/><t>r1</t></r><t/></si>" },
-  { "xl/sharedStrings.xml": Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from("<si><t>wide \ud83d\ude00</t></si>", "utf16le")]) }, { "xl/sharedStrings.xml": Buffer.from([0xff]) },
+  { "xl/sharedStrings.xml": Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from("<si><t>wide \ud83d\ude00</t></si>", "utf16le")]) },
+  { "xl/sharedStrings.xml": "<si></t><t>kept after a close that closes nothing</t></si><si><t>a</t></t></t><t>b</t></si>" }, { "xl/sharedStrings.xml": Buffer.from([0xff]) },
 ].map((members) => Object.fromEntries(Object.entries(members).map(([name, data]) => [name, hex(data)])));
 
 // ---------------------------------------------------------------------------------------
@@ -387,7 +388,9 @@ const CONTROL_PAGE = `<html><body><table><tr><td>${many(40, "&#1;")}</td><td>x</
 const nested = (depth, data) => (depth === 0 ? data : gz(nested(depth - 1, data)));
 export const objects = {
   text: bytes("plain text\nsecond line\n"), crlf: bytes("a\r\nb\r\n"), bom: raw("\xef\xbb\xbfwith a mark\n"), latin: raw("caf\xe9 " + many(30, "x")), wide: Buffer.concat([raw("\xff\xfe"), Buffer.from("wide \ud83d\ude00\n", "utf16le"), raw("\x3d\xd8")]),
-  wideOdd: raw("\xfe\xff\0a\0"), markdown: bytes("<div align=\"center\">\n\n# Title\n"), html: bytes(HTML_PAGE), jats: bytes(JATS), xmlNoTable: bytes("<article><body><p>Just prose &amp; more.</p></body></article>"),
+  wideOdd: raw("\xfe\xff\0a\0"),
+  // The two halves of one character with a tag between them: beside each other in the layer, and one character there.
+  wideSplit: Buffer.concat([raw("\xff\xfe"), Buffer.from("<html><body><p>a\ud83d<b></b>\ude00z</p></body></html>", "utf16le")]), markdown: bytes("<div align=\"center\">\n\n# Title\n"), html: bytes(HTML_PAGE), jats: bytes(JATS), xmlNoTable: bytes("<article><body><p>Just prose &amp; more.</p></body></article>"),
   emptyHtml: bytes("<html><head><script>x</script></head><body><nav>n</nav></body></html>"), controlPage: bytes(CONTROL_PAGE), replaced: raw("\xef\xbb\xbf<html><body><table><tr><td>\xff\xfe\xfd</td><td>ok</td></tr></table></body></html>"),
   pdf: bytes("%PDF-1.4\n%%EOF\n"), png: raw("\x89PNG\r\n\x1a\n"), ole: raw("\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"), binary: raw("\0\x01\x02"), empty: Buffer.alloc(0),
   gzText: gz("inside gzip\n"), gzNamed: gzipWith({ name: "inner.html" }, "<html><body><p>named member</p></body></html>"), gzBroken: gz("hello").subarray(0, 12), gz3: nested(3, bytes("three deep\n")), gz4: nested(4, bytes("four deep\n")),

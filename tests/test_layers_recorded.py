@@ -218,7 +218,7 @@ def test_columns_references_and_escapes_are_the_typescripts() -> None:
         if isinstance(expected, str):
             assert office.column_label(column) == expected
         else:
-            with pytest.raises(ValueError, match=f"^{column} is not a column number$") as refused:
+            with pytest.raises(textlayer.LayerFailure, match=f"^{column} is not a column number$") as refused:
                 office.column_label(column)
             assert expected == {"error": str(refused.value)}
     for text, expected in columns["references"]:

@@ -150,6 +150,10 @@ def parse_int(text: str, radix: int = 10) -> float:
     JavaScript reads the longest run of digits the text opens with, after any white space and
     one sign, and after `0x` when the radix is 16. `int` refuses text with anything after the
     digits. A run too long for a double is an infinity, which `Number.isInteger` refuses.
+
+    `int` also refuses a run of more than 4,300 digits in a radix that is no power of two,
+    whatever its value, so the zeros a number opens with are dropped before it reads the
+    rest. What is then still too long to read is past any double.
     """
     rest = text.lstrip(SPACE)
     negative = rest.startswith("-")
@@ -164,7 +168,7 @@ def parse_int(text: str, radix: int = 10) -> float:
     if not length:
         return math.nan
     try:
-        value = float(int(rest[:length], radix))
+        value = float(int(rest[:length].lstrip("0") or "0", radix))
     except (OverflowError, ValueError):
         # More digits than a double holds, or than `int` will read at once.
         value = math.inf

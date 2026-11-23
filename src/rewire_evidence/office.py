@@ -347,9 +347,14 @@ def column_number(label: str) -> int:
 
 
 def column_label(column: int) -> str:
-    """The A1 column label of a 1-based column number."""
+    """The A1 column label of a 1-based column number.
+
+    Raises `LayerFailure` for a number that is none, as the TypeScript throws an error its
+    callers catch. A sheet with a row and no column is how one is reached: a value that no
+    cell holds gives a sheet its last row, and the extent of that sheet cannot be written.
+    """
     if column < 1:
-        raise ValueError(f"{column} is not a column number")
+        raise LayerFailure(f"{column} is not a column number")
     label = ""
     rest = column
     while rest > 0:

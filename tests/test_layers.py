@@ -8,7 +8,9 @@ scripts, because the conversion itself is another program's.
 
 from __future__ import annotations
 
+import gzip
 import io
+import json
 import math
 import os
 import stat
@@ -22,6 +24,7 @@ from hypothesis import strategies as st
 
 from rewire_evidence import (
     classify,
+    cli,
     containers,
     grids,
     js,
@@ -37,7 +40,7 @@ from rewire_evidence import (
 from rewire_evidence.archive import ArchiveError
 from rewire_evidence.canonical import canonical_line, js_utf8, sha256_hex
 from rewire_evidence.textlayer import Layer, LayerFailure, character_count, layer_from_text
-from tests.layered import OBJECTS, row_for
+from tests.layered import BASE_ROW, OBJECTS, row_for
 from tests.recorded import SEMANTICS
 
 # ---------------------------------------------------------------------------------------
@@ -49,11 +52,8 @@ def test_a_number_is_read_from_the_start_of_text_as_parseint_reads_it(
     text: str, radix: int, expected: str
 ) -> None:
     found = js.parse_int(text, radix)
-    said = "NaN" if math.isnan(found) else "Infinity" if math.isinf(found) else str(int(found))
-    if math.isinf(found) and found < 0:
-        said = "-Infinity"
-    # Node prints a number too large to count exactly in its shortest form, which is not compared.
-    assert said == expected or abs(found) > 2**53
+    # Node prints the number in its shortest form, an infinity included, and `float` reads all of them.
+    assert math.isnan(found) if expected == "NaN" else found == float(expected)
 
 
 @given(
@@ -285,6 +285,86 @@ def test_a_package_whose_directory_names_a_workbook_and_whose_bytes_are_no_zip_d
     assert (found.kind, found.layer, found.problems) == ("ooxml", None, [])
 
 
+def workbook(sheet: str) -> bytes:
+    """A workbook of one sheet, whose rows are the ones given."""
+    held = io.BytesIO()
+    with zipfile.ZipFile(held, "w", zipfile.ZIP_DEFLATED) as package:
+        package.writestr("xl/workbook.xml", '<workbook><sheets><sheet name="S" sheetId="1"/></sheets></workbook>')
+        package.writestr("xl/worksheets/sheet1.xml", f"<worksheet><sheetData>{sheet}</sheetData></worksheet>")
+    return held.getvalue()
+
+
+#: A value that no cell holds gives the sheet a last row and no column, so its extent cannot be written.
+NO_COLUMN = workbook('<row r="3"><v>5</v></row>')
+
+
+def test_a_sheet_whose_extent_cannot_be_written_is_a_reason_and_not_an_error() -> None:
+    # The TypeScript throws from columnLabel and catches it as it catches every refusal.
+    with pytest.raises(LayerFailure, match=r"^0 is not a column number$"):
+        office.column_label(0)
+    found = office.office_layer(NO_COLUMN)
+    assert found is not None
+    assert (found.layer, found.unsupported) == (None, "xlsx normaliser failed: 0 is not a column number")
+    node = layers.layer_of(NO_COLUMN, pdftotext=False)
+    assert (node.layer, node.grid, node.problems) == (None, None, [])
+    assert node.unsupported == "xlsx normaliser failed: 0 is not a column number"
+    row = {**BASE_ROW, "sha256": sha256_hex(NO_COLUMN), "bytes": len(NO_COLUMN)}
+    result = registry.layers_of_object(row, NO_COLUMN)
+    assert (result.records, result.unreadable) == ([], [])
+    assert result.unsupported == [
+        {
+            "object_sha256": row["sha256"],
+            "container_path": None,
+            "reason": "xlsx normaliser failed: 0 is not a column number",
+        }
+    ]
+
+
+def test_a_build_writes_the_reason_for_such_a_sheet_and_goes_on(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.delenv("ARCHIVE_CACHE", raising=False)
+    text = b"read after the workbook\n"
+    for data in (NO_COLUMN, text):
+        key = sha256_hex(data)
+        row = {**BASE_ROW, "sha256": key, "bytes": len(data), "source_ids": ["s1"]}
+        shard = tmp_path / f"data/archive/objects/{key[0]}.jsonl"
+        shard.parent.mkdir(parents=True, exist_ok=True)
+        shard.write_text(canonical_line(row) + "\n", encoding="utf-8")
+        cached = tmp_path / f"data/archive/cache/{key[:2]}/{key}.gz"
+        cached.parent.mkdir(parents=True)
+        cached.write_bytes(gzip.compress(data))
+    assert cli.main(["layers", "build", "--root", str(tmp_path)]) == 0
+    assert "no normaliser    1\n" in capsys.readouterr().out
+    assert (tmp_path / registry.UNSUPPORTED_FILE).read_text("utf-8") == (
+        '{"container_path":null,"object_sha256":"'
+        + sha256_hex(NO_COLUMN)
+        + '","reason":"xlsx normaliser failed: 0 is not a column number"}\n'
+    )
+    assert [row["object_sha256"] for row in registry.read_registry(tmp_path)] == [sha256_hex(text)]
+    assert cli.main(["layers", "check", "--root", str(tmp_path)]) == 0
+
+
+def test_a_close_that_closes_nothing_does_not_stop_the_next_string_being_kept() -> None:
+    table = "<sst><si></t><t>kept</t></si><si><t>a</t></t></t><t>b</t></si></sst>"
+    package = office.OfficePackage("xlsx", "a case", {"xl/sharedStrings.xml": table.encode()}, [])
+    assert office.shared_strings(package) == ["kept", "ab"]
+
+
+def test_a_sheet_may_be_as_wide_as_the_limit_and_no_wider() -> None:
+    # FAN is column 4,096 and FAO the one after it.
+    widest = office.office_layer(workbook('<row r="1"><c r="FAN1"><v>1</v></c></row>'))
+    assert widest is not None
+    assert widest.layer is not None
+    assert widest.layer.content == b"\x0c# sheet\t1\tS\tA1:FAN1\n" + b"\t" * 4095 + b"1\n"
+    wider = office.office_layer(workbook('<row r="1"><c r="FAO1"><v>1</v></c></row>'))
+    assert wider is not None
+    assert (wider.layer, wider.unsupported) == (
+        None,
+        "xlsx normaliser failed: sheet S holds 4097 columns, over the 4096 column limit",
+    )
+
+
 # ---------------------------------------------------------------------------------------
 # Text layers and the sanity gate
 
@@ -303,8 +383,13 @@ def test_text_that_is_already_utf8_is_its_own_layer(text: str) -> None:
 
 def test_half_a_surrogate_pair_is_written_as_node_writes_it() -> None:
     # Two halves that end up side by side are one character, and a half alone is U+FFFD.
-    joined = layer_from_text(b"", "\U0001f600", "text-utf8@1", "a case")
+    joined = layer_from_text(b"", "\ud83d\ude00", "text-utf8@1", "a case")
     assert (joined.content, joined.characters) == ("\U0001f600".encode(), 1)
+    # A tag between the halves leaves them side by side in the layer of a UTF-16 page.
+    page = "<html><body><p>a\ud83d<b></b>\ude00z</p></body></html>".encode("utf-16-le", "surrogatepass")
+    node = layers.layer_of(b"\xff\xfe" + page, pdftotext=False)
+    assert node.layer is not None
+    assert (node.layer.content, node.layer.characters) == ("a\U0001f600z\n".encode(), 4)
     alone = layer_from_text(b"", "a\ud83d", "text-utf8@1", "a case")
     assert (alone.content, alone.characters) == (js_utf8("a\ufffd"), 2)
     assert character_count("\U0001f600\ude00") == 2
@@ -388,6 +473,25 @@ def test_any_bytes_have_a_tree_or_are_refused_in_nodes_words(data: bytes, hint: 
         assert held.layer is None or held.layer.identity == (held.layer.content == held.content)
 
 
+def test_the_two_files_are_ordered_by_utf16_unit_in_the_path_and_in_the_reason() -> None:
+    # A character beyond U+FFFF is two units from U+D800 on, so JavaScript puts it before U+E000,
+    # which follows it by number and by its bytes in UTF-8.
+    astral, private = "\U0001f600", "\ue000"
+    paths = [private, None, astral, "z"]
+    ordered = [None, "z", astral, private]
+    records = [{"layer_sha256": "a" * 64, "object_sha256": "b" * 64, "container_path": path} for path in paths]
+    written = registry.serialise_registry(records).splitlines()
+    assert [json.loads(line)["container_path"] for line in written] == ordered
+    problems = [{"object_sha256": "b" * 64, "container_path": path, "reason": "r"} for path in paths]
+    written = registry.serialise_unsupported(problems).splitlines()
+    assert [json.loads(line)["container_path"] for line in written] == ordered
+    problems = [
+        {"object_sha256": "b" * 64, "container_path": None, "reason": reason} for reason in (private, astral, "z")
+    ]
+    written = registry.serialise_unsupported(problems).splitlines()
+    assert [json.loads(line)["reason"] for line in written] == ["z", astral, private]
+
+
 # ---------------------------------------------------------------------------------------
 # What only another answer from the detector or the grid could reach
 
@@ -451,6 +555,7 @@ case "$MODE" in
   fails) echo "  Syntax Error: not a PDF  " >&2; exit 1 ;;
   slow) sleep 5 ;;
   not-utf8) printf 'caf\\351' ;;
+  warns) printf 'ok'; printf 'www' >&2 ;;
   *) printf 'page one \\303\\251\\014page two\\014' ;;
 esac
 """
@@ -549,6 +654,14 @@ def test_output_that_is_too_long_or_is_not_utf8_is_refused(
         pdftext.pdf_layer(OBJECTS["pdf"])
     monkeypatch.setenv("MODE", "")
     monkeypatch.setattr(pdftext, "MAX_OUTPUT", 4)
+    with pytest.raises(LayerFailure, match="spawnSync pdftotext ENOBUFS"):
+        pdftext.pdf_layer(OBJECTS["pdf"])
+    # The limit is on either stream: a conversion that writes little and warns at length is refused too.
+    monkeypatch.setenv("MODE", "warns")
+    assert pdftext.pdf_layer(OBJECTS["pdf"]).content == b"ok"
+    monkeypatch.setattr(pdftext, "MAX_OUTPUT", 3)
+    assert pdftext.pdf_layer(OBJECTS["pdf"]).content == b"ok"
+    monkeypatch.setattr(pdftext, "MAX_OUTPUT", 2)
     with pytest.raises(LayerFailure, match="spawnSync pdftotext ENOBUFS"):
         pdftext.pdf_layer(OBJECTS["pdf"])
     assert programs.is_dir()
