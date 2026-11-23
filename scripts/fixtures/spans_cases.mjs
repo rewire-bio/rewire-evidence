@@ -229,6 +229,7 @@ export const layers = {
   jsonDuplicate: { normaliser: "text-utf8@1", text: JSON_DUPLICATE },
   jsonEscapes: { normaliser: "text-utf8@1", text: JSON_ESCAPES },
   jsonScalar: { normaliser: "text-utf8@1", text: ' "only a string" ' },
+  jsonEmptyKeys: { normaliser: "text-utf8@1", text: '{"x": {"": {"": 5, "k": 6}, "k": 7}}' },
   notJson: { normaliser: "text-utf8@1", text: '{"a": 1,}' },
   sheets: { normaliser: "ooxml-sheet-tsv@1", text: SHEETS },
   sheetsAsText: { normaliser: "text-utf8@1", text: SHEETS },
@@ -687,6 +688,8 @@ const jsonCalls = [
   ["readJson", JSON_ESCAPES],
   ...["/a/b/0", "/", "", "  /a~1b/m~0n/~01  ", "a.b[0]", "$.a.b[0][12]", "root.a", "$", "data.full[1].deep", "a..b", "[3]", "a[b].c[1]x[2]", "x.$", "root", "a.[1]"].map((path) => ["pointerTokens", path]),
   ...[[], ["data"], ["data", "full"], ["data", "full", "1"], ["data", "full", "01"], ["data", "full", "9"], ["data", "full", "x"], ["data", "one", "value", "x"], ["data", "missing"], ["", ""], ["data", "one", "list", "2"], ["data", "full", "1", "tags"]].map((tokens) => ["walk", "json", tokens]),
+  // An index that is the length of its array, and one past the last.
+  ...[["data", "full", "3"], ["data", "full", "2"], ["data", "one", "list", "3"], ["results", "1"], ["results", "0"]].map((tokens) => ["walk", "json", tokens]),
   ["walk", "jsonDuplicate", ["a"]],
   ["walk", "jsonDuplicate", ["b", "c", "1"]],
   ...[
@@ -724,7 +727,20 @@ const jsonCalls = [
     { path: "/data/full/1/macro_MCC", selectors: [{ key: "model", value: "evo-1", role: "other" }] },
     { path: "/data/full/1", selectors: [{ key: "key", value: "tags", role: "column" }] },
     { path: "/results", selectors: [{ key: "id", value: "r1", role: "other" }, { key: "key", value: "score", role: "column" }] },
+    // A pointer of two tokens and of one, each with a selector the pointer did not use, and a
+    // value that opens with a full stop.
+    { path: "//", selectors: [{ key: "k", value: "9", role: "other" }] },
+    { path: "//", selectors: [{ key: "k", value: "8", role: "other" }] },
+    { path: "/results/0/score", selectors: [{ key: "id", value: "r1", role: "other" }] },
+    { path: "/results/0", selectors: [{ key: "key", value: "score", role: "column" }, { key: "id", value: "r1", role: "other" }] },
+    { path: "/data/one", selectors: [{ key: "key", value: ".value", role: "column" }] },
+    { path: "/data/one", selectors: [{ key: "key", value: "value.", role: "column" }] },
+    { path: "/data/full/0", selectors: [{ key: "key", value: "cat.a.b", role: "column" }] },
+    { path: "/data/full/3", selectors: [] },
+    { path: "/", selectors: [{ key: "key", value: "", role: "column" }] },
   ].map((request) => ["resolveJsonPointer", "json", request]),
+  // A key that is the empty text, read as the part of a path before its first full stop.
+  ...[".", ".k", "..", "k"].map((value) => ["resolveJsonPointer", "jsonEmptyKeys", { path: "/x", selectors: [{ key: "key", value, role: "column" }] }]),
   ["resolveJsonPointer", "jsonDuplicate", { path: "/a", selectors: [] }],
   ["resolveJsonPointer", "jsonDuplicate", { path: "/b/c/1", selectors: [] }],
   ["resolveJsonPointer", "jsonScalar", { path: "/x", selectors: [] }],
