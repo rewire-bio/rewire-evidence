@@ -413,6 +413,14 @@ def test_a_registry_is_built_and_written_as_the_typescript_builds_and_writes_it(
     assert registry.serialise_unsupported(result.unsupported[::-1]) == build["unsupported"]
 
 
+def test_the_unsupported_file_is_ordered_as_the_typescript_orders_it() -> None:
+    # Lines that only the path or only the reason orders, among them characters that UTF-16
+    # units and code points put in different orders.
+    problems, expected = LAYERS["unsupported_order"]
+    assert registry.serialise_unsupported(problems) == expected
+    assert registry.serialise_unsupported(problems[::-1]) == expected
+
+
 def lay_out(root: Path, files: dict[str, str]) -> None:
     for file, data in files.items():
         (root / file).parent.mkdir(parents=True, exist_ok=True)
