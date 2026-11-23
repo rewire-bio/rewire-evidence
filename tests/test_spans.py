@@ -54,6 +54,13 @@ LAYER = TEXT | MIXED
 UNITS = st.text(alphabet=st.characters(), max_size=40).map(unit_text)
 
 
+def test_the_first_and_the_last_character_beyond_the_plane_are_two_units() -> None:
+    # The scan that spares a layer with no such character a copy turns on U+10000 itself.
+    assert offsets.to_units("\U00010000") == "\ud800\udc00"
+    assert offsets.to_units("a\U0010ffff") == "a\udbff\udfff"
+    assert offsets.to_units("\uffff\ue000") == "\uffff\ue000"
+
+
 @given(LAYER)
 def test_text_in_units_counts_as_javascript_counts_and_comes_back_whole(text: str) -> None:
     units = offsets.to_units(text)
