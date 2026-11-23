@@ -34,6 +34,7 @@ from rewire_evidence import (
     layerparity,
     locators,
     replay,
+    spanparity,
     tableparity,
 )
 from rewire_evidence.jsonl import StoreError
@@ -491,5 +492,49 @@ def _layers(root: Path, layers_root: Path, objects: Path, expected: Path, report
         f"{report.objects['checked']:,} objects, each the committed line. "
         f"{rows.expected - rows.same:,} rows of {report.objects['restricted_not_checked']:,} restricted "
         "objects were not checked.\n"
+    )
+    return 0
+
+
+def spans_gate(arguments: Sequence[str], expected: Path, description: str | None = None) -> int:
+    """Run the span gate and print what it found. Returns the status.
+
+    `expected` names the recordings of the TypeScript's measurement, and is used when the
+    command line names no other.
+    """
+    parser = _parser(description)
+    parser.add_argument("objects", type=Path, help="a folder of objects, laid out as the cache is")
+    parser.add_argument("--expected", type=Path, default=expected, help="the pinned expectation")
+    parser.add_argument(
+        "--recorded", type=Path, default=None, help="a folder record_spans_store.mjs wrote in this run"
+    )
+    parser.add_argument("--json", type=Path, default=None, help="write what was measured here")
+    args = parser.parse_args(arguments)
+    return _run(lambda: _spans(args.root, args.objects, args.expected, args.recorded, args.json))
+
+
+def _spans(
+    root: Path, objects: Path, expected: Path, recorded_in: Path | None, report_file: Path | None
+) -> int:
+    recorded = conformance.read_recorded(expected)
+    sys.stdout.write(
+        f"expecting what the TypeScript measured at {conformance.recorded_ref(recorded)}, result for result\n"
+    )
+    report = spanparity.verify_spans(root, objects, expected, recorded, recorded_in)
+    sys.stdout.write(f"{spanparity.summary(report)}\n")
+    _write_report(report_file, spanparity.to_json(report))
+
+    for problem in report.problems[:PROBLEMS_SHOWN]:
+        sys.stderr.write(f"  {problem[:PROBLEM_WIDTH]}\n")
+    if report.problems:
+        sys.stderr.write(
+            f"\n{len(report.problems):,} problems. {report.rows.same:,} of {report.rows.expected:,} results "
+            "measured here have the recorded line.\n"
+        )
+        return 1
+    sys.stdout.write(
+        f"\n{report.rows.same:,} results are measured again over {report.objects['held']:,} objects, each "
+        f"with the line the TypeScript gives it. {report.held:,} results need a restricted object and are "
+        "held to the recorded line.\n"
     )
     return 0
