@@ -252,7 +252,8 @@ def test_the_commands_print_and_write_what_the_typescripts_do(
         printed = capsys.readouterr()
         assert status == run["status"], printed.err
         assert said(printed.out) == run["out"]
-        if run["status"] == 0:
+        # Where the TypeScript threw, what it wrote to standard error is a stack trace and is not held.
+        if run["err"] is not None:
             assert said(printed.err) == run["err"]
         written = {
             said(file): said(bytes.fromhex(data).decode("utf-8")).encode("utf-8").hex()

@@ -357,9 +357,9 @@ function run(folder, [program, ...argv], laid) {
   const written = Object.fromEntries(
     Object.entries(everyFile(folder, laid)).map(([file, hex]) => [said(file), Buffer.from(said(Buffer.from(hex, "hex").toString("utf8")), "utf8").toString("hex")]),
   );
-  // A failure prints a stack trace with this machine's paths in it. Only its first line is kept.
-  const err = done.status === 0 || program === "spans" ? said(done.stderr) : said(done.stderr).split("\n").slice(0, 1).join("\n");
-  return { argv: [program, ...argv], status: done.status, out: said(done.stdout), err: done.status !== 0 && program === "spans" ? null : err, written };
+  // A command that throws prints a stack trace with this machine's paths in it, which is not kept.
+  const err = /^\s+at /m.test(done.stderr) ? null : said(done.stderr);
+  return { argv: [program, ...argv], status: done.status, out: said(done.stdout), err, written };
 }
 const commandTrees = cases.commandTrees.map(({ name, files, sequences }) => {
   const laid = hexed(files.text ?? {});
