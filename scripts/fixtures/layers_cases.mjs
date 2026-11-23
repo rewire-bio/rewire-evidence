@@ -131,6 +131,8 @@ const plainWorkbook = pack({
   "xl/worksheets/abs.xml": sheetXml('<row r="2"><c r="C2"><v>\ud83d\ude00 z</v></c></row>'),
 });
 const megabyte = many(1000, many(1000, "a"));
+// More digits than Python's int reads at once, and a number any double holds.
+const PADDING = many(5000, "0");
 const hugeSheet = many(65, '<row><c t="s"><v>0</v></c></row>');
 
 export const packages = {
@@ -142,6 +144,10 @@ export const packages = {
   workbookPrefixOnly: pack({ "xl/styles.xml": "<styleSheet/>" }),
   workbookTooManyRows: pack({ "xl/workbook.xml": workbookXml([["Long", 1, null]]), "xl/worksheets/sheet1.xml": sheetXml('<row r="250001"><c r="A250001"><v>1</v></c></row>') }),
   workbookTooManyColumns: pack({ "xl/workbook.xml": workbookXml([["Wide", 1, null]]), "xl/worksheets/sheet1.xml": sheetXml('<row r="1"><c r="FAO1"><v>1</v></c></row>') }),
+  workbookWidest: pack({ "xl/workbook.xml": workbookXml([["Widest", 1, null]]), "xl/worksheets/sheet1.xml": sheetXml('<row r="1"><c r="FAN1"><v>1</v></c></row>') }),
+  workbookValueOutsideCell: pack({ "xl/workbook.xml": workbookXml([["Loose", 1, null]]), "xl/worksheets/sheet1.xml": sheetXml('<row r="3"><v>5</v></row>') }),
+  workbookRowOfNoCell: pack({ "xl/workbook.xml": workbookXml([["Bare", 1, null]]), "xl/worksheets/sheet1.xml": sheetXml('<row r="2"></row><row r="4"/>') }),
+  workbookPaddedNumbers: pack({ "xl/workbook.xml": workbookXml([["Padded", 1, null]]), "xl/sharedStrings.xml": stringsXml(["<si><t>zero</t></si>", "<si><t>one</t></si>"]), "xl/worksheets/sheet1.xml": sheetXml(`<row r="${PADDING}2"><c t="s"><v>${PADDING}1</v></c><c t="s"><v>${many(400, "0")}1</v></c></row>`) }),
   workbookTooManyCharacters: pack({ "xl/workbook.xml": workbookXml([["Big", 1, null]]), "xl/sharedStrings.xml": stringsXml([`<si><t>${megabyte}</t></si>`]), "xl/worksheets/sheet1.xml": sheetXml(hugeSheet) }),
   workbookUtf16: pack({ "xl/workbook.xml": Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(workbookXml([["W", 1, null]]), "utf16le"), Buffer.from([0x41])]), "xl/worksheets/sheet1.xml": Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), bytes(sheetXml('<row r="1"><c r="A1"><v>\ufeffbom</v></c></row>'))]) }),
   workbookBadMember: zip([{ name: "xl/workbook.xml", data: workbookXml([["S", 1, null]]) }, { name: "xl/worksheets/sheet1.xml", data: "x", stored: raw("\xff\xff\xff"), patch: {} }]),
@@ -251,7 +257,7 @@ export const zipNameCases = [
 export const entityCases = [
   "no references", "&amp;&lt;&gt;&quot;&apos;", "&nbsp;|&ensp;|&emsp;|&thinsp;|&shy;|", "&mdash;&ndash;&minus;&hellip;&alpha;&Omega;&szlig;&ae;", "&#65;&#x41;&#X41;&#x1F600;&#128512;",
   "&#0;&#x0;&#xD800;&#xDFFF;&#x110000;&#1114111;&#99999999999999999999;&#x;&#;", "&unknown;&AMP;&amp&amp ;&a;&ab;&constructor;&toString;&__proto__;", "&#x" + many(400, "F") + ";&#" + many(400, "9") + ";",
-  "&amp;amp;&#38;lt;", "a & b &; &#abc; &#x12g;", "&" + many(32, "a") + ";&" + many(33, "a") + ";", "&#000065;&#x000041;&#0x41;&#-1;&#+1;&# 1;",
+  "&amp;amp;&#38;lt;", "a & b &; &#abc; &#x12g;", `&#${many(5000, "0")}65;&#x${many(5000, "0")}41;&#${many(20000, "0")}66;&#${many(5000, "0")};&#${many(4299, "0")}67;&#${many(4300, "0")}68;&#1${many(5000, "0")};`, "&" + many(32, "a") + ";&" + many(33, "a") + ";", "&#000065;&#x000041;&#0x41;&#-1;&#+1;&# 1;",
 ];
 const TABLE = '<table><thead><tr><th>Model</th><th colspan="2">Score</th></tr></thead><tbody><tr><td>a</td><td>0.5</td><td>0.6</td></tr><tr><td>b<td>0.7<td>0.8</tbody></table>';
 export const scanCases = [
@@ -306,7 +312,8 @@ export const sheetCases = [
   ['<row r="1"><c r="A1"><v>1</v><v>2</v></c><c r="B1"><v>open</c><c r="C1"><is><t>a</t><x>ignored</x><t>b</t></is></c><c r="D1"><is><t>unclosed</c><c r="E1"><v/></c><c r="F1"/></row>', STRINGS],
   ['<row r="1"><c r="A1"><v>first</v></c><c r="A1"><v>second</v></c></row><c r="B3"><v>cell sets row</v></c><c><v>after</v></c>', STRINGS], ['<v>no cell</v><is><t>no cell either</t></is>', STRINGS],
   ['<row r="1"><c r="A1"><v>a&amp;b</v></c><c r="B1"><v><![CDATA[c<d]]></v></c><c r="C1"><v>e\r\nf</v></c><c r="D1"><f>SUM(A1)</f><v>3</v></c><t>stray</t></row>', STRINGS],
-  ['<row r="999999999999999999999999"><c><v>1</v></c></row>', STRINGS], ['<x:row R="2"><x:c R="b2" T="s"><x:v>0</x:v></x:c></x:row>', STRINGS],
+  ['<row r="999999999999999999999999"><c><v>1</v></c></row>', STRINGS],
+  [`<row r="${PADDING}3"><c t="s"><v>${PADDING}1</v></c><c t="s"><v>${PADDING}</v></c><c t="s"><v>-${PADDING}</v></c><c t="s"><v>${PADDING}9</v></c></row><row r="${PADDING}"><c><v>after a row numbered nothing</v></c></row>`, STRINGS], ['<x:row R="2"><x:c R="b2" T="s"><x:v>0</x:v></x:c></x:row>', STRINGS],
 ];
 export const partCases = [
   {}, { "xl/workbook.xml": workbookXml([]) }, { "xl/workbook.xml": workbookXml([["A", 1, "r1"], ["B", 2, "r2"], ["", 3, ""]]), "xl/_rels/workbook.xml.rels": relsXml([["r1", "/abs.xml"], ["r2", "rel.xml"], ["", "x"], ["r3", ""]]) },
@@ -331,6 +338,7 @@ export const gridCases = [
   ["html-table-grid@1", grid([[cell("td", "wide", ' colspan="2"'), cell("td", "tall", ' rowspan="2"')], plain(["x", "y"]), plain(["p", "q", "r", "s"])])],
   ["html-table-grid@1", grid([[cell("td", "a", " colspan=2 rowspan='3'"), cell("td", "b", ' COLSPAN = "2"'), cell("td", "c", ' xcolspan="9" data-rowspan="9"')], plain(["d"]), plain(["e"]), plain(["f"])])],
   ["html-table-grid@1", grid([[cell("td", "a", ' colspan="0"'), cell("td", "b", ' colspan="-2"'), cell("td", "c", ' rowspan="1.9"'), cell("td", "d", ' rowspan="x"'), cell("td", "e", ' colspan="1001"'), cell("td", "f", ' colspan=" 3 "'), cell("td", "g", ' colspan=""'), cell("td", "h", ' colspan="' + many(400, "9") + '"')]])],
+  ["html-table-grid@1", grid([[cell("td", "a", ` colspan="${PADDING}2"`), cell("td", "b", ` rowspan="${many(20000, "0")}2"`), cell("td", "c", ` colspan="${PADDING}"`)], plain(["d", "e", "f", "g"]), plain(["h", "i", "j", "k"])])],
   ["html-table-grid@1", "<table><td>no row</td><td>same row</td><tr><td>r2</td></tr><th>after close</th></table>"], ["html-table-grid@1", "<td>outside any table</td><tr><td>x</td></tr><thead></thead>"],
   ["html-table-grid@1", grid([[cell("td", "outer " + grid([plain(["in1", "in2"])]) + " tail")], plain(["next"])])], ["html-table-grid@1", "<table><tr><td>a<td>b<tr><td>c</table><table><tr><td>second</td></tr></table>"],
   ["html-table-grid@1", "<table><thead><tr><td>h</td></tr><tbody><tr><td>b</td></tr><tfoot><tr><td>f</td></tr></table>"], ["html-table-grid@1", "<table><tbody><tr><td>b</td></tr></tbody><thead><tr><td>late head</td></tr></thead></table>"],
@@ -385,7 +393,11 @@ export const objects = {
   gzText: gz("inside gzip\n"), gzNamed: gzipWith({ name: "inner.html" }, "<html><body><p>named member</p></body></html>"), gzBroken: gz("hello").subarray(0, 12), gz3: nested(3, bytes("three deep\n")), gz4: nested(4, bytes("four deep\n")),
   tarGz: gz(tar([{ name: "a.txt", data: "alpha\n" }, { name: "b.pdf", data: "%PDF-1.4\n" }, { name: "c.png", data: raw("\x89PNG") }, { name: "d.html", data: HTML_PAGE }, { name: "e.bin", data: raw("\xfe\xff\0a\0") }])),
   zipPlain: pack({ "one.txt": "one\n", "two/three.xml": JATS, "empty.txt": "", "inner.zip": pack({ "deep.txt": "deep\n" }) }), zipEmpty: zip([]), zipOdd: pack({ "ok.txt": "ok\n", "bad.txt": raw("\xfe\xff\0a\0") }),
-  zipSame: pack({ "b.txt": "same\n", "a.txt": "same\n", "c.txt": "same\n" }), ...packages,
+  zipSame: pack({ "b.txt": "same\n", "a.txt": "same\n", "c.txt": "same\n" }),
+  // Members whose paths JavaScript orders by UTF-16 unit: a character beyond U+FFFF is written
+  // as two units from U+D800 on, so it sorts before U+E000 and U+FFFF, which follow it by number.
+  zipOrder: pack({ "\ue000.txt": "same\n", "\ud83d\ude00.txt": "same\n", "\uffff.txt": "same\n", "z.txt": "same\n", "\ud83d\ude00.png": raw("\x89PNG"), "\ue000.png": raw("\x89PNG"), "\uffff.png": raw("\x89PNG") }),
+  ...packages,
 };
 export const treeCases = [
   ...Object.keys(objects).map((name) => [name, null, {}]), ["text", "text/html", {}], ["text", "text/csv; charset=utf-8", {}], ["xmlNoTable", "text/html", {}], ["gzText", "text/html", {}],
@@ -413,12 +425,18 @@ export const objectCases = [
 ];
 export const buildCases = [
   { names: ["text", "html", "jats", "zipPlain", "zipSame", "tarGz", "png", "wideOdd", "controlPage", "plainWorkbook", "plainDocument", "gzText"], missing: ["html", "png"] },
-  { names: ["zipSame", "text", "crlf"], missing: [] }, { names: [], missing: [] },
+  { names: ["zipSame", "text", "crlf"], missing: [] }, { names: [], missing: [] }, { names: ["zipOrder", "workbookValueOutsideCell", "workbookWidest"], missing: [] },
 ];
+/** Lines of the unsupported file that only the path or only the reason orders, by UTF-16 unit. */
+const NOWHERE = many(64, "0");
+export const problemCases = ["\ue000", "\ud83d\ude00", "\uffff", "z", null].flatMap((container_path) =>
+  ["\uffff reason", "\ud83d\ude00 reason", "\ue000 reason", "a reason"].map((reason) => ({ object_sha256: NOWHERE, container_path, reason })),
+);
 /** A scratch tree for the commands: the manifest shards and the object cache. */
 export const commandTrees = [
   { name: "whole", names: ["text", "html", "jats", "zipPlain", "png", "plainWorkbook", "gzText", "empty"], cached: ["text", "html", "jats", "zipPlain", "png", "plainWorkbook", "gzText", "empty"] },
   { name: "partial", names: ["text", "html", "wideOdd"], cached: ["text", "wideOdd"] }, { name: "bare", names: [], cached: [] },
+  { name: "edges", names: ["zipOrder", "workbookValueOutsideCell", "workbookRowOfNoCell", "workbookWidest", "workbookPaddedNumbers"], cached: ["zipOrder", "workbookValueOutsideCell", "workbookRowOfNoCell", "workbookWidest", "workbookPaddedNumbers"] },
 ];
 export const cachedObject = (name) => ({ key: sha256(objects[name]), gz: gz(objects[name]).toString("hex") });
 export const objectHex = Object.fromEntries(Object.entries(objects).map(([name, data]) => [name, data.toString("hex")]));

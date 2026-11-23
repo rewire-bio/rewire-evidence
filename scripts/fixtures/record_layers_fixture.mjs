@@ -289,6 +289,7 @@ const recorded = {
   sanity: cases.sanityCases.map(([metrics, normaliser]) => [metrics, normaliser, sanity.sanityOf(metrics, normaliser), sanity.ratiosOf(metrics), sanity.usable(sanity.sanityOf(metrics, normaliser).verdict)]),
   rows: cases.objectCases.map(([name, patch]) => objectOf(name, patch)),
   builds: cases.buildCases.map(buildOf),
+  unsupported_order: [cases.problemCases, registry.serialiseUnsupported(cases.problemCases)],
   commands: cases.commandTrees.map(commandsOf),
 };
 
