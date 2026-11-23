@@ -12,6 +12,7 @@ import gzip
 import hashlib
 import json
 import re
+from collections import Counter
 from pathlib import Path
 from typing import Any
 
@@ -28,6 +29,7 @@ TREE: dict[str, Any] = next(tree for tree in LAYERS["commands"] if tree["name"] 
 WRITTEN: dict[str, str] = TREE["runs"][1][0]["written"]
 NAMES = ("text", "html", "jats", "zipPlain", "png", "plainWorkbook", "gzText", "empty")
 PDFTOTEXT = "pdftotext version 26.08.0"
+PDFINFO = "pdfinfo version 26.08.0"
 SHARDS = "0123456789abcdef"
 
 
@@ -53,6 +55,7 @@ class Checkouts:
         self.registry = WRITTEN[registry.REGISTRY_FILE]
         self.unsupported = WRITTEN[registry.UNSUPPORTED_FILE]
         self.pdftotext = PDFTOTEXT
+        self.pdfinfo = PDFINFO
         self.stale = ["visibility"]
         self.held = set(NAMES)
 
@@ -68,7 +71,7 @@ class Checkouts:
 
     def write(self) -> None:
         then = self.manifest(self.layers_root, self.then)
-        self.manifest(self.root, self.now)
+        now = self.manifest(self.root, self.now)
         for file, text in (
             (registry.REGISTRY_FILE, self.registry),
             (registry.UNSUPPORTED_FILE, self.unsupported),
@@ -79,15 +82,27 @@ class Checkouts:
             held = self.objects / key_of(name)[:2] / f"{key_of(name)}.gz"
             held.parent.mkdir(parents=True, exist_ok=True)
             held.write_bytes(gzip.compress(OBJECTS[name]))
-        self.expected.write_text(json.dumps(self.expectation(digest(then))), encoding="utf-8")
+        self.expected.write_text(json.dumps(self.expectation(digest(then), digest(now))), encoding="utf-8")
 
-    def expectation(self, manifest: str) -> dict[str, Any]:
+    def expectation(self, then: str, now: str) -> dict[str, Any]:
+        """What a careful recording of these two checkouts states, sizes and all."""
+        public = {key for key, row in self.now.items() if row["mirrors"] == ["github-release"]}
+        rows = [json.loads(line) for line in self.registry.splitlines()]
+        reasons = [json.loads(line) for line in self.unsupported.splitlines()]
         return {
             "recorded_from": {"store_ref": "a" * 40, "layers_ref": "b" * 40},
-            "registry": {"sha256": digest(self.registry.encode("utf-8"))},
-            "unsupported": {"sha256": digest(self.unsupported.encode("utf-8"))},
-            "manifest": {"sha256": manifest},
+            "registry": {"lines": len(rows), "sha256": digest(self.registry.encode("utf-8"))},
+            "unsupported": {"lines": len(reasons), "sha256": digest(self.unsupported.encode("utf-8"))},
+            "manifest": {"rows": len(self.then), "sha256": then},
+            "pinned_manifest": {"rows": len(self.now), "sha256": now},
+            "public": {
+                "objects": len(public),
+                "rows": sum(1 for row in rows if row["object_sha256"] in public),
+                "unsupported": sum(1 for row in reasons if row["object_sha256"] in public),
+            },
             "pdftotext": PDFTOTEXT,
+            "pdfinfo": PDFINFO,
+            "normalisers": dict(Counter(row["normaliser"] for row in rows)),
             "stale_members": self.stale,
         }
 
@@ -113,6 +128,7 @@ class Checkouts:
 def checkouts(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Checkouts:
     held = Checkouts(tmp_path)
     monkeypatch.setattr(layerparity, "pdftotext_version", lambda: held.pdftotext)
+    monkeypatch.setattr(layerparity, "pdfinfo_version", lambda: held.pdfinfo)
     monkeypatch.setattr(pdftext, "has_pdftotext", lambda: False)
     return held
 
@@ -161,7 +177,8 @@ def test_every_object_held_gives_the_committed_lines_and_the_files_whole(
         [],
     )
     assert measured["pdf_rows"] == {"made": 0, "expected": 0, "same": 0}
-    assert measured["pdftotext"] == PDFTOTEXT
+    assert (measured["pdftotext"], measured["pdfinfo"]) == (PDFTOTEXT, PDFINFO)
+    assert f"  {PDFTOTEXT}, {PDFINFO}\n" in said.out
 
 
 def test_a_restricted_object_that_is_not_held_is_counted_and_not_checked(
@@ -196,18 +213,21 @@ def test_a_public_object_that_is_missing_or_is_not_its_key_fails_the_gate(
     wrong = checkouts.objects / key_of("text")[:2] / f"{key_of('text')}.gz"
     wrong.write_bytes(gzip.compress(b"other bytes"))
     found = checkouts.verify()
-    assert found.problems == [
-        f"{wrong} differs from its listed SHA-256",
-        f"{key_of('html')} is mirrored by a public release and is not in {checkouts.objects}",
-    ] or sorted(found.problems) == sorted(
+    assert sorted(found.problems[:2]) == sorted(
         [
             f"{wrong} differs from its listed SHA-256",
             f"{key_of('html')} is mirrored by a public release and is not in {checkouts.objects}",
         ]
     )
+    assert found.problems[2:] == [
+        (
+            "8 registry rows are reproduced and the public objects give 11, "
+            "so fewer were checked than a run has to check"
+        )
+    ]
     assert found.whole_files is None
     assert checkouts.gate() == 1
-    assert "2 problems. 8 of 11 registry rows are reproduced." in capsys.readouterr().err
+    assert "3 problems. 8 of 11 registry rows are reproduced." in capsys.readouterr().err
 
 
 def test_a_line_that_differs_is_named_with_its_object(
@@ -218,7 +238,7 @@ def test_a_line_that_differs_is_named_with_its_object(
     checkouts.unsupported = checkouts.unsupported.replace("raster image, no text layer", "a raster image")
     checkouts.write()
     found = checkouts.verify()
-    assert len(found.problems) == 5
+    assert len(found.problems) == 6
     assert found.problems[0].startswith(
         f"{key_of('png')}: a unsupported line is made that the committed unsupported"
     )
@@ -229,12 +249,19 @@ def test_a_line_that_differs_is_named_with_its_object(
     assert any(
         problem.startswith(f"{key}: a committed registry line is not made") for problem in found.problems
     )
-    assert found.problems[-1] == "the two files, written whole from every object, are not the committed files"
+    # The restricted object is held here, so the unsupported rows reproduced still number the public ones.
+    assert found.problems[-2:] == [
+        "the two files, written whole from every object, are not the committed files",
+        (
+            "10 registry rows are reproduced and the public objects give 11, "
+            "so fewer were checked than a run has to check"
+        ),
+    ]
     assert found.whole_files is False
     assert checkouts.gate() == 1
     said = capsys.readouterr()
     assert "both files written whole from every object: NOT the committed files" in said.out
-    assert "5 problems. 10 of 11 registry rows are reproduced." in said.err
+    assert "6 problems. 10 of 11 registry rows are reproduced." in said.err
 
 
 def test_the_committed_files_are_held_to_the_digests_and_to_their_own_order(checkouts: Checkouts) -> None:
@@ -274,6 +301,21 @@ def test_no_layer_is_derived_under_another_pdftotext(
 
     monkeypatch.setattr(layerparity, "pdftotext_version", missing)
     assert checkouts.verify().pdftotext == "spawnSync pdftotext ENOENT"
+    assert checkouts.gate() == 1
+
+
+def test_no_layer_is_derived_beside_another_pdfinfo(checkouts: Checkouts) -> None:
+    # The pages a row states are pdfinfo's, so the pinned pdftotext beside another pdfinfo is refused.
+    checkouts.pdfinfo = "pdfinfo version 24.02.0"
+    checkouts.write()
+    found = checkouts.verify()
+    assert found.problems == [
+        (
+            "pdfinfo names itself as 'pdfinfo version 24.02.0' and the registry was written by "
+            "'pdfinfo version 26.08.0', so no page count could agree"
+        )
+    ]
+    assert (found.pdftotext, found.objects["checked"]) == (PDFTOTEXT, 0)
     assert checkouts.gate() == 1
 
 
@@ -347,6 +389,124 @@ def test_a_run_that_cannot_be_made_is_not_a_disagreement(
     assert capsys.readouterr().err.startswith("Cannot verify: ")
 
 
+def test_a_thinner_checkout_cannot_pass_by_holding_fewer_public_objects(
+    checkouts: Checkouts, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # One object stops being mirrored in a copy of the pinned manifest, and its bytes are not held.
+    checkouts.write()
+    stated = json.loads(checkouts.expected.read_text("utf-8"))
+    checkouts.now[key_of("html")] = {**checkouts.now[key_of("html")], "mirrors": []}
+    checkouts.held -= {"html"}
+    (checkouts.objects / key_of("html")[:2] / f"{key_of('html')}.gz").unlink()
+    now = checkouts.manifest(checkouts.root, checkouts.now)
+    with pytest.raises(StoreError, match=r"is not the pinned one, which the expectation holds by the digest"):
+        checkouts.verify()
+    assert checkouts.gate() == 2
+    assert capsys.readouterr().err.startswith("Cannot verify: ")
+
+    # With the digest restated and nothing else, every size the run fell short of is named.
+    stated["pinned_manifest"]["sha256"] = digest(now)
+    checkouts.expected.write_text(json.dumps(stated), encoding="utf-8")
+    found = checkouts.verify()
+    assert found.problems == [
+        "objects a public release mirrors: 6 and the expectation states 7",
+        (
+            "9 registry rows are reproduced and the public objects give 11, "
+            "so fewer were checked than a run has to check"
+        ),
+    ]
+    assert checkouts.gate() == 1
+
+
+def test_the_sizes_the_expectation_states_are_each_held(checkouts: Checkouts) -> None:
+    checkouts.write()
+    stated = json.loads(checkouts.expected.read_text("utf-8"))
+    stated["registry"]["lines"] += 1
+    stated["unsupported"]["lines"] -= 1
+    stated["manifest"]["rows"] = 9
+    stated["pinned_manifest"]["rows"] = 7
+    stated["normalisers"]["text-utf8@1"] = 5
+    stated["public"] = {"objects": 7, "rows": 11}
+    checkouts.expected.write_text(json.dumps(stated), encoding="utf-8")
+    assert checkouts.verify().problems == [
+        f"{registry.REGISTRY_FILE} holds 11 lines and the expectation states 12",
+        f"{registry.UNSUPPORTED_FILE} holds 3 lines and the expectation states 2",
+        "the manifest the registry was written from holds 8 and the expectation states 9",
+        "the pinned manifest holds 8 and the expectation states 7",
+        (
+            "the registry holds {'europepmc-fulltext-xml@1': 2, 'html-table-grid@1': 1, 'html-text@1': 1, "
+            "'jats-table-grid@1': 2, 'ooxml-sheet-tsv@1': 1, 'text-utf8@1': 4} rows by normaliser and the "
+            f"expectation states {stated['normalisers']}"
+        ),
+        (
+            "3 unsupported rows are reproduced and the public objects give None, "
+            "so fewer were checked than a run has to check"
+        ),
+    ]
+    del stated["public"]
+    checkouts.expected.write_text(json.dumps(stated), encoding="utf-8")
+    with pytest.raises(StoreError, match="the expectation does not state public"):
+        checkouts.verify()
+
+
+def test_a_last_line_that_no_newline_ends_is_read_and_is_a_problem(
+    checkouts: Checkouts, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # The row of the one restricted object goes last with no newline, and the digest is restated.
+    lines = checkouts.unsupported.splitlines()
+    (restricted,) = [line for line in lines if json.loads(line)["object_sha256"] == key_of("empty")]
+    lines.remove(restricted)
+    checkouts.unsupported = "".join(f"{line}\n" for line in lines) + restricted
+    checkouts.held -= {"empty"}
+    checkouts.write()
+    found = checkouts.verify()
+    assert found.problems == [
+        f"{registry.UNSUPPORTED_FILE} ends in a line that no newline ends",
+        f"{registry.UNSUPPORTED_FILE}, written again from its own rows, is not the committed file",
+    ]
+    # The line is read: all three are counted, and the one not held is counted as not checked.
+    assert found.written[registry.UNSUPPORTED_FILE].row() == {"made": 3, "expected": 3, "same": 3}
+    assert found.not_checked[layerparity.UNSUPPORTED] == 1
+    assert checkouts.gate() == 1
+    assert "2 problems." in capsys.readouterr().err
+
+
+@pytest.mark.parametrize(
+    ("file", "line", "refusal"),
+    [
+        (registry.REGISTRY_FILE, "{}", r"registry\.jsonl line 12: "),
+        (registry.REGISTRY_FILE, "normaliser", r"registry\.jsonl line 1: "),
+        (registry.REGISTRY_FILE, "container_path", r"registry\.jsonl line 1: "),
+        (registry.REGISTRY_FILE, "extra", r"registry\.jsonl line 1: "),
+        (registry.UNSUPPORTED_FILE, "{}", r"unsupported\.jsonl line 4: "),
+        (registry.UNSUPPORTED_FILE, "[1]", r"unsupported\.jsonl line 4 is not a JSON object"),
+        (registry.UNSUPPORTED_FILE, "reason", r"unsupported\.jsonl line 1: "),
+    ],
+)
+def test_a_committed_row_that_is_not_one_is_named_with_its_line(
+    checkouts: Checkouts, capsys: pytest.CaptureFixture[str], file: str, line: str, refusal: str
+) -> None:
+    checkouts.write()
+    path = checkouts.root / file
+    lines = path.read_text("utf-8").splitlines()
+    if line.startswith(("{", "[")):
+        lines.append(line)
+    else:
+        first = json.loads(lines[0])
+        if line == "extra":
+            first["extra"] = 1
+        elif line == "container_path":
+            first["container_path"] = 7
+        else:
+            del first[line]
+        lines[0] = canonical_line(first)
+    path.write_text("".join(f"{one}\n" for one in lines), encoding="utf-8")
+    with pytest.raises(StoreError, match=refusal):
+        checkouts.verify()
+    assert checkouts.gate() == 2
+    assert capsys.readouterr().err.startswith("Cannot verify: ")
+
+
 # ---------------------------------------------------------------------------------------
 # The expectation, and what the workflow pins of it.
 
@@ -365,6 +525,7 @@ def test_the_workflow_pins_the_commits_the_pdftotext_and_every_count_the_gate_ca
     assert (source["store_ref"], source["layers_ref"]) == (pin("STORE_REF"), pin("LAYERS_REF"))
     assert source["store_ref"] != source["layers_ref"]
     assert EXPECTED["pdftotext"] == f"pdftotext version {pin('POPPLER')}"
+    assert EXPECTED["pdfinfo"] == f"pdfinfo version {pin('POPPLER')}"
     assert EXPECTED["stale_members"] == ["store"]
 
     # What is checked and what is not add up to what is committed, and to the manifest.
@@ -377,6 +538,14 @@ def test_the_workflow_pins_the_commits_the_pdftotext_and_every_count_the_gate_ca
         == EXPECTED["manifest"]["rows"]
         == 1167
     )
+    # The gate holds itself to the same sizes, so a run of the script alone cannot check less.
+    assert EXPECTED["pinned_manifest"]["rows"] == EXPECTED["manifest"]["rows"]
+    assert EXPECTED["pinned_manifest"]["sha256"] != EXPECTED["manifest"]["sha256"]
+    assert EXPECTED["public"] == {
+        "objects": int(pin("LAYER_OBJECTS")),
+        "rows": rows,
+        "unsupported": int(pin("LAYER_UNSUPPORTED")),
+    }
     by_normaliser = {
         "text-utf8@1": "LAYER_TEXT_ROWS",
         "europepmc-fulltext-xml@1": "LAYER_XML_ROWS",
@@ -405,3 +574,9 @@ def test_the_workflow_pins_the_commits_the_pdftotext_and_every_count_the_gate_ca
     layers_job = WORKFLOW[WORKFLOW.index("\n  layers:\n") :]
     assert "runs-on: macos-15\n" in layers_job
     assert "scripts/fetch_public_objects.py store objects" in layers_job
+    # The build is cached on the sources and on the recipe, and both programs are held to the release.
+    assert "-${{ hashFiles('scripts/build_poppler.sh') }}\n" in layers_job
+    assert 'bash scripts/build_poppler.sh "$HOME/poppler"' in layers_job
+    assert "for program in pdftotext pdfinfo; do" in layers_job
+    recipe = (ROOT / "scripts/build_poppler.sh").read_text("utf-8")
+    assert all(f'"${{{name}}}  ' in recipe for name in ("POPPLER_SHA256", "POPPLER_DATA_SHA256"))

@@ -732,8 +732,15 @@ jobs:
   # the poppler-data files beside it. The runner is macOS on Apple silicon because that is
   # where the registry was written: the same source built on Linux, for x86-64 or for arm64,
   # with gcc or with clang, was measured writing other bytes for 9 or 10 of the 110 public
-  # PDFs that are stored as they are. docs/stages/p10.md has the measurement. The libraries
-  # the build links against are Homebrew's as the runner has them, which nothing here pins.
+  # PDFs that are stored as they are. docs/stages/p10.md has the measurement.
+  #
+  # What is pinned of the build is the two source archives, by digest, and the recipe in
+  # scripts/build_poppler.sh, whose digest is in the cache key so that a changed flag builds
+  # again. What is not pinned is the runner image and the Homebrew libraries the build links
+  # against and loads on each run. A version line cannot prove the bytes a build writes, so
+  # the proof is the gate itself: every PDF row of a public object derived again and required
+  # whole, with the page count pdfinfo gives. The job writes the image and the library
+  # versions into its summary, so a row that stops reproducing can be set against them.
   layers:
     runs-on: macos-15
     timeout-minutes: 40
@@ -808,36 +815,30 @@ jobs:
         id: poppler
         with:
           path: ~/poppler
-          key: poppler-${{ runner.os }}-${{ runner.arch }}-${{ env.POPPLER_SHA256 }}-${{ env.POPPLER_DATA_SHA256 }}
+          key: poppler-${{ runner.os }}-${{ runner.arch }}-${{ env.POPPLER_SHA256 }}-${{ env.POPPLER_DATA_SHA256 }}-${{ hashFiles('scripts/build_poppler.sh') }}
       - name: Build the pdftotext the registry names
         if: steps.poppler.outputs.cache-hit != 'true'
-        run: |
-          set -euo pipefail
-          curl -sSLO "https://poppler.freedesktop.org/poppler-${POPPLER}.tar.xz"
-          curl -sSLO "https://poppler.freedesktop.org/poppler-data-${POPPLER_DATA}.tar.gz"
-          echo "${POPPLER_SHA256}  poppler-${POPPLER}.tar.xz" | shasum -a 256 -c -
-          echo "${POPPLER_DATA_SHA256}  poppler-data-${POPPLER_DATA}.tar.gz" | shasum -a 256 -c -
-          tar xf "poppler-${POPPLER}.tar.xz"
-          tar xf "poppler-data-${POPPLER_DATA}.tar.gz"
-          cmake -S "poppler-${POPPLER}" -B poppler-build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$HOME/poppler" \
-            -DENABLE_BOOST=OFF -DENABLE_QT5=OFF -DENABLE_QT6=OFF -DENABLE_GLIB=OFF -DENABLE_CPP=OFF \
-            -DENABLE_NSS3=OFF -DENABLE_GPGME=OFF -DENABLE_LIBCURL=OFF -DENABLE_GTK_DOC=OFF \
-            -DBUILD_GTK_TESTS=OFF -DBUILD_QT5_TESTS=OFF -DBUILD_QT6_TESTS=OFF -DBUILD_CPP_TESTS=OFF \
-            -DBUILD_MANUAL_TESTS=OFF -DENABLE_LIBTIFF=ON -DENABLE_DCTDECODER=libjpeg \
-            -DENABLE_LIBOPENJPEG=openjpeg2 -DENABLE_LCMS=ON
-          cmake --build poppler-build -j4
-          cmake --install poppler-build
-          make -C "poppler-data-${POPPLER_DATA}" install prefix="$HOME/poppler"
-      - name: The pdftotext on the path is that build
+        run: bash scripts/build_poppler.sh "$HOME/poppler"
+      - name: The pdftotext and the pdfinfo on the path are that build
         run: |
           echo "$HOME/poppler/bin" >> "$GITHUB_PATH"
           echo "DYLD_LIBRARY_PATH=$HOME/poppler/lib" >> "$GITHUB_ENV"
-          named=$(DYLD_LIBRARY_PATH="$HOME/poppler/lib" "$HOME/poppler/bin/pdftotext" -v 2>&1 | head -1)
-          expected=$(jq -r .pdftotext scripts/expected/store-layers.json)
-          if [ "$named" != "$expected" ] || [ "$expected" != "pdftotext version ${POPPLER}" ]; then
-            echo "::error::pdftotext names itself as '${named}', the expectation states '${expected}' and the workflow builds ${POPPLER}."
-            exit 1
-          fi
+          for program in pdftotext pdfinfo; do
+            named=$(DYLD_LIBRARY_PATH="$HOME/poppler/lib" "$HOME/poppler/bin/${program}" -v 2>&1 | head -1)
+            expected=$(jq -r ".${program}" scripts/expected/store-layers.json)
+            if [ "$named" != "$expected" ] || [ "$expected" != "${program} version ${POPPLER}" ]; then
+              echo "::error::${program} names itself as '${named}', the expectation states '${expected}' and the workflow builds ${POPPLER}."
+              exit 1
+            fi
+          done
+          {
+            echo "## What the PDF rows were derived with"
+            echo
+            echo '```'
+            echo "runner image ${ImageOS:-unknown} ${ImageVersion:-unknown}, poppler cache hit: ${{ steps.poppler.outputs.cache-hit || 'false' }}"
+            brew list --versions freetype fontconfig jpeg-turbo libpng libtiff openjpeg little-cms2 || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       # About 670 MB the first time and nothing after it, until the manifest changes.
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6

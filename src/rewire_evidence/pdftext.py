@@ -35,7 +35,7 @@ PAGES_TIMEOUT: Final = 120
 #: Bytes pdftotext may write.
 MAX_OUTPUT: Final = 64 * 1024 * 1024
 
-_VERSION: Final = re.compile(rf"pdftotext version[{SPACE_CLASS}]+[^{SPACE_CLASS}]")
+PDFINFO: Final = "pdfinfo"
 _LINE_END: Final = re.compile(r"\r?\n")
 _TERMINATOR: Final = r"\n\r\u2028\u2029"
 #: `/^Pages:\s+(\d+)$/m`, whose lines end at any of JavaScript's four line terminators.
@@ -64,13 +64,33 @@ def has_pdftotext() -> bool:
     return True
 
 
+def _version_line(program: str) -> str | None:
+    """The line a poppler program names its version in, or `None` when it prints none or fails."""
+    asked = _run([program, "-v"], None, TIMEOUT)
+    printed = (asked.stdout + asked.stderr).decode("utf-8", "replace")
+    names = re.compile(rf"{program} version[{SPACE_CLASS}]+[^{SPACE_CLASS}]")
+    line = next((line for line in _LINE_END.split(printed) if names.match(line)), None)
+    return None if asked.returncode != 0 else line
+
+
 def pdftotext_version() -> str:
     """The line pdftotext names its version in. Raises `LayerFailure` when it prints none."""
-    asked = _run([PDFTOTEXT, "-v"], None, TIMEOUT)
-    printed = (asked.stdout + asked.stderr).decode("utf-8", "replace")
-    line = next((line for line in _LINE_END.split(printed) if _VERSION.match(line)), None)
-    if asked.returncode != 0 or line is None:
+    line = _version_line(PDFTOTEXT)
+    if line is None:
         raise LayerFailure("Could not identify the pdftotext version used for extraction")
+    return line
+
+
+def pdfinfo_version() -> str:
+    """The line pdfinfo names its version in. Raises `LayerFailure` when it prints none.
+
+    The TypeScript does not ask. The layer gate does, because pdfinfo counts the pages a
+    registry row states, and a pdfinfo of another release beside the pinned pdftotext would
+    be one more thing a row depends on that nothing names.
+    """
+    line = _version_line(PDFINFO)
+    if line is None:
+        raise LayerFailure("Could not identify the pdfinfo version")
     return line
 
 
@@ -106,7 +126,7 @@ def pdf_page_count(data: bytes) -> int | None:
         file = Path(folder) / "object.pdf"
         file.write_bytes(data)
         try:
-            report = _run(["pdfinfo", str(file)], None, PAGES_TIMEOUT)
+            report = _run([PDFINFO, str(file)], None, PAGES_TIMEOUT)
         except LayerFailure:
             return None
     if report.returncode != 0:

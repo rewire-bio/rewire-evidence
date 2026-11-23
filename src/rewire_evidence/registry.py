@@ -82,6 +82,15 @@ LAYER_RECORD: Final = zod.strict(
     }
 )
 
+#: One object or member that gave no layer, with the reason the derivation gave.
+UNSUPPORTED_RECORD: Final = zod.strict(
+    {
+        "object_sha256": _HEX64,
+        "container_path": zod.nullable(zod.text()),
+        "reason": zod.NONEMPTY,
+    }
+)
+
 
 def registry_path(root: Path) -> Path:
     """The registry file of a checkout."""

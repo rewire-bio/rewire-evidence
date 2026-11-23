@@ -289,7 +289,9 @@ def workbook(sheet: str) -> bytes:
     """A workbook of one sheet, whose rows are the ones given."""
     held = io.BytesIO()
     with zipfile.ZipFile(held, "w", zipfile.ZIP_DEFLATED) as package:
-        package.writestr("xl/workbook.xml", '<workbook><sheets><sheet name="S" sheetId="1"/></sheets></workbook>')
+        package.writestr(
+            "xl/workbook.xml", '<workbook><sheets><sheet name="S" sheetId="1"/></sheets></workbook>'
+        )
         package.writestr("xl/worksheets/sheet1.xml", f"<worksheet><sheetData>{sheet}</sheetData></worksheet>")
     return held.getvalue()
 
@@ -479,14 +481,17 @@ def test_the_two_files_are_ordered_by_utf16_unit_in_the_path_and_in_the_reason()
     astral, private = "\U0001f600", "\ue000"
     paths = [private, None, astral, "z"]
     ordered = [None, "z", astral, private]
-    records = [{"layer_sha256": "a" * 64, "object_sha256": "b" * 64, "container_path": path} for path in paths]
+    records = [
+        {"layer_sha256": "a" * 64, "object_sha256": "b" * 64, "container_path": path} for path in paths
+    ]
     written = registry.serialise_registry(records).splitlines()
     assert [json.loads(line)["container_path"] for line in written] == ordered
     problems = [{"object_sha256": "b" * 64, "container_path": path, "reason": "r"} for path in paths]
     written = registry.serialise_unsupported(problems).splitlines()
     assert [json.loads(line)["container_path"] for line in written] == ordered
     problems = [
-        {"object_sha256": "b" * 64, "container_path": None, "reason": reason} for reason in (private, astral, "z")
+        {"object_sha256": "b" * 64, "container_path": None, "reason": reason}
+        for reason in (private, astral, "z")
     ]
     written = registry.serialise_unsupported(problems).splitlines()
     assert [json.loads(line)["reason"] for line in written] == ["z", astral, private]
@@ -560,6 +565,14 @@ case "$MODE" in
 esac
 """
 PDFINFO = """#!/bin/sh
+if [ "$1" = "-v" ]; then
+  case "$MODE" in
+    unnamed) echo "pdftotext version 9.99.0" >&2; exit 0 ;;
+  esac
+  echo "pdfinfo version 9.99.0" >&2
+  echo "Copyright nobody" >&2
+  exit 0
+fi
 case "$MODE" in
   no-pages) echo "Title: Pages: 9" ;;
   unreadable) echo "Pages: 3"; exit 1 ;;
@@ -672,6 +685,19 @@ def test_pages_are_unknown_when_pdfinfo_cannot_say(programs: Path, monkeypatch: 
     assert pdftext.pdf_page_count(b"%PDF-") is None
     (programs / "pdfinfo").unlink()
     assert pdftext.pdf_page_count(b"%PDF-") is None
+
+
+def test_pdfinfo_names_its_version_or_is_not_identified(
+    programs: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    assert pdftext.pdfinfo_version() == "pdfinfo version 9.99.0"
+    # Another program's line is not pdfinfo's.
+    monkeypatch.setenv("MODE", "unnamed")
+    with pytest.raises(LayerFailure, match=r"^Could not identify the pdfinfo version$"):
+        pdftext.pdfinfo_version()
+    (programs / "pdfinfo").unlink()
+    with pytest.raises(LayerFailure, match=r"^spawnSync pdfinfo ENOENT$"):
+        pdftext.pdfinfo_version()
 
 
 def test_with_no_pdftotext_a_pdf_has_no_layer_and_the_reason_says_so(programs: Path) -> None:
