@@ -731,8 +731,9 @@ jobs:
   # index serves that release, so it is built from the source the digest below names, with
   # the poppler-data files beside it. The runner is macOS on Apple silicon because that is
   # where the registry was written: the same source built on Linux, for x86-64 or for arm64,
-  # with gcc or with clang, was measured writing other bytes for 9 to 16 of the 110 public
-  # PDFs that are stored as they are. docs/stages/p10.md has the measurement.
+  # with gcc or with clang, was measured writing other bytes for 9 or 10 of the 110 public
+  # PDFs that are stored as they are. docs/stages/p10.md has the measurement. The libraries
+  # the build links against are Homebrew's as the runner has them, which nothing here pins.
   layers:
     runs-on: macos-15
     timeout-minutes: 40
