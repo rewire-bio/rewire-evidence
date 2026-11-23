@@ -127,8 +127,8 @@ const PROSE = lines(
 
 // Tables whose cells stand exactly at an edge: a block above its caption that opens the layer
 // while the last line of the layer is a caption, a sub heading that starts where its parent ends
-// and one that ends where its parent starts, a cell that does the same to its heading, and a
-// cell midway between two headings.
+// and one that ends where its parent starts, a cell that does the same to its heading, a cell
+// midway between two headings, and two captions of one number whose refusals got equally far.
 const TOUCHING = lines(
   "Model   Acc", // 0
   "Alpha   0.5",
@@ -151,8 +151,16 @@ const TOUCHING = lines(
   "Model   Acc   F11",
   "Alpha       7",
   "",
+  "Table 26. Two captions of one table, each with a cell that touches nothing", // 21
+  "Model   Acc                 F1",
+  "Alpha      0.5              0.6",
+  "",
+  "Table 26. Two captions of one table (continued)", // 25
+  "Model   Acc                 F1",
+  "Alpha  0   0.5              0.6",
+  "",
   "Some text.",
-  "Table 25. A caption that is the last line", // 22
+  "Table 25. A caption that is the last line", // 30
 );
 const PAGED = lines("Page one line one", "", "second paragraph of page one", "\fPage two line one", "", "\fPage three");
 
@@ -449,6 +457,8 @@ const tableCalls = [
     anchored("24", "Alpha", "Acc"),
     anchored("24", "Alpha", "F11"),
     anchored("25", "Alpha", "Acc"),
+    anchored("26", "Alpha", "Acc"),
+    anchored("26", "Alpha", "F1"),
   ].map((request) => ["resolveTableCell", "touching", request]),
   ...["2", "3", "7", "9"].map((value) => ["resolveFigureCaption", "aligned", value]),
   ["resolveFigureCaption", "prose", "1"],
@@ -618,9 +628,15 @@ const proseCalls = [
   ["reanchor", "prose", { start: 0, end: 99999, byte_start: 0, byte_end: 5, exact: "Title" }],
   ["reanchor", "empty", { start: 0, end: 0, byte_start: 0, byte_end: 0, exact: "" }],
   ["reanchor", "empty", { start: 0, end: 0, byte_start: 0, byte_end: 0, exact: "x" }],
+  // A quote that is all whitespace is looked for with its whitespace free, which is a pattern of nothing, and a layer of nothing holds that once.
+  ["reanchor", "empty", { start: 0, end: 0, byte_start: 0, byte_end: 0, exact: " " }],
+  ["reanchor", "empty", { start: 0, end: 0, byte_start: 0, byte_end: 0, exact: " \n " }],
+  ["reanchor", "tiny", { start: 0, end: 0, byte_start: 0, byte_end: 0, exact: "  " }],
   ...[[0, 3], [1, 2], [2, 3], [3, 10], [9, 12], [0, 99], [-1, 2], [16, 17], [25, 26], [26, 27]].map(([start, end]) => ["codePointSlice", "astral", start, end]),
   ["codePointSlice", "empty", 0, 0],
   ["codePointSlice", "blank", 1, 2],
+  // A first half with no partner is stepped over as two units, so the units of a layer can run out before its characters do.
+  ...[["halfEnds", 4, 5], ["halfEnds", 0, 5], ["halfEnds", 5, 6], ["halfEnds", 0, 6], ["halves", 100, 200], ["halves", 0, 121], ["halves", 0, 122], ["halves", 242, 243]].map(([name, from, to]) => ["codePointSlice", name, from, to]),
 ];
 
 const DOCUMENTS = [
