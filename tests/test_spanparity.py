@@ -226,16 +226,31 @@ def test_a_recording_of_this_run_that_differs_is_missing_or_is_of_another_commit
     )
 
 
-def rewrite_rows(gate: Gate, member: str, change: Callable[[list[dict[str, Any]]], None]) -> None:
-    """Change the recorded lines of the full view, and restate the digest the expectation holds of them."""
+def rewrite_rows(
+    gate: Gate, member: str, change: Callable[[list[Any]], None], *, restate: bool = True
+) -> None:
+    """Change the recorded lines of the full view.
+
+    The digest and the count the expectation holds of them are restated with them, which is
+    what an edit to the committed recording has to do to get as far as a line being read.
+    A line the change leaves as text is written as it is.
+    """
     stated = gate.stated()
     path = gate.expected.parent / stated[member]
     lines = [json.loads(line) for line in gzip.decompress(path.read_bytes()).decode("utf-8").splitlines()]
     change(lines)
-    data = "".join(f"{json.dumps(line, separators=(',', ':'), ensure_ascii=False)}\n" for line in lines)
+    data = "".join(
+        f"{line if isinstance(line, str) else json.dumps(line, separators=(',', ':'), ensure_ascii=False)}\n"
+        for line in lines
+    )
     path.write_bytes(gzip.compress(data.encode("utf-8")))
-    if member == "rows":
-        stated["full"]["sha256"][spanparity.ROWS] = sha256_hex(data.encode("utf-8"))
+    if restate:
+        name = spanparity.ROWS if member == "rows" else spanparity.LEGACY_ROWS
+        stated["full"]["sha256"][name] = sha256_hex(data.encode("utf-8"))
+        if member == "rows":
+            stated["results"] = len(lines)
+        else:
+            stated["full"]["legacy_otherwise"] = len(lines)
         gate.state(stated)
 
 
@@ -270,14 +285,144 @@ def test_the_legacy_arm_is_held_to_its_own_lines_where_the_recording_has_them(ga
     ]
 
 
+def test_the_legacy_lines_are_held_to_the_digest_and_the_count_the_expectation_states(gate: Gate) -> None:
+    # A result that needs a restricted object is taken from these lines in CI, so a line of
+    # one that is changed, added or taken out has to stop the gate there too.
+    gate.restrict()
+
+    def held(lines: list[Any]) -> None:
+        lines[0]["start"] = (lines[0]["start"] or 0) + 1
+        lines[0]["layer"] = "f" * 64
+        lines[0]["text"] = "0" * 16
+
+    for change in (held, lambda lines: lines.append({**lines[0], "id": "r-unknown"}), list.clear):
+        before = gzip.decompress((gate.expected.parent / gate.stated()["legacy_rows"]).read_bytes())
+        rewrite_rows(gate, "legacy_rows", change, restate=False)
+        with pytest.raises(
+            StoreError, match=r"lines of legacy-rows\.jsonl beside .* are not the ones it names"
+        ):
+            gate.verify()
+        (gate.expected.parent / gate.stated()["legacy_rows"]).write_bytes(gzip.compress(before))
+    assert gate.verify().problems == []
+    # The count is held as the digest is.
+    stated = gate.stated()
+    stated["full"]["legacy_otherwise"] += 1
+    gate.state(stated)
+    with pytest.raises(StoreError, match="are not the ones it names"):
+        gate.verify()
+
+
+def test_a_legacy_line_of_no_result_or_a_second_of_one_stops_the_gate(gate: Gate) -> None:
+    rewrite_rows(gate, "legacy_rows", lambda lines: lines.append({**lines[0], "id": "r-unknown"}))
+    with pytest.raises(StoreError, match=r"name a result twice, or one rows\.jsonl does not hold"):
+        gate.verify()
+    rewrite_rows(gate, "legacy_rows", lambda lines: lines.__setitem__(1, lines[0]))
+    with pytest.raises(StoreError, match="name a result twice"):
+        gate.verify()
+
+
+def test_recorded_lines_that_are_not_of_the_results_in_their_order_stop_the_gate(gate: Gate) -> None:
+    # The lines are joined to the results by position, so two that change places would be
+    # taken for each other where neither can be measured.
+    gate.restrict()
+    names: list[str] = []
+
+    def swap(lines: list[Any]) -> None:
+        names[:] = [lines[4]["id"], lines[12]["id"]]
+        lines[4], lines[12] = lines[12], lines[4]
+
+    rewrite_rows(gate, "rows", swap)
+    with pytest.raises(StoreError) as refused:
+        gate.verify()
+    assert str(refused.value) == (
+        f"line 5 of the recorded lines is of {names[1]} and result 5 of {gate.root} is {names[0]}"
+    )
+    rewrite_rows(gate, "rows", swap)
+    rewrite_rows(gate, "rows", list.pop)
+    with pytest.raises(StoreError) as refused:
+        gate.verify()
+    assert str(refused.value) == f"the recorded lines are of 34 results and {gate.root} holds 35"
+
+
+def without(member: str) -> Callable[[list[Any]], None]:
+    return lambda lines: lines[0].pop(member)
+
+
+@pytest.mark.parametrize(
+    ("member", "change"),
+    [
+        ("rows", without("tried")),
+        ("rows", lambda lines: lines.__setitem__(0, [1, 2])),
+        ("rows", lambda lines: lines.__setitem__(0, "not JSON")),
+        ("rows", lambda lines: lines[0].update(tried=True)),
+        ("rows", lambda lines: lines[0].update(start="1")),
+        ("rows", lambda lines: lines[0].update(ok=True, kind=None)),
+        ("rows", lambda lines: lines.__setitem__(0, dict(reversed(lines[0].items())))),
+        ("legacy_rows", without("id")),
+        ("legacy_rows", lambda lines: lines.__setitem__(0, "{")),
+    ],
+)
+def test_a_recorded_line_the_recorder_does_not_write_stops_the_gate_in_a_line(
+    gate: Gate, capsys: pytest.CaptureFixture[str], member: str, change: Callable[[list[Any]], None]
+) -> None:
+    rewrite_rows(gate, member, change)
+    assert gate.run() == 2
+    said = capsys.readouterr().err
+    assert said.startswith("Cannot verify: a recorded line is not one the recorder writes: ")
+    assert said.count("\n") == 1
+
+
+def test_an_expectation_or_a_recording_that_is_not_the_recorders_stops_the_gate_in_a_line(
+    gate: Gate, capsys: pytest.CaptureFixture[str]
+) -> None:
+    stated = gate.stated()
+    for less, said in (
+        ("date", "the recorded expectation does not name the date it was measured as of"),
+        ("results", "the recorded expectation has no count of results"),
+    ):
+        gate.state({name: value for name, value in stated.items() if name != less})
+        assert gate.run() == 2
+        assert capsys.readouterr().err == f"Cannot verify: {said}\n"
+    for less in ("legacy_otherwise", "layers_read"):
+        gate.state(
+            {**stated, "full": {name: value for name, value in stated["full"].items() if name != less}}
+        )
+        assert gate.run() == 2
+        assert capsys.readouterr().err == f"Cannot verify: the recorded expectation has no count of {less}\n"
+    gate.state({**stated, "results": True})
+    assert gate.run() == 2
+    assert capsys.readouterr().err == "Cannot verify: the recorded expectation has no count of results\n"
+    gate.state(stated)
+    for held in ("[1]", "not JSON", "\xff"):
+        (gate.full / spanparity.SUMMARY).write_bytes(held.encode("latin-1"))
+        assert gate.run("--recorded", str(gate.full)) == 2
+        assert capsys.readouterr().err == (
+            f"Cannot verify: {gate.full / spanparity.SUMMARY} is not the summary of a recording\n"
+        )
+        with pytest.raises(StoreError, match="is not the summary of a recording"):
+            spanparity.assemble(gate.full, gate.public, PDFTOTEXT)
+    (gate.full / spanparity.SUMMARY).write_text("{}", "utf-8")
+    assert gate.run("--recorded", str(gate.full)) == 2
+    assert "does not name the store commit" in capsys.readouterr().err
+    with pytest.raises(StoreError, match="the two recordings differ in recorded_from: None and "):
+        spanparity.assemble(gate.full, gate.public, PDFTOTEXT)
+
+
 def test_recorded_lines_that_are_not_the_ones_the_expectation_names_stop_the_gate(gate: Gate) -> None:
     stated = gate.stated()
     path = gate.expected.parent / stated["rows"]
     lines = gzip.decompress(path.read_bytes())
     path.write_bytes(gzip.compress(lines.replace(b'"tried":1', b'"tried":2', 1)))
-    with pytest.raises(StoreError, match="are not the ones it names"):
+    with pytest.raises(StoreError, match=r"lines of rows\.jsonl beside .* are not the ones it names"):
         gate.verify()
     path.write_bytes(gzip.compress(lines + lines[: lines.index(b"\n") + 1]))
+    with pytest.raises(StoreError, match="are not the ones it names"):
+        gate.verify()
+    # A line ends at a newline and nowhere else, and the last one ends at one.
+    path.write_bytes(gzip.compress(lines.removesuffix(b"\n")))
+    with pytest.raises(StoreError, match="are not the ones it names"):
+        gate.verify()
+    path.write_bytes(gzip.compress(b""))
     with pytest.raises(StoreError, match="are not the ones it names"):
         gate.verify()
     path.write_bytes(b"not gzip")
@@ -319,9 +464,11 @@ def test_a_committed_table_or_figure_the_results_do_not_give_is_a_problem(gate: 
     assert found.tables["by-kind"] is False
     assert sum(found.tables.values()) == 4
     assert found.figures.same == found.figures.expected - 1
+    assert found.figures_file is False
     assert found.problems == [
         f"span-resolution-{DATE}-by-kind.tsv is not what the results give",
         f"{figures.SPAN_FIGURES} holds other figures than the results give",
+        f"{figures.SPAN_FIGURES} and the records beside it are not the bytes the results give",
     ]
     table.unlink()
     with pytest.raises(StoreError, match=r"by-kind\.tsv cannot be read"):
@@ -340,8 +487,68 @@ def test_a_record_the_committed_figures_were_measured_over_that_is_gone_is_a_pro
         (
             f"{figures.SPAN_FIGURES} was measured over data/entities/sources.jsonl, which was 13 records "
             "measured and is 1 measured record is gone: src-gone"
-        )
+        ),
+        f"{figures.SPAN_FIGURES} and the records beside it are not the bytes the results give",
     ]
+
+
+SOURCES = "data/entities/sources.jsonl"
+
+
+def test_the_committed_figures_file_is_held_byte_for_byte(gate: Gate) -> None:
+    # Every figure is the one the results give, and the file still is not the one they write.
+    file = gate.root / figures.SPAN_FIGURES
+    whole = file.read_text("utf-8")
+    assert gate.verify().figures_file is True
+    for other in (
+        whole.replace('"npm run spans -- measure"', '"npm run spans -- measured"'),
+        whole.replace('"produced": "2026-11-19"', '"produced": "2026-11-18"'),
+        whole.replace("\n  ", "\n ", 1),
+        whole.removesuffix("\n"),
+    ):
+        assert other != whole
+        file.write_text(other, "utf-8")
+        found = gate.verify()
+        assert found.figures.same == found.figures.expected
+        assert found.gained == 0
+        assert found.problems == [
+            f"{figures.SPAN_FIGURES} and the records beside it are not the bytes the results give"
+        ]
+    file.write_text(whole, "utf-8")
+    # The records beside it are held too, to the line and to there being any.
+    records = gate.root / figures.records_file_for(figures.SPAN_FIGURES)
+    held = records.read_text("utf-8")
+    records.write_text(f"{held}\n", "utf-8")
+    assert gate.verify().figures_file is False
+    records.unlink()
+    assert gate.verify().problems == [
+        f"{figures.SPAN_FIGURES} and the records beside it are not the bytes the results give"
+    ]
+
+
+def test_an_input_that_has_only_gained_records_is_left_as_committed_and_counted(gate: Gate) -> None:
+    # The committed file of the pinned store is of a day when the sources were fewer. It is
+    # then the file the results give but for that one input, and the gate says so.
+    file = gate.root / figures.SPAN_FIGURES
+    records = gate.root / figures.records_file_for(figures.SPAN_FIGURES)
+    row = next(row for row in json.loads(file.read_text("utf-8"))["inputs"] if row["path"] == SOURCES)
+    file.write_text(
+        file.read_text("utf-8")
+        .replace(row["sha256"], "0" * 64)
+        .replace(f'"lines": {row["lines"]}', f'"lines": {row["lines"] - 1}', 1),
+        "utf-8",
+    )
+    lines = records.read_text("utf-8").split("\n")
+    del lines[lines.index(f"# {SOURCES}") + 1]
+    records.write_text("\n".join(lines), "utf-8")
+    found = gate.verify()
+    assert found.problems == []
+    assert (found.figures_file, found.gained) == (True, 1)
+    assert json.loads(spanparity.to_json(found))["figures_file"] == {"same": True, "gained": 1}
+    assert (
+        "  the committed figures file is the bytes the results give: yes, with 1 of its inputs left as "
+        "committed because they have gained records\n"
+    ) in f"{spanparity.summary(found)}\n"
 
 
 def test_an_input_that_moves_while_it_is_measured_is_a_problem(

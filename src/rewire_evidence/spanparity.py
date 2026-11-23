@@ -28,10 +28,15 @@ The gate measures with this library over the objects it is given and requires th
    result taken from this library where it could be measured and from the recorded line
    where it could not.
 
+Both files of recorded lines are held to the digest the expectation states for them before a
+line is read, each line has to be one the recorder writes, and the lines have to be of the
+results of the checkout in their order.
+
 The committed figures file does not regenerate whole at the pinned commit: it names the
 inputs it was measured over by digest, and the source records have gained lines since. The
-gate requires its figures, and requires that no record it was measured over is gone or
-changed.
+gate requires the committed file and the records beside it byte for byte, with each input
+that has only gained records left as the committed file has it, and says how many those are.
+It requires that no record the file was measured over is gone or changed.
 """
 
 from __future__ import annotations
@@ -80,6 +85,33 @@ TEXT_DIGEST: Final = 16
 #: Hex digits of a layer's hash a row names a candidate by.
 CANDIDATE_DIGITS: Final = 12
 _SHOWN: Final = 5
+#: Characters of a line that is not a recorded one that are shown.
+_LINE_SHOWN: Final = 200
+_NONE: Final = type(None)
+#: The members of a recorded line in the order the recorder writes them, and what each holds.
+ROW_MEMBERS: Final[Mapping[str, tuple[type, ...]]] = {
+    "id": (str,),
+    "candidates": (list,),
+    "tried": (int,),
+    "ok": (bool,),
+    "kind": (str, _NONE),
+    "reason": (str, _NONE),
+    "layer": (str, _NONE),
+    "start": (int, _NONE),
+    "end": (int, _NONE),
+    "byte_start": (int, _NONE),
+    "byte_end": (int, _NONE),
+    "anchor_candidates": (int, _NONE),
+    "grid_route": (str, _NONE),
+    "resolved_route": (str, _NONE),
+    "value_present": (bool, _NONE),
+    "value_exact": (bool, _NONE),
+    "value_partial": (bool, _NONE),
+    "value_in_image": (bool, _NONE),
+    "text": (str,),
+}
+#: The members a line of a result that resolved always holds.
+_OF_A_SPAN: Final = ("kind", "layer", "start", "end", "byte_start", "byte_end")
 
 
 def _text(held: str | None) -> str | None:
@@ -193,6 +225,10 @@ class SpanReport:
     tables: dict[str, bool] = field(default_factory=dict)
     #: The committed figures, and how many of them the results give.
     figures: Lines = field(default_factory=Lines)
+    #: Whether the committed figures file and its records are the bytes the results give.
+    figures_file: bool = False
+    #: Inputs of the committed figures file that have gained records since, left as committed.
+    gained: int = 0
     problems: list[str] = field(default_factory=list)
 
 
@@ -203,8 +239,8 @@ def _member(recorded: Mapping[str, JsonValue], name: str) -> JsonObject:
     return held
 
 
-def read_rows(expected: Path, recorded: Mapping[str, JsonValue], member: str) -> list[str]:
-    """The recorded lines of the full view, from the file the expectation names beside itself.
+def read_recorded(expected: Path, recorded: Mapping[str, JsonValue], member: str) -> str:
+    """A file of recorded lines of the full view, which the expectation names beside itself.
 
     Raises `StoreError` for an expectation that names none and for a file that is not gzip.
     """
@@ -213,9 +249,57 @@ def read_rows(expected: Path, recorded: Mapping[str, JsonValue], member: str) ->
         raise StoreError(f"{expected} does not name the file of recorded {member}")
     path = expected.parent / named
     try:
-        return gzip.decompress(path.read_bytes()).decode("utf-8").splitlines()
+        return gzip.decompress(path.read_bytes()).decode("utf-8")
     except (OSError, EOFError, zlib.error, UnicodeDecodeError) as error:
         raise StoreError(f"{path} cannot be read: {error}") from error
+
+
+def rows_of(text: str) -> list[str]:
+    """The lines of a file of recorded lines. A line ends at a newline and nowhere else."""
+    return text.split("\n")[:-1]
+
+
+def read_rows(expected: Path, recorded: Mapping[str, JsonValue], member: str) -> list[str]:
+    """The recorded lines of the full view. Raises as `read_recorded` does."""
+    return rows_of(read_recorded(expected, recorded, member))
+
+
+def recorded_row(line: str) -> JsonObject:
+    """A recorded line as the recorder writes it: every member, in its order, of its kind.
+
+    Raises `StoreError` for any other line, so a recording that was cut or edited stops the
+    gate in a line and is never read as a result.
+    """
+    try:
+        row = js_parse(line)
+    except ValueError:
+        row = None
+    if (
+        not isinstance(row, dict)
+        or list(row) != list(ROW_MEMBERS)
+        or any(type(row[name]) not in kinds for name, kinds in ROW_MEMBERS.items())
+        or (row["ok"] and any(row[name] is None for name in _OF_A_SPAN))
+    ):
+        raise StoreError(f"a recorded line is not one the recorder writes: {line[:_LINE_SHOWN]}")
+    return row
+
+
+def _count(held: Mapping[str, JsonValue], name: str) -> int:
+    value = held.get(name)
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise StoreError(f"the recorded expectation has no count of {name}")
+    return value
+
+
+def _summary(folder: Path) -> JsonObject:
+    """What a recording says of itself. Raises `StoreError` for one that is not the recorder's."""
+    try:
+        held = js_parse((folder / SUMMARY).read_bytes().decode("utf-8"))
+    except ValueError:
+        held = None
+    if not isinstance(held, dict):
+        raise StoreError(f"{folder / SUMMARY} is not the summary of a recording")
+    return held
 
 
 def _determined(run: MeasureRun, store: LayerStore, held: set[str]) -> list[bool]:
@@ -247,7 +331,7 @@ def _as_recorded(item: Work, line: str) -> Work:
     The class and the parse are this library's, read off the locator. What was decided about
     the result is the recorded line's, and the text of its span is not there to take.
     """
-    row = cast("dict[str, int | str | bool | None]", js_parse(line))
+    row = cast("dict[str, int | str | bool | None]", recorded_row(line))
     layer = cast("str | None", row["layer"])
     resolved = None
     if row["ok"]:
@@ -326,8 +410,7 @@ def _hold_files(found: SpanReport, files: Mapping[str, bytes], view: Mapping[str
 
 def _hold_recorded(found: SpanReport, files: Mapping[str, bytes], folder: Path) -> None:
     """Hold each file to the one the TypeScript wrote from the same checkout and the same objects."""
-    summary = js_parse((folder / SUMMARY).read_bytes().decode("utf-8"))
-    if recorded_ref(cast("JsonObject", summary)) != found.store_ref:
+    if recorded_ref(_summary(folder)) != found.store_ref:
         found.problems.append(f"{folder} was recorded at another commit than {found.store_ref}")
     for name, data in files.items():
         try:
@@ -341,7 +424,9 @@ def _hold_recorded(found: SpanReport, files: Mapping[str, bytes], folder: Path) 
             found.problems.append(f"{name} is not the file the TypeScript wrote in this run")
 
 
-def _hold_committed(found: SpanReport, root: Path, shipped: MeasureReport, legacy: MeasureReport) -> None:
+def _hold_committed(
+    found: SpanReport, root: Path, run: MeasureRun, shipped: MeasureReport, legacy: MeasureReport
+) -> None:
     """Hold the committed tables and figures to what the results give."""
     for name, table in TABLES:
         file = root / REPORTS / f"span-resolution-{found.date}-{name}.tsv"
@@ -363,6 +448,35 @@ def _hold_committed(found: SpanReport, root: Path, shipped: MeasureReport, legac
         f"{figures.SPAN_FIGURES} was measured over {held.path}, which was {held.was} and is {held.now}"
         for held in drifted
     ]
+    # The file the results give. An input that has gained records since the file was written
+    # and lost or changed none is left as the committed file has it, and counted.
+    was = {held.path: held for held in committed.inputs if held.records is not None}
+    moved = {held.path for held in drifted}
+    gained = {
+        held.path
+        for held in run.inputs
+        if held.records is not None
+        and held.path in was
+        and held.path not in moved
+        and was[held.path].sha256 != held.sha256
+    }
+    found.gained = len(gained)
+    given = replace(
+        run.figure_file(),
+        inputs=tuple(was[held.path] if held.path in gained else held for held in run.inputs),
+        figures=made,
+    )
+    records = figures.records_text(given)
+    beside = root / figures.records_file_for(figures.SPAN_FIGURES)
+    found.figures_file = (root / figures.SPAN_FIGURES).read_bytes() == figures.figures_text(given).encode(
+        "utf-8"
+    ) and (beside.read_bytes() if beside.exists() else None) == (
+        None if records is None else records.encode("utf-8")
+    )
+    if not found.figures_file:
+        found.problems.append(
+            f"{figures.SPAN_FIGURES} and the records beside it are not the bytes the results give"
+        )
 
 
 def _view(
@@ -384,6 +498,52 @@ def _view(
     )
 
 
+def _recorded_lines(expected: Path, recorded: Mapping[str, JsonValue]) -> tuple[list[str], dict[str, str]]:
+    """The lines of the full view, and the lines the legacy arm decides otherwise by the result of each.
+
+    Each file is the one the expectation names, to the byte and to the count of its lines,
+    before a line of it is read. Raises `StoreError` where one is not, where a line is not
+    one the recorder writes, and where a legacy line is of no result or is the second of one.
+    """
+    whole = _member(recorded, "full")
+    stated = _member(whole, "sha256")
+    read: list[list[str]] = []
+    for member, name, lines in (
+        ("rows", ROWS, _count(recorded, "results")),
+        ("legacy_rows", LEGACY_ROWS, _count(whole, "legacy_otherwise")),
+    ):
+        text = read_recorded(expected, recorded, member)
+        if text.count("\n") != lines or sha256_hex(text) != stated.get(name):
+            raise StoreError(f"the recorded lines of {name} beside {expected} are not the ones it names")
+        read.append(rows_of(text))
+    full, legacy = read
+    ids = {cast("str", recorded_row(line)["id"]) for line in full}
+    otherwise = {cast("str", recorded_row(line)["id"]): line for line in legacy}
+    if len(otherwise) != len(legacy) or not otherwise.keys() <= ids:
+        raise StoreError(
+            f"the recorded lines of {LEGACY_ROWS} name a result twice, or one {ROWS} does not hold"
+        )
+    return full, otherwise
+
+
+def _hold_order(full: Sequence[str], work: Sequence[Work], root: Path) -> None:
+    """Require the recorded lines to be of the results of the checkout, in their order.
+
+    A line is joined to a result by where it stands, and a result that cannot be measured
+    here is taken from its line whole, so a line of another result would be taken for it.
+    """
+    ids = [cast("str", cast("JsonObject", js_parse(line))["id"]) for line in full]
+    measured = [item.result.id for item in work]
+    if measured != ids:
+        at = next((at for at, pair in enumerate(zip(measured, ids, strict=False)) if pair[0] != pair[1]), -1)
+        raise StoreError(
+            f"the recorded lines are of {len(ids):,} results and {root} holds {len(measured):,}"
+            if at < 0
+            else f"line {at + 1} of the recorded lines is of {ids[at]} and result {at + 1} of {root} "
+            f"is {measured[at]}"
+        )
+
+
 def verify_spans(
     root: Path, objects: Path, expected: Path, recorded: JsonObject, recorded_in: Path | None = None
 ) -> SpanReport:
@@ -393,16 +553,12 @@ def verify_spans(
     are. `recorded_in` is a folder `record_spans_store.mjs` wrote from the same checkout and
     the same objects, where the TypeScript ran beside this.
     """
-    found = SpanReport(recorded_ref(recorded), cast("str", recorded["date"]))
-    full = read_rows(expected, recorded, "rows")
-    otherwise = {
-        cast("str", cast("JsonObject", js_parse(line))["id"]): line
-        for line in read_rows(expected, recorded, "legacy_rows")
-    }
-    if len(full) != recorded["results"] or sha256_hex(_lines(full)) != _member(
-        _member(recorded, "full"), "sha256"
-    ).get(ROWS):
-        raise StoreError(f"the recorded lines beside {expected} are not the ones it names")
+    date = recorded.get("date")
+    if not isinstance(date, str):
+        raise StoreError("the recorded expectation does not name the date it was measured as of")
+    found = SpanReport(recorded_ref(recorded), date)
+    layer_counts: JsonObject = {name: _count(_member(recorded, "full"), name) for name in LAYER_COUNTS}
+    full, otherwise = _recorded_lines(expected, recorded)
     try:
         found.pdftotext = pdftotext_version()
     except LayerFailure as error:
@@ -417,6 +573,7 @@ def verify_spans(
 
     run = run_measure(root, found.date, objects=objects)
     legacy_run = cast("MeasureReport", run.legacy)
+    _hold_order(full, run.report.work, root)
     found.results = run.report.locators
     found.resolved = run.report.resolved
     found.problems += [f"{moved.path} changed while it was measured" for moved in run.moved]
@@ -452,11 +609,9 @@ def verify_spans(
     # The counts of layers read are in no result's line. Where a result was taken from the
     # recording they are the recording's too.
     counts = (
-        {name: getattr(run.report, name) for name in LAYER_COUNTS}
-        if found.view == "full"
-        else _member(recorded, "full")
+        {name: getattr(run.report, name) for name in LAYER_COUNTS} if found.view == "full" else layer_counts
     )
-    _hold_committed(found, root, _report(shipped, counts), _report(legacy, counts))
+    _hold_committed(found, root, run, _report(shipped, counts), _report(legacy, counts))
     return found
 
 
@@ -485,6 +640,11 @@ def summary(found: SpanReport) -> str:
         f"  results that need a restricted object, taken as recorded: {found.held:,}",
         f"  committed tables the results give: {held(found.tables)}",
         f"  committed figures the results give: {found.figures.same} of {found.figures.expected}",
+        (
+            "  the committed figures file is the bytes the results give: "
+            f"{'yes' if found.figures_file else 'no'}, with {found.gained} of its inputs left as "
+            "committed because they have gained records"
+        ),
     ]
     return "\n".join(lines)
 
@@ -507,6 +667,7 @@ def to_json(found: SpanReport) -> str:
             "recorded": {"expected": len(found.recorded), "same": sum(found.recorded.values())},
             "tables": {"expected": len(found.tables), "same": sum(found.tables.values())},
             "figures": found.figures.row(),
+            "figures_file": {"same": found.figures_file, "gained": found.gained},
             "problems": list(found.problems),
         }
     )
@@ -519,15 +680,11 @@ def assemble(full: Path, public: Path, pdftotext: str) -> tuple[str, bytes, byte
     over the public ones. Raises `StoreError` where the two are not of one commit, one date
     and one Node.
     """
-    summaries = [
-        cast("JsonObject", js_parse((folder / SUMMARY).read_bytes().decode("utf-8")))
-        for folder in (full, public)
-    ]
-    one, other = summaries
+    one, other = _summary(full), _summary(public)
     for name in ("recorded_from", "date", "results", "objects"):
-        if one[name] != other[name]:
-            raise StoreError(f"the two recordings differ in {name}: {one[name]} and {other[name]}")
-    if one["objects_held"] != one["objects"]:
+        if name not in one or one[name] != other.get(name):
+            raise StoreError(f"the two recordings differ in {name}: {one.get(name)} and {other.get(name)}")
+    if one.get("objects_held") != one["objects"]:
         raise StoreError(f"{full} is not a recording over every object")
 
     def view(held: JsonObject) -> JsonObject:
