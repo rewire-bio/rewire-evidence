@@ -110,8 +110,29 @@ def _rows(path: Path) -> list[JsonValue]:
     return [parse_value(line, str(path)) for line in raw_lines(path) if not blank(line)]
 
 
+def _identified(path: Path) -> list[tuple[str, JsonObject]]:
+    """Every record of a file with its ID.
+
+    Raises `StoreError` for a line that is no object or holds no ID that is text. The
+    TypeScript reads such a line as a record whose ID is `undefined` or a number, and no
+    line of what it then writes can be told from the next.
+    """
+    found = []
+    for number, held in enumerate(_rows(path), 1):
+        name = held.get("id") if isinstance(held, dict) else None
+        if not isinstance(held, dict) or not isinstance(name, str):
+            raise StoreError(f"{path}: record {number} is not an object with an ID")
+        found.append((name, held))
+    return found
+
+
 def read_results(root: Path) -> list[StoredResult]:
-    """Every record of the result files, in file order then line order."""
+    """Every record of the result files, in file order then line order.
+
+    A record with no attributes, or with a locator or a printed value that is not text, is a
+    result with none, as the TypeScript reads it. Raises `StoreError` for a record with no
+    ID and for sources that are not a list of IDs.
+    """
     folder = root / RESULTS
     try:
         names = sorted(
@@ -121,15 +142,20 @@ def read_results(root: Path) -> list[StoredResult]:
         raise StoreError(f"{folder} cannot be read: {error}") from error
     results = []
     for name in names:
-        for held in _rows(folder / name):
-            record = cast("JsonObject", held)
-            attributes = cast("JsonObject", record.get("attributes") or {})
+        for found, record in _identified(folder / name):
+            held = record.get("attributes")
+            attributes = held if isinstance(held, dict) else {}
+            sources = record.get("source_ids")
+            if not isinstance(sources, list | None) or any(
+                not isinstance(source, str) for source in sources or []
+            ):
+                raise StoreError(f"{folder / name}: the sources of {found} are not a list of IDs")
             locator = attributes.get("source_locator")
             printed = attributes.get("printed_value")
             results.append(
                 StoredResult(
-                    cast("str", record["id"]),
-                    tuple(cast("list[str]", record.get("source_ids") or [])),
+                    found,
+                    tuple(cast("list[str]", sources or [])),
                     locator if isinstance(locator, str) else "",
                     printed if isinstance(printed, str) else "",
                 )
@@ -138,8 +164,8 @@ def read_results(root: Path) -> list[StoredResult]:
 
 
 def source_ids(root: Path) -> list[str]:
-    """The ID of every source record."""
-    return [cast("str", cast("JsonObject", held)["id"]) for held in _rows(root / SOURCES)]
+    """The ID of every source record. Raises `StoreError` for a record with none."""
+    return [name for name, _ in _identified(root / SOURCES)]
 
 
 def preferred_normaliser(parsed: Parsed) -> str | None:

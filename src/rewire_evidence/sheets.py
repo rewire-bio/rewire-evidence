@@ -325,8 +325,13 @@ def _values_in_force(index: LayerIndex, block: SheetBlock, row: int) -> dict[int
 def _heading_of(index: LayerIndex, block: SheetBlock, column: int, row: int) -> str | None:
     """The heading over a column as the sheet prints it on one row, or `None` where that is blank.
 
-    `row` is the first row of the block, or one a heading was found on, so it is in the block.
+    A row the block does not hold has no heading. A locator never names one: the row it
+    gives is in the block by the time a heading is read, and a heading is found on a row of
+    the block. A request made by hand may, with row 0 of a sheet that holds no rows, and the
+    line below that header is another sheet's.
     """
+    if not 1 <= row <= block.rows:
+        return None
     values = _values(index, block.header_line + row)
     return (values[column - 1].strip(SPACE) if column <= len(values) else "") or None
 

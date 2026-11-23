@@ -24,10 +24,12 @@ from rewire_evidence import (
     gridspans,
     jsonspans,
     jsregex,
+    layercoverage,
     layerreaders,
     offsets,
     prose,
     registry,
+    resolution,
     sheets,
     spanmeasure,
     spansaid,
@@ -318,17 +320,36 @@ def test_a_document_retagged_once_has_nothing_left_to_retag(document: str) -> No
 KEYS = st.text(
     alphabet=st.characters(blacklist_categories=["Cs"], blacklist_characters="\t\n#"), min_size=1, max_size=6
 )
+# A key names one record of a file. The TypeScript gives the second record of an ID the key
+# `id#2`, so no file it reads holds a key twice, and a test below holds what two would do.
 INPUTS = st.lists(
     st.tuples(
         st.text(alphabet="abc/.", min_size=1, max_size=8),
         st.none()
         | st.lists(
-            st.tuples(KEYS, st.text(alphabet="0123456789abcdef", min_size=12, max_size=12)), max_size=4
+            st.tuples(KEYS, st.text(alphabet="0123456789abcdef", min_size=12, max_size=12)),
+            max_size=4,
+            unique_by=lambda record: record[0],
         ),
     ),
     max_size=4,
     unique_by=lambda held: held[0],
 )
+
+
+def test_a_key_held_twice_is_one_record_and_the_later_line_is_the_one_compared() -> None:
+    # What the property above was once given, and wrongly expected no change of: a file that
+    # grew, measured over two lines of one key. The key is looked up, the later line is found,
+    # and the earlier one reads as changed. `changedInputs` keeps the records in a Map too.
+    twice = (("0", "000000000000"), ("0", "000000000001"))
+    measured = figures.FigureInput("a", "0" * 64, twice, 2)
+    grown = figures.FigureInput("a", "1" * 64, (*twice, ("new", "0" * 12)))
+    assert figures.changed_inputs([measured], [measured], Path()) == []
+    assert figures.changed_inputs([measured], [grown], Path()) == [
+        figures.Changed("a", "2 records measured", "1 measured record changed: 0")
+    ]
+    once = figures.FigureInput("a", "0" * 64, twice[1:], 1)
+    assert figures.changed_inputs([once], [grown], Path()) == []
 
 
 @given(
@@ -373,6 +394,72 @@ def test_a_figures_file_written_and_read_is_the_same_file(
         assert [row.path for row in changed] == sorted(
             row.path for row in content.inputs if row.records is None
         )
+
+
+SANITY = st.sampled_from(["pass", "suspect", "fail"])
+OBJECT = st.sampled_from(["a" * 64, "b" * 64, "c" * 64])
+SOURCE = st.sampled_from(["s1", "s2", "s3", "S3", "s10", "\U0001f600", ""])
+RECEIPT = st.fixed_dictionaries(
+    {
+        "outcome": st.sampled_from(["stored", "failed", "not_artifact"]),
+        "sha256": st.none() | OBJECT,
+        "reason": st.none() | st.sampled_from(["timeout", "interstitial_body"]),
+        "source_class": st.sampled_from(["publisher", "arxiv", "pmc"]),
+    }
+)
+LAYER_ROW = st.fixed_dictionaries(
+    {
+        "object_sha256": OBJECT,
+        "layer_sha256": st.text(alphabet="0123456789abcdef", min_size=4, max_size=4),
+        "normaliser": st.sampled_from(["text-utf8@1", "pdf-text-layer@1", "html-table-grid@1"]),
+        "sanity": SANITY,
+        "sanity_reasons": st.lists(st.sampled_from(["few letters", "mojibake"]), max_size=2),
+        "metrics": st.fixed_dictionaries({"characters": st.integers(0, 10**6)}),
+    }
+)
+
+
+@given(
+    st.lists(SOURCE, max_size=12),
+    st.dictionaries(SOURCE, RECEIPT, max_size=7),
+    st.lists(LAYER_ROW, max_size=8),
+    st.lists(
+        st.fixed_dictionaries({"object_sha256": OBJECT, "reason": st.sampled_from(["raster", "binary"])})
+    ),
+)
+def test_every_source_is_in_one_bucket_and_the_buckets_sum_to_the_sources(
+    sources: list[str],
+    receipts: dict[str, dict[str, Any]],
+    registry: list[dict[str, Any]],
+    unsupported: list[dict[str, Any]],
+) -> None:
+    # `coverageOf` checks these two sums of its own rows and reports a breach. Neither can
+    # be breached, so the port does not check them, and this holds that they cannot.
+    found = layercoverage.coverage_of(sources, receipts, registry, unsupported)
+    assert len(found.rows) == len(sources) == found.sources
+    assert sum(found.buckets.values()) == len(sources)
+    assert tuple(found.buckets) == layercoverage.COVERAGE_BUCKETS
+    assert sorted(row.source_id for row in found.rows) == sorted(sources)
+    assert sum(tally.sources for tally in found.by_class.values()) == len(sources)
+    assert found.characters == sum(row.characters for row in found.rows)
+    assert found.distinct_characters <= found.characters
+    assert found.no_receipt == sum(1 for source in sources if source not in receipts)
+    # The one breach it can report: a source the store names twice.
+    assert len(found.problems) == len(sources) - len(set(sources))
+
+
+def test_a_row_outside_its_sheet_has_no_heading() -> None:
+    # Row 0 of a sheet that holds no rows is its header line, and the line below that is the
+    # header of the next sheet, which is not a heading of this one.
+    index = offsets.index_layer(
+        "\f# sheet\t1\tNone\t\n\f# sheet\t2\tNext\tA1:A1\nvalue", "0" * 64, "ooxml-sheet-tsv@1"
+    )
+    found = sheets.resolve_sheet_cell(index, sheets.SheetCellRequest("None", row=0, column=1))
+    assert isinstance(found, resolution.Resolved)
+    assert (found.span.exact, found.row_label, found.column_header) == ("\f# sheet", "# sheet", None)
+    below = sheets.resolve_sheet_cell(index, sheets.SheetCellRequest("Next", row=1, column=1))
+    assert isinstance(below, resolution.Resolved)
+    assert (below.span.exact, below.column_header) == ("value", "value")
 
 
 def test_a_refusal_that_got_further_is_later_in_the_list() -> None:
@@ -457,6 +544,52 @@ def test_a_store_with_no_results_folder_cannot_be_measured(tmp_path: Path) -> No
     with pytest.raises(StoreError, match="cannot be read"):
         spanmeasure.read_results(tmp_path)
     assert spanmeasure.legacy_figures_of(None) == {}
+
+
+def test_a_result_is_read_as_the_typescript_reads_it_and_one_with_no_id_is_refused(tmp_path: Path) -> None:
+    file = tmp_path / spanmeasure.RESULTS / "0.jsonl"
+    file.parent.mkdir(parents=True)
+    read = spanmeasure.StoredResult
+
+    def given(*lines: object) -> list[spanmeasure.StoredResult]:
+        file.write_text("".join(f"{json.dumps(line)}\n" for line in lines), "utf-8")
+        return spanmeasure.read_results(tmp_path)
+
+    # `record.attributes ?? {}`, and `typeof ... === "string"` of each member read from it.
+    assert given(
+        {"id": "a"},
+        {"id": "b", "source_ids": None, "attributes": None},
+        {"id": "c", "source_ids": ["s", "t"], "attributes": {"source_locator": 5, "printed_value": ["0.5"]}},
+        {"id": "d", "attributes": "text"},
+        {"id": "e", "attributes": [1]},
+        {"id": "f", "attributes": 7},
+        {"id": "g", "attributes": {"source_locator": "Table 1", "printed_value": "0.5"}},
+    ) == [
+        read("a", (), "", ""),
+        read("b", (), "", ""),
+        read("c", ("s", "t"), "", ""),
+        read("d", (), "", ""),
+        read("e", (), "", ""),
+        read("f", (), "", ""),
+        read("g", (), "Table 1", "0.5"),
+    ]
+    unidentified: tuple[object, ...] = ([1, 2], {"attributes": {}}, {"id": 5}, {"id": None}, "text", 7)
+    for line in unidentified:
+        with pytest.raises(StoreError) as refused:
+            given({"id": "a"}, line)
+        assert str(refused.value) == f"{file}: record 2 is not an object with an ID"
+    for sources in ("s", 5, {"s": 1}, ["s", 5], [None]):
+        with pytest.raises(StoreError) as refused:
+            given({"id": "a", "source_ids": sources})
+        assert str(refused.value) == f"{file}: the sources of a are not a list of IDs"
+    listed = tmp_path / spanmeasure.SOURCES
+    listed.parent.mkdir(parents=True)
+    listed.write_text('{"id":"s"}\n\n{"id":"t"}\n', "utf-8")
+    assert spanmeasure.source_ids(tmp_path) == ["s", "t"]
+    listed.write_text('{"id":"s"}\n\n[1]\n', "utf-8")
+    with pytest.raises(StoreError) as refused:
+        spanmeasure.source_ids(tmp_path)
+    assert str(refused.value) == f"{listed}: record 2 is not an object with an ID"
 
 
 def test_a_run_whose_inputs_moved_under_it_writes_nothing_and_says_which(
