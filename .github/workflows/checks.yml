@@ -659,6 +659,14 @@ jobs:
       - name: Record the archive read side
         working-directory: store
         run: node_modules/.bin/tsx ../scripts/fixtures/record_archive_fixture.mjs
+      # Layer derivation: what classify, the container readers, the markup scanner, the Office
+      # readers, the grid builder, the sanity gate and the registry build do with bytes the
+      # stored objects have no like of, and what `npm run layers --` prints and writes on
+      # small trees. The stored objects themselves are held by the layers job. This runner
+      # has no pdftotext, and the recorder refuses to run on one that has.
+      - name: Record the layer derivation
+        working-directory: store
+        run: node_modules/.bin/tsx ../scripts/fixtures/record_layers_fixture.mjs
       - name: Keep what was recorded
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -675,6 +683,7 @@ jobs:
             tests/fixtures/checks.json
             tests/fixtures/tables.json
             tests/fixtures/archive.json
+            tests/fixtures/layers.json
             scripts/expected/store-archive.json
             scripts/expected/store-archive.jsonl.gz
             scripts/expected/store-tables.json
@@ -703,3 +712,158 @@ jobs:
             git diff --stat -- tests/fixtures scripts/expected src/rewire_evidence/data
             exit 1
           fi
+
+  # Layer derivation, held to the registry the data repository commits: every text layer and
+  # table grid derived again from the stored bytes, and each committed line required whole.
+  #
+  # The bytes are not in a checkout. The objects a public release mirrors are fetched once
+  # into a folder that is cached on the digest of the manifest, and the gate fails if one of
+  # them is missing. The restricted objects need credentials this repository does not have:
+  # their rows are counted as not checked, and the counts are pinned so that a run cannot
+  # check fewer and pass.
+  #
+  # A row copies its object's store, visibility and source records from the manifest, and
+  # the manifest has moved since the registry was written. LAYERS_REF is the commit that
+  # wrote the registry, the newest that touches the file, and the rows are derived from its
+  # manifest, which scripts/expected/store-layers.json holds by digest.
+  #
+  # A PDF layer is what pdftotext writes, and the registry names version 26.08.0. No package
+  # index serves that release, so it is built from the source the digest below names, with
+  # the poppler-data files beside it. The runner is macOS on Apple silicon because that is
+  # where the registry was written: the same source built on Linux, for x86-64 or for arm64,
+  # with gcc or with clang, was measured writing other bytes for 9 or 10 of the 110 public
+  # PDFs that are stored as they are. docs/stages/p10.md has the measurement.
+  #
+  # What is pinned of the build is the two source archives, by digest, and the recipe in
+  # scripts/build_poppler.sh, whose digest is in the cache key so that a changed flag builds
+  # again. What is not pinned is the runner image and the Homebrew libraries the build links
+  # against and loads on each run. A version line cannot prove the bytes a build writes, so
+  # the proof is the gate itself: every PDF row of a public object derived again and required
+  # whole, with the page count pdfinfo gives. The job writes the image and the library
+  # versions into its summary, so a row that stops reproducing can be set against them.
+  layers:
+    runs-on: macos-15
+    timeout-minutes: 40
+    env:
+      LAYERS_REF: e70b112078c6ba72112155caf3b091e166a405c5
+      POPPLER: "26.08.0"
+      POPPLER_SHA256: dc906e68cea698109706ac6aa3d2c9d4512fcfcac42d90b8afcda486d1b9abd0
+      POPPLER_DATA: "0.4.12"
+      POPPLER_DATA_SHA256: c835b640a40ce357e1b83666aabd95edffa24ddddd49b8daff63adb851cdab74
+      # The objects of the manifest a public release mirrors and the ones none does, the
+      # registry rows and unsupported rows of each, and the rows of each normaliser that the
+      # public objects give.
+      LAYER_OBJECTS: "871"
+      LAYER_RESTRICTED_OBJECTS: "296"
+      LAYER_ROWS: "2240"
+      LAYER_ROWS_NOT_CHECKED: "355"
+      LAYER_UNSUPPORTED: "232"
+      LAYER_UNSUPPORTED_NOT_CHECKED: "13"
+      LAYER_REGISTRY_LINES: "2595"
+      LAYER_UNSUPPORTED_LINES: "245"
+      LAYER_TEXT_ROWS: "1438"
+      LAYER_XML_ROWS: "235"
+      LAYER_HTML_ROWS: "120"
+      LAYER_JATS_GRID_ROWS: "164"
+      LAYER_HTML_GRID_ROWS: "71"
+      LAYER_SHEET_ROWS: "61"
+      LAYER_DOCUMENT_ROWS: "9"
+      LAYER_PDF_ROWS: "142"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: uv sync --locked --group dev
+
+      # The manifest and the two generated files, at the pinned commit and at the commit
+      # that wrote the registry. Nothing else of either tree is read.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: rewire-bio/rewire-benchmark-data
+          ref: ${{ env.STORE_REF }}
+          path: store
+          sparse-checkout: |
+            data/archive/objects
+            data/omics/layers
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: rewire-bio/rewire-benchmark-data
+          ref: ${{ env.LAYERS_REF }}
+          path: layers-ref
+          sparse-checkout: |
+            data/archive/objects
+            data/omics/layers
+      - name: The checkouts are the pinned commits, and the registry is the same file in both
+        run: |
+          for pair in "store:$STORE_REF:store_ref" "layers-ref:$LAYERS_REF:layers_ref"; do
+            IFS=: read -r folder pinned named <<< "$pair"
+            held=$(git -C "$folder" rev-parse HEAD)
+            expected=$(jq -r ".recorded_from.${named}" scripts/expected/store-layers.json)
+            if [ "$held" != "$pinned" ] || [ "$expected" != "$pinned" ]; then
+              echo "::error::${folder} is at ${held}, the workflow pins ${pinned} and the expectation names ${expected}."
+              exit 1
+            fi
+          done
+          cmp store/data/omics/layers/registry.jsonl layers-ref/data/omics/layers/registry.jsonl
+          cmp store/data/omics/layers/unsupported.jsonl layers-ref/data/omics/layers/unsupported.jsonl
+
+      - name: Libraries pdftotext is built against
+        run: brew install cmake pkg-config freetype fontconfig jpeg-turbo libpng libtiff openjpeg little-cms2
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        id: poppler
+        with:
+          path: ~/poppler
+          key: poppler-${{ runner.os }}-${{ runner.arch }}-${{ env.POPPLER_SHA256 }}-${{ env.POPPLER_DATA_SHA256 }}-${{ hashFiles('scripts/build_poppler.sh') }}
+      - name: Build the pdftotext the registry names
+        if: steps.poppler.outputs.cache-hit != 'true'
+        run: bash scripts/build_poppler.sh "$HOME/poppler"
+      - name: The pdftotext and the pdfinfo on the path are that build
+        run: |
+          echo "$HOME/poppler/bin" >> "$GITHUB_PATH"
+          echo "DYLD_LIBRARY_PATH=$HOME/poppler/lib" >> "$GITHUB_ENV"
+          for program in pdftotext pdfinfo; do
+            named=$(DYLD_LIBRARY_PATH="$HOME/poppler/lib" "$HOME/poppler/bin/${program}" -v 2>&1 | head -1)
+            expected=$(jq -r ".${program}" scripts/expected/store-layers.json)
+            if [ "$named" != "$expected" ] || [ "$expected" != "${program} version ${POPPLER}" ]; then
+              echo "::error::${program} names itself as '${named}', the expectation states '${expected}' and the workflow builds ${POPPLER}."
+              exit 1
+            fi
+          done
+          {
+            echo "## What the PDF rows were derived with"
+            echo
+            echo '```'
+            echo "runner image ${ImageOS:-unknown} ${ImageVersion:-unknown}, poppler cache hit: ${{ steps.poppler.outputs.cache-hit || 'false' }}"
+            brew list --versions freetype fontconfig jpeg-turbo libpng libtiff openjpeg little-cms2 || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # About 670 MB the first time and nothing after it, until the manifest changes.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: objects
+          key: layer-objects-${{ hashFiles('store/data/archive/objects/*.jsonl') }}
+      - name: Fetch the objects a public release mirrors
+        run: uv run --no-sync python scripts/fetch_public_objects.py store objects
+
+      - name: Derive every layer again and require the committed lines
+        run: |
+          set -o pipefail
+          uv run --no-sync python scripts/verify_store_layers.py store layers-ref objects --json layers.json 2>&1 | tee layers.log
+          for pin in "objects.public:$LAYER_OBJECTS" "objects.checked:$LAYER_OBJECTS" "objects.restricted:$LAYER_RESTRICTED_OBJECTS" "objects.restricted_not_checked:$LAYER_RESTRICTED_OBJECTS" "rows.expected:$LAYER_REGISTRY_LINES" "rows.made:$LAYER_ROWS" "rows.same:$LAYER_ROWS" "rows_not_checked:$LAYER_ROWS_NOT_CHECKED" "unsupported.expected:$LAYER_UNSUPPORTED_LINES" "unsupported.made:$LAYER_UNSUPPORTED" "unsupported.same:$LAYER_UNSUPPORTED" "not_checked.unsupported:$LAYER_UNSUPPORTED_NOT_CHECKED" "written[\"data/omics/layers/registry.jsonl\"].same:$LAYER_REGISTRY_LINES" "written[\"data/omics/layers/unsupported.jsonl\"].same:$LAYER_UNSUPPORTED_LINES" "normalisers[\"text-utf8@1\"].same:$LAYER_TEXT_ROWS" "normalisers[\"europepmc-fulltext-xml@1\"].same:$LAYER_XML_ROWS" "normalisers[\"html-text@1\"].same:$LAYER_HTML_ROWS" "normalisers[\"jats-table-grid@1\"].same:$LAYER_JATS_GRID_ROWS" "normalisers[\"html-table-grid@1\"].same:$LAYER_HTML_GRID_ROWS" "normalisers[\"ooxml-sheet-tsv@1\"].same:$LAYER_SHEET_ROWS" "normalisers[\"ooxml-document-text@1\"].same:$LAYER_DOCUMENT_ROWS" "normalisers[\"pdf-text-layer@1\"].same:$LAYER_PDF_ROWS" "stale_rows:$LAYER_ROWS" "stale.store:$LAYER_ROWS"; do
+            measured=$(jq -r ".${pin%:*}" layers.json)
+            if [ "$measured" != "${pin##*:}" ]; then
+              echo "::error::The layer gate measured ${pin%:*} as ${measured} against a pin of ${pin##*:}."
+              exit 1
+            fi
+          done
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## Layers"
+            if [ -f layers.log ]; then echo; echo '```'; cat layers.log; echo '```'; fi
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -3,12 +3,12 @@
 `scripts/verify_store_digests.py`, `scripts/verify_store_layout.py`,
 `scripts/verify_store_schema.py`, `scripts/verify_store_validation.py`,
 `scripts/verify_store_writes.py`, `scripts/verify_store_locators.py`,
-`scripts/verify_store_checks.py` and `scripts/verify_store_tables.py` each call one function
-here and do nothing else, so
-everything a gate does is inside the library, where the tests and the coverage floor reach
-it.
+`scripts/verify_store_checks.py`, `scripts/verify_store_tables.py`,
+`scripts/verify_store_archive.py` and `scripts/verify_store_layers.py` each call one function
+here and do nothing else, so everything a gate does is inside the library, where the tests
+and the coverage floor reach it.
 
-Exit status, for all eight: 0 when everything reproduces, 1 on any disagreement, 2 when the run
+Exit status, for every one: 0 when everything reproduces, 1 on any disagreement, 2 when the run
 could not be made. A disagreement never exits 2, and a run that could not be made never
 exits 1, so CI can tell a store that has drifted from a job that was set up wrongly.
 
@@ -26,7 +26,16 @@ import tempfile
 from collections.abc import Callable, Sequence
 from pathlib import Path
 
-from rewire_evidence import agreement, archiveparity, checkparity, conformance, locators, replay, tableparity
+from rewire_evidence import (
+    agreement,
+    archiveparity,
+    checkparity,
+    conformance,
+    layerparity,
+    locators,
+    replay,
+    tableparity,
+)
 from rewire_evidence.jsonl import StoreError
 from rewire_evidence.parity import (
     compare_content,
@@ -42,6 +51,8 @@ from rewire_evidence.weburl import UndecidedHost
 
 #: Printed in full up to here, so a failure names causes without burying the summary.
 PROBLEMS_SHOWN = 20
+#: A problem that quotes a registry line is cut to this many characters when it is printed.
+PROBLEM_WIDTH = 600
 
 
 def _parser(description: str | None) -> argparse.ArgumentParser:
@@ -433,5 +444,52 @@ def _archive(root: Path, expected: Path, report_file: Path | None) -> int:
         f"\nAll {counts['manifest_rows']:,} manifest rows, {counts['receipts']:,} receipts and "
         f"{counts['candidates']:,} candidates are read as the TypeScript reads them, and "
         f"{report.commands.same} commands print what its commands print.\n"
+    )
+    return 0
+
+
+def layers_gate(arguments: Sequence[str], expected: Path, description: str | None = None) -> int:
+    """Run the layer gate and print what it found. Returns the status.
+
+    `expected` names the committed registry by digest and the manifest it was written from,
+    and is used when the command line names no other.
+    """
+    parser = _parser(description)
+    parser.add_argument(
+        "layers_root", type=Path, help="a checkout holding the manifest the registry was written from"
+    )
+    parser.add_argument("objects", type=Path, help="a folder of objects, laid out as the cache is")
+    parser.add_argument("--expected", type=Path, default=expected, help="the pinned expectation")
+    parser.add_argument("--json", type=Path, default=None, help="write what was measured here")
+    args = parser.parse_args(arguments)
+    return _run(lambda: _layers(args.root, args.layers_root, args.objects, args.expected, args.json))
+
+
+def _layers(root: Path, layers_root: Path, objects: Path, expected: Path, report_file: Path | None) -> int:
+    recorded = conformance.read_recorded(expected)
+    sys.stdout.write(
+        f"expecting the layer registry committed at {conformance.recorded_ref(recorded)}, line for line\n"
+    )
+    report = layerparity.verify_layers(root, layers_root, objects, recorded)
+    sys.stdout.write(f"{layerparity.summary(report)}\n")
+    _write_report(report_file, layerparity.to_json(report))
+
+    for problem in report.problems[:PROBLEMS_SHOWN]:
+        sys.stderr.write(f"  {problem[:PROBLEM_WIDTH]}\n")
+    rows, unsupported = report.total(unsupported=False), report.total(unsupported=True)
+    if report.problems:
+        sys.stderr.write(
+            f"\n{len(report.problems):,} problems. {rows.same:,} of {rows.expected:,} registry rows "
+            "are reproduced.\n"
+        )
+        return 1
+    if not rows.same:
+        sys.stderr.write("Cannot verify: with no object held, the derivation is held to nothing\n")
+        return 2
+    sys.stdout.write(
+        f"\n{rows.same:,} registry rows and {unsupported.same:,} unsupported rows are derived again from "
+        f"{report.objects['checked']:,} objects, each the committed line. "
+        f"{rows.expected - rows.same:,} rows of {report.objects['restricted_not_checked']:,} restricted "
+        "objects were not checked.\n"
     )
     return 0

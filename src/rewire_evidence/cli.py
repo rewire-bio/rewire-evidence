@@ -15,6 +15,9 @@
     rewire-evidence archive reclassify [--root ROOT] [--dry-run] [--json] [--quiet]
     rewire-evidence licence triage [--root ROOT] [--date YYYY-MM-DD] [--out QUEUE.tsv] [--stdout]
     rewire-evidence licence counts [ROOT]
+    rewire-evidence layers build [--root ROOT]
+    rewire-evidence layers check [--root ROOT]
+    rewire-evidence layers thresholds
 
 `check` loads the store at ROOT, the working directory by default, through every check
 `loadRecords` makes, and prints the line the TypeScript prints: how many records match their
@@ -66,6 +69,14 @@ TypeScript prints and exit 0, as it does whatever the counts are. The baseline i
 cannot be read is refused in a line with status 1, and a ROOT with no `data` folder is
 refused by name.
 
+`layers build` derives every text layer and table grid from the objects the cache under ROOT
+holds, and writes `data/omics/layers/registry.jsonl` and `unsupported.jsonl`. `layers check`
+derives them in memory and says whether the two committed files are what the store
+produces. Both print what the TypeScript prints, with a line on standard error after each
+hundred objects, and exit 1 when an object could not be read, or for `check` on any
+difference. `layers thresholds` prints the thresholds of the sanity gate. The TypeScript's
+`coverage`, `surface` and `show` are not here.
+
 Status 2 is for a store this library cannot judge, which is neither accepted nor refused:
 a URL whose host needs IDNA mapping (`weburl.UndecidedHost`). The TypeScript judges it. It
 is also what a command line that cannot be read exits with.
@@ -89,7 +100,7 @@ from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import TextIO
 
-from rewire_evidence import archivesaid, ratchet
+from rewire_evidence import archivesaid, layersaid, ratchet
 from rewire_evidence.agreement import check_summary
 from rewire_evidence.archivesaid import Said
 from rewire_evidence.attributes import said
@@ -194,6 +205,19 @@ def _parser() -> argparse.ArgumentParser:
     counted.add_argument(
         "root", type=Path, nargs="?", default=Path(), help="a rewire-benchmark-data checkout"
     )
+    layered = groups.add_parser("layers", help="the layer registry").add_subparsers(
+        dest="action", required=True
+    )
+    for name, about in (
+        ("build", "derive every layer and write the registry"),
+        ("check", "derive every layer and compare with the committed registry"),
+        ("thresholds", "the thresholds of the sanity gate"),
+    ):
+        command = layered.add_parser(name, help=about)
+        command.add_argument("--root", type=Path, default=Path(), help="a rewire-benchmark-data checkout")
+        # `records check` is an action too, so these are told apart by both words. What a
+        # command's own parser sets replaces what the parser above it set.
+        command.set_defaults(action=f"layers {name}")
     actions = commands.add_subparsers(dest="action", required=True)
     check = actions.add_parser("check", help="hold every record to every check loadRecords makes")
     check.add_argument("root", type=Path, nargs="?", default=Path(), help="a rewire-benchmark-data checkout")
@@ -417,6 +441,18 @@ def _counts(args: argparse.Namespace) -> Said:
     return archivesaid.say_counts(args.root)
 
 
+def _layers_build(args: argparse.Namespace) -> Said:
+    return layersaid.say_build(args.root)
+
+
+def _layers_check(args: argparse.Namespace) -> Said:
+    return layersaid.say_check(args.root)
+
+
+def _layers_thresholds(_: argparse.Namespace) -> Said:
+    return layersaid.say_thresholds()
+
+
 _ACTIONS: dict[str, Callable[[argparse.Namespace], str | Said]] = {
     "check": _check,
     "descriptions": _listed,
@@ -432,6 +468,9 @@ _ACTIONS: dict[str, Callable[[argparse.Namespace], str | Said]] = {
     "reclassify": _reclassify,
     "triage": _triage,
     "counts": _counts,
+    "layers build": _layers_build,
+    "layers check": _layers_check,
+    "layers thresholds": _layers_thresholds,
 }
 #: What a write is called when it is refused, as the TypeScript calls it.
 _WRITTEN = {"add": "The batch", "change": "The changed records"}

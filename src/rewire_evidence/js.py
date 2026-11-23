@@ -140,6 +140,41 @@ def number_of_text(text: str) -> float:
     return math.nan
 
 
+_DIGITS = "0123456789abcdefghijklmnopqrstuvwxyz"
+_HEX = 16
+
+
+def parse_int(text: str, radix: int = 10) -> float:
+    """`Number.parseInt(text, radix)` for a radix of 2 to 36: a number, NaN or an infinity.
+
+    JavaScript reads the longest run of digits the text opens with, after any white space and
+    one sign, and after `0x` when the radix is 16. `int` refuses text with anything after the
+    digits. A run too long for a double is an infinity, which `Number.isInteger` refuses.
+
+    `int` also refuses a run of more than 4,300 digits in a radix that is no power of two,
+    whatever its value, so the zeros a number opens with are dropped before it reads the
+    rest. What is then still too long to read is past any double.
+    """
+    rest = text.lstrip(SPACE)
+    negative = rest.startswith("-")
+    if rest[:1] in {"+", "-"}:
+        rest = rest[1:]
+    if radix == _HEX and rest[:2] in {"0x", "0X"}:
+        rest = rest[2:]
+    allowed = _DIGITS[:radix]
+    length = 0
+    while length < len(rest) and rest[length].lower() in allowed and rest[length].isascii():
+        length += 1
+    if not length:
+        return math.nan
+    try:
+        value = float(int(rest[:length].lstrip("0") or "0", radix))
+    except (OverflowError, ValueError):
+        # More digits than a double holds, or than `int` will read at once.
+        value = math.inf
+    return -value if negative else value
+
+
 def number_of(value: JsonValue) -> float:
     """`Number(value)` for a value `JSON.parse` returned, as a comparison converts it."""
     if value is None:

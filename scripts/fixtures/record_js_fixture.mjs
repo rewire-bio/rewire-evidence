@@ -23,6 +23,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import zlib from "node:zlib";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -287,8 +288,39 @@ const compared = (text, field) => {
   return written === undefined ? { undefined: true } : written;
 };
 
+// What the layer derivation leans on. parseInt reads a prefix; a Buffer read as text puts
+// U+FFFD where the bytes are not the encoding; `.` stops at a line terminator; toUpperCase
+// can make ASCII of a letter that is not; and inflateRawSync reads one stream and no more.
+// A number written with more leading zeros than Python's int reads at once is still the number.
+const zeros = (count) => "0".repeat(count);
+const paddedIntegers = [zeros(5000) + "65", zeros(4298) + "65", zeros(4299) + "65", zeros(20000) + "2", zeros(5000), "-" + zeros(5000), "-" + zeros(5000) + "7", "+" + zeros(5000) + "7px", zeros(5000) + "9".repeat(400), "1" + zeros(5000), "-1" + zeros(5000), zeros(4301) + "x"];
+const integerTexts = ["12", " 12", "12px", "px", "", "-0", "-7", "+7", "0x1F", "1e3", "1.9", "\u00a012", "\ufeff12", "\u0085 12", "012", "0o17", "9".repeat(400), "-" + "9".repeat(400), "9007199254740993", "\uff11\uff12", "1_000", "--1", "+-1", "7 7", "\n\t7", ...paddedIntegers];
+const integerRadixes = [[10, integerTexts], [7, ["16", zeros(5000) + "16", "6".repeat(5000), "7"]], [8, ["17", "0017", "8", "78", "-17", "", " 644 ", "1.5", "0o17", "00000001750", "\u0080\u0000", "7".repeat(400), zeros(5000) + "17", "7".repeat(5000)]], [16, ["F0B7", "0xF0B7", "0XF0B7", "f0b7", "g", "", "10FFFF", "110000", "-1", "D800", "x41", "0x", "\u212a", "F".repeat(400), zeros(5000) + "41", "0x" + zeros(5000) + "41", "F".repeat(5000)]]];
+const bufferTexts = [["utf8", ["", "61", "c3a9", "c3", "c328", "e282ac", "e282", "e28228", "eda080", "edb080", "f09f9880", "f09f98", "f8888080", "c080", "c0af", "ff", "fe", "80", "bf61", "efbbbf61", "efbbbfefbbbf", "f4908080", "e0809f", "f0808080", "61ff62ff", "00", "ef", "efbb"]], ["latin1", ["", "61", "e9ff00", "8085a0"]], ["utf16le", ["", "61", "6100", "610062", "3dd800de", "3dd8", "00de", "3dd86100", "00de3dd8", "fffe6100", "feff", "6100620063"]]];
+const nulTexts = ["a\u0000b", "a", "", "\u0000", "a\u0000b\nc", "a\u0000b\nc\u0000d", "a\u0000b\rc", "a\u0000\u2028", "a\u0000\u2029b\u0000", "a\u0000b\u0085c", "\u0000\u0000", "a\nb", "a\u0000b\u000bc"];
+const upperAscii = [];
+for (let code = 0x80; code <= 0x10ffff; code += 1) {
+  if (code >= 0xd800 && code <= 0xdfff) continue;
+  const upper = String.fromCodePoint(code).toUpperCase();
+  if (/^[\x00-\x7f]+$/.test(upper)) upperAscii.push([code.toString(16), upper]);
+}
+const inflated = (hex) => {
+  try {
+    return zlib.inflateRawSync(Buffer.from(hex, "hex"), { maxOutputLength: 16 }).toString("hex");
+  } catch {
+    return null;
+  }
+};
+const deflated = (text) => zlib.deflateRawSync(Buffer.from(text, "latin1")).toString("hex");
+const rawStreams = [deflated("abc"), deflated(""), deflated("abc") + "00ff", deflated("abc").slice(0, -2), deflated("a".repeat(16)), deflated("a".repeat(17)), "", "ff", "0000", deflated("abc") + deflated("def")];
+
 const semantics = {
   source: "node scripts/fixtures/record_js_fixture.mjs",
+  parse_int: integerRadixes.flatMap(([radix, texts]) => texts.map((text) => [text, radix, String(Number.parseInt(text, radix))])),
+  buffer_text: bufferTexts.flatMap(([encoding, hexes]) => hexes.map((hex) => [encoding, hex, Buffer.from(hex, "hex").toString(encoding)])),
+  until_nul: nulTexts.map((text) => [text, text.replace(/\0.*$/, "")]),
+  upper_ascii: upperAscii,
+  inflate_raw: rawStreams.map((hex) => [hex, inflated(hex)]),
   key_order: objects.map((text) => [text, JSON.stringify(JSON.parse(text))]),
   canonical_line: objects.map((text) => [text, canonicalLine(JSON.parse(text))]),
   canonical_json: objects.map((text) => [text, canonicalJson(JSON.parse(text))]),

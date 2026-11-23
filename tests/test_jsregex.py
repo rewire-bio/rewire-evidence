@@ -16,7 +16,7 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
-from rewire_evidence import cells, checks, jsregex, locator, tables
+from rewire_evidence import cells, checks, jsregex, locator, sanity, tables
 from rewire_evidence.js import paired, unit_text
 from rewire_evidence.jsregex import Found, JsPattern, Unsupported
 
@@ -58,7 +58,13 @@ def every_pattern() -> list[tuple[str, str]]:
     return [
         *(
             (held.source, held.flags)
-            for held in (*locator.PATTERNS, *cells.PATTERNS, *checks.PATTERNS, *tables.PATTERNS)
+            for held in (
+                *locator.PATTERNS,
+                *cells.PATTERNS,
+                *checks.PATTERNS,
+                *tables.PATTERNS,
+                *sanity.PATTERNS,
+            )
         ),
         *((case["source"], case["flags"]) for case in CASES["patterns"]),
     ]
@@ -363,7 +369,7 @@ def test_the_node_the_fixtures_job_runs_is_the_one_the_sets_were_recorded_with()
     assert RECORDED["recorded_from"]["unicode"] == held["recorded_from"]["unicode"] == "17.0"
     # Every action is named by a commit, which a tag is not.
     used = re.findall(r"uses: (\S+)", workflow)
-    assert len(used) == workflow.count("uses:") == 12
+    assert len(used) == workflow.count("uses:") == 18
     assert all(re.fullmatch(r"[\w./-]+@[0-9a-f]{40}", action) for action in used)
 
 
