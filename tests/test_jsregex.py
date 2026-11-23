@@ -16,7 +16,7 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
-from rewire_evidence import cells, checks, jsregex, locator, sanity, tables
+from rewire_evidence import aligned, cells, checks, jsregex, locator, prose, resolve, sanity, tables
 from rewire_evidence.js import paired, unit_text
 from rewire_evidence.jsregex import Found, JsPattern, Unsupported
 
@@ -64,6 +64,9 @@ def every_pattern() -> list[tuple[str, str]]:
                 *checks.PATTERNS,
                 *tables.PATTERNS,
                 *sanity.PATTERNS,
+                *aligned.PATTERNS,
+                *prose.PATTERNS,
+                *resolve.PATTERNS,
             )
         ),
         *((case["source"], case["flags"]) for case in CASES["patterns"]),
@@ -357,19 +360,25 @@ def test_the_node_the_fixtures_job_runs_is_the_one_the_sets_were_recorded_with()
     # one build and the recordings name the same one.
     workflow = (HERE.parent / ".github/workflows/checks.yml").read_text("utf-8")
     pinned = re.findall(r'node-version: "([^"]+)"', workflow)
-    assert len(pinned) == 2
+    # The checks job reproduces two fixtures on another Node. The fixtures job and the layers
+    # job run the data repository's TypeScript, and both run it on the Node it was recorded with.
+    assert len(pinned) == 3
+    assert pinned[1] == pinned[2]
     assert all(re.fullmatch(r"\d+\.\d+\.\d+", version) for version in pinned)
     held = json.loads((HERE.parent / "src/rewire_evidence" / jsregex.CLASSES_FILE).read_text("utf-8"))
     lowercase = json.loads((HERE.parent / "src/rewire_evidence/data/lowercase.json").read_text("utf-8"))
     powers = json.loads((HERE.parent / "src/rewire_evidence/data/powers-of-ten.json").read_text("utf-8"))
     checked = json.loads((HERE / "fixtures/checks.json").read_text("utf-8"))
     tabled = json.loads((HERE / "fixtures/tables.json").read_text("utf-8"))
-    for recorded in (RECORDED, held, lowercase, powers, checked, tabled):
+    units = json.loads((HERE.parent / "src/rewire_evidence" / jsregex.CASE_UNITS_FILE).read_text("utf-8"))
+    spanned = json.loads((HERE / "fixtures/spans.json").read_text("utf-8"))
+    measured = json.loads((HERE.parent / "scripts/expected/store-spans.json").read_text("utf-8"))
+    for recorded in (RECORDED, held, lowercase, powers, checked, tabled, units, spanned, measured):
         assert recorded["recorded_from"]["node"] == f"v{pinned[1]}"
     assert RECORDED["recorded_from"]["unicode"] == held["recorded_from"]["unicode"] == "17.0"
     # Every action is named by a commit, which a tag is not.
     used = re.findall(r"uses: (\S+)", workflow)
-    assert len(used) == workflow.count("uses:") == 18
+    assert len(used) == workflow.count("uses:") == 20
     assert all(re.fullmatch(r"[\w./-]+@[0-9a-f]{40}", action) for action in used)
 
 
