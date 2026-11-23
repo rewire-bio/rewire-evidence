@@ -18,7 +18,10 @@
 //
 //   store-spans.jsonl   the lines scripts/omics/extract/measure-store-spans.ts writes: one for
 //                       each result, with the layer and the range of the span it resolves to,
-//                       or the reason it was refused. It holds the text of each span.
+//                       or the reason it was refused. It holds the text of each span. The
+//                       lines are made here, from the measurement that also gives rows.jsonl,
+//                       and then the pinned script is run itself and has to write the same
+//                       bytes, or the recording ends.
 //   rows.jsonl          one line for each result with everything else the measurement decided:
 //                       the layers it had to choose from and how many it tried, both ranges of
 //                       the span, the route to a grid, the four readings of the stored value,
@@ -39,6 +42,7 @@
 import childProcess, { execFileSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -221,6 +225,28 @@ for (const item of report.work) {
 digests["store-spans.jsonl"] = keep("store-spans.jsonl", `${spans.join("\n")}\n`);
 digests["rows.jsonl"] = keep("rows.jsonl", `${rows.join("\n")}\n`);
 
+// The pinned script itself. The lines above are written here because the script keeps its
+// report to itself and rows.jsonl needs it, so the script is run too, and what it writes has
+// to be the bytes above. It runs in this process, where pdftotext is asked again, measures
+// the store in the working directory once more and writes to the file it is given.
+const SCRIPT = "scripts/omics/extract/measure-store-spans.ts";
+const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "store-spans-"));
+const argv = process.argv;
+const logged = console.error;
+let fromScript;
+try {
+  process.argv = [argv[0], path.join(code, SCRIPT), path.join(scratch, "store-spans.jsonl")];
+  console.error = () => {};
+  await import(pathToFileURL(path.join(code, SCRIPT)).href);
+  fromScript = sha256(fs.readFileSync(path.join(scratch, "store-spans.jsonl")));
+} finally {
+  process.argv = argv;
+  console.error = logged;
+  fs.rmSync(scratch, { recursive: true, force: true });
+}
+if (fromScript !== digests["store-spans.jsonl"])
+  throw new Error(`${SCRIPT} writes a file of digest ${fromScript} and the lines recorded for it have ${digests["store-spans.jsonl"]}`);
+
 // The other arm. Only the results it decides otherwise are written.
 const legacy = measure({ root: ".", legacyQuote: true, log: () => {} });
 if (legacy.work.length !== rows.length) throw new Error("the two arms measured another number of results");
@@ -289,5 +315,5 @@ if (pdftotext.without_a_text > 0 || pdftotext.gave_two_texts.length > 0 || unrea
 console.log(
   `Recorded ${summary.results} results at ${storeRef} over ${summary.objects_held} of ${summary.objects} objects: ` +
     `${summary.resolved} resolved, ${summary.refused} refused, ${summary.layers_read} layers read, ` +
-    `${summary.determined} results decided by the objects held.`,
+    `${summary.determined} results decided by the objects held. ${SCRIPT} wrote the same store-spans.jsonl.`,
 );
