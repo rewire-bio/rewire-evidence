@@ -399,6 +399,8 @@ function recordings() {
     const out = fs.mkdtempSync(path.join(os.tmpdir(), "recording-"));
     const done = spawnSync(TSX, [recorder, out, date, store], { cwd: folder, encoding: "utf8", env });
     if (done.status !== 0) throw new Error(`the store recorder failed on the ${view} view: ${done.stderr}`);
+    // How pdftotext went is of the run and not of the store, and there is none on this runner.
+    fs.rmSync(path.join(out, "pdftotext.json"));
     views[view] = everyFile(out);
     fs.rmSync(out, { recursive: true, force: true });
   }

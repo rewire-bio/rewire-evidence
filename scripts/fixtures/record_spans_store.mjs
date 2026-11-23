@@ -31,11 +31,12 @@
 //   figures.json        the figures file it writes, and
 //   figures-records.tsv the records beside it.
 //   summary.json        the commit, the Node, the counts and the SHA-256 of each file above.
+//   pdftotext.json      how many PDFs pdftotext was given, and each time it failed on one.
 //
 // The command writes its tables and figures into the checkout under the date of the run. This
 // script holds the date to the one it is given, takes the files out and puts the checkout back
 // as it was.
-import { execFileSync } from "node:child_process";
+import childProcess, { execFileSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -47,11 +48,10 @@ if (!out || !/^\d{4}-\d{2}-\d{2}$/.test(date ?? "")) {
   process.exit(2);
 }
 const store = process.cwd();
+const sha256 = (data) => crypto.createHash("sha256").update(data).digest("hex");
 const COMMAND = "scripts/omics/spans/cli.ts";
 const REPORTS = "maintenance/reports";
 const TABLES = ["class", "reason", "kind", "parse-bucket", "grid-route"];
-const sha256 = (data) => crypto.createHash("sha256").update(data).digest("hex");
-
 async function load(file) {
   const module = await import(pathToFileURL(path.join(code, file)).href);
   return { ...(module.default ?? {}), ...module };
@@ -68,6 +68,46 @@ async function exposed() {
     fs.rmSync(path.join(code, copy));
   }
 }
+
+// A measurement loses a PDF layer without a word when pdftotext fails on it: the layer has no
+// text that time, and every result on it is refused as not readable. That is a run of the
+// program going wrong and not what the TypeScript decides, so pdftotext is asked again here,
+// up to three times, and every failure is written to pdftotext.json with what it was. The
+// TypeScript reaches pdftotext through this function, which it looks up each time it calls.
+// A PDF that gives two different texts in one run is written there too, and one that still
+// has no text after four attempts ends the recording.
+const spawnSync = childProcess.spawnSync;
+const now = Date.now;
+const conversions = { calls: 0, failed: [], lost: 0, texts: new Map() };
+childProcess.spawnSync = function asked(program, given, options) {
+  // A call with no input asks pdftotext for its version, and is whether there is one at all.
+  if (program !== "pdftotext" || !options?.input) return spawnSync.call(this, program, given, options);
+  conversions.calls += 1;
+  const input = sha256(options.input);
+  let done;
+  for (let attempt = 1; attempt <= 4; attempt += 1) {
+    const started = now();
+    done = spawnSync.call(this, program, given, options);
+    if (!done.error && done.status === 0) break;
+    conversions.failed.push({
+      arguments: given,
+      input,
+      attempt,
+      milliseconds: now() - started,
+      error: done.error ? `${done.error.code ?? ""} ${done.error.message}`.trim() : null,
+      status: done.status,
+      signal: done.signal,
+      stderr: done.stderr ? done.stderr.toString("utf8").slice(-300) : null,
+    });
+  }
+  if (done.error || done.status !== 0) conversions.lost += 1;
+  else {
+    const seen = conversions.texts.get(input) ?? new Set();
+    seen.add(sha256(done.stdout));
+    conversions.texts.set(input, seen);
+  }
+  return done;
+};
 
 const storeRef = execFileSync("git", ["rev-parse", "HEAD"], { cwd: code, encoding: "utf8" }).trim();
 const { measure, runMeasureForRecording } = await exposed();
@@ -228,6 +268,24 @@ const summary = {
   sha256: digests,
 };
 fs.writeFileSync(path.join(out, "summary.json"), `${JSON.stringify(summary)}\n`);
+// What pdftotext was asked and how it went. This is of the run and not of the store, so it is
+// a file of its own that the gate does not read: a failure that asking again put right changed
+// nothing above.
+const pdftotext = {
+  conversions: conversions.calls,
+  failed: conversions.failed,
+  without_a_text: conversions.lost,
+  gave_two_texts: [...conversions.texts].filter(([, seen]) => seen.size > 1).map(([input, seen]) => ({ input, texts: [...seen] })),
+};
+fs.writeFileSync(path.join(out, "pdftotext.json"), `${JSON.stringify(pdftotext, null, 1)}\n`);
+if (pdftotext.failed.length > 0 || pdftotext.gave_two_texts.length > 0) console.error(`pdftotext: ${JSON.stringify(pdftotext)}`);
+// A layer of an object that is held and was not read: the measurement is not of the store.
+const unread = [...report.work, ...legacy.work].filter((item) => item.refusal?.reason === "layer_not_readable" && item.refusal.layer_sha256);
+if (pdftotext.without_a_text > 0 || pdftotext.gave_two_texts.length > 0 || unread.length > 0) {
+  const said = [...new Set(unread.map((item) => item.refusal.detail))].slice(0, 5).join("; ");
+  console.error(`The measurement is not of the store: ${unread.length} results were refused on a layer an object in the cache did not give. ${said}`);
+  process.exitCode = 1;
+}
 console.log(
   `Recorded ${summary.results} results at ${storeRef} over ${summary.objects_held} of ${summary.objects} objects: ` +
     `${summary.resolved} resolved, ${summary.refused} refused, ${summary.layers_read} layers read, ` +

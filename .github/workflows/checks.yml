@@ -937,6 +937,8 @@ jobs:
 
       # The TypeScript's measurement, with the data repository's locked dependencies, on the
       # Node the other recordings are made on. It writes into the checkout and puts it back.
+      # A measurement loses a PDF layer without a word when pdftotext fails on it, which it did
+      # once here, so the recorder asks pdftotext again and writes each failure down.
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "24.22.3"
@@ -993,4 +995,5 @@ jobs:
             echo "## Layers"
             if [ -f layers.log ]; then echo; echo '```'; cat layers.log; echo '```'; fi
             if [ -f spans.log ]; then echo; echo "## Spans"; echo; echo '```'; cat spans.log; echo '```'; fi
+            if [ -f spans-recorded/pdftotext.json ]; then echo; echo "### pdftotext, as the TypeScript's measurement ran it"; echo; echo '```'; cat spans-recorded/pdftotext.json; echo '```'; fi
           } >> "$GITHUB_STEP_SUMMARY"
