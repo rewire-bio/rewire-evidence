@@ -158,7 +158,7 @@ const JSON_DOC = JSON.stringify(
   1,
 );
 const JSON_DUPLICATE = '{"a": 1, "a": 2, "b": {"c": [10, 20]}}';
-const JSON_ESCAPES = '{"k\\u0041\\n\\t\\"\\\\\\/\\b\\f\\r": "v\\ud83d\\ude00", "bad": "\\u12G4", "neg": "\\u-1ab", "short": "\\u"}';
+const JSON_ESCAPES = '{"k\\u0041\\n\\t\\"\\\\\\/\\b\\f\\r": "v\\ud83d\\ude00", "bad": "\\u12G4", "neg": "\\u-1ab", "none": "\\uzzzz", "hex": "\\u0x1f"}';
 
 const SHEETS = lines(
   "\f# sheet\t1\tScores\tA1:D6",
@@ -556,6 +556,10 @@ const DOCUMENTS = [
   '"\\',
   '"\\u00e9\\u0041"',
   '"\\uD83D\\uDE00"',
+  '"\\u"',
+  '"\\u12"',
+  '"\\u12" ',
+  '"\\u 41"',
   '"tab\there"',
   '{"a":1}',
   '{"a":1,"a":2}',
