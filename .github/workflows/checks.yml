@@ -131,7 +131,9 @@ jobs:
           checked=$(jq -r .recorded_from.store_ref scripts/expected/store-checks.json)
           tabled=$(jq -r .recorded_from.store_ref scripts/expected/store-tables.json)
           archived=$(jq -r .recorded_from.store_ref scripts/expected/store-archive.json)
-          for named in "$held" "$expected" "$recorded" "$validated" "$registry" "$located" "$checked" "$tabled" "$archived"; do
+          spanned=$(jq -r .recorded_from.store_ref scripts/expected/store-spans.json)
+          said=$(jq -r .recorded_from.store_ref scripts/expected/store-spans-commands.json)
+          for named in "$held" "$expected" "$recorded" "$validated" "$registry" "$located" "$checked" "$tabled" "$archived" "$spanned" "$said"; do
             if [ "$named" != "$STORE_REF" ]; then
               echo "::error::STORE_REF is ${STORE_REF}, the checkout is ${held}, the pinned layout was measured at ${expected}, the TypeScript was recorded at ${recorded} and at ${validated}, the attribute registry was read at ${registry}, the locators at ${located}, the checks at ${checked}, the tables at ${tabled} and the archive at ${archived}. All ten must be one commit."
               exit 1
@@ -453,6 +455,31 @@ jobs:
             exit 1
           fi
 
+      # `layers coverage` and `layers surface` read the registry, the receipts and the source
+      # records, and no object, so they are held here to what the TypeScript's printed for the
+      # pinned store. The commands that read objects are held in the layers job.
+      - name: Print what the layer commands that read no object print
+        run: |
+          for at in 0 1; do
+            command=$(jq -r ".commands[${at}].argv[1]" scripts/expected/store-spans-commands.json)
+            status=0
+            uv run --no-sync rewire-evidence layers "$command" --root store > said.out 2> said.err || status=$?
+            if [ "$status" != "$(jq -r ".commands[${at}].status" scripts/expected/store-spans-commands.json)" ]; then
+              echo "::error::'layers ${command}' left with status ${status}, and the TypeScript's left with another."
+              exit 1
+            fi
+            jq -j ".commands[${at}].out" scripts/expected/store-spans-commands.json | cmp - said.out
+            jq -j ".commands[${at}].err" scripts/expected/store-spans-commands.json | cmp - said.err
+          done
+          if [ "$(jq -r '.commands | length' scripts/expected/store-spans-commands.json)" != 2 ]; then
+            echo "::error::The recording holds another number of commands than the two run here."
+            exit 1
+          fi
+          if [ -n "$(git -C store status --porcelain)" ]; then
+            echo "::error::A command wrote to the pinned store."
+            exit 1
+          fi
+
       # The one committed file the read side writes: the triage queue. It is older than the
       # pinned commit, so it is generated again from the commit that wrote it, where it has
       # to be the committed file byte for byte. The checkout holds the source records, the
@@ -667,6 +694,55 @@ jobs:
       - name: Record the layer derivation
         working-directory: store
         run: node_modules/.bin/tsx ../scripts/fixtures/record_layers_fixture.mjs
+      # Which units each UTF-16 unit matches under the `i` flag, so that a pattern built from
+      # a locator at run time is read as JavaScript reads it. Built-ins only.
+      - name: Record what each unit matches whatever its case
+        run: node scripts/fixtures/record_case_units.mjs
+      # Span resolution: what the offset index, each resolver, the dispatch, the value check,
+      # the layer readers and the figures file do with layers and locators the stored results
+      # have no like of, and what `npm run spans --` and the reading commands of `npm run
+      # layers --` print and write on small trees. It also runs the store recorder of the
+      # layers job over one of those trees, with every object and with two taken out, which is
+      # what the tests hold the span gate to. The stored results are held by the layers job.
+      - name: Record the span resolvers
+        working-directory: store
+        run: node_modules/.bin/tsx ../scripts/fixtures/record_spans_fixture.mjs
+      # The resolvers once more, on input no case was written for: locators put together at
+      # random and resolved against the recorded layers under both quote rules, and text made
+      # of the characters the two languages count, match and change the case of differently.
+      # The TypeScript runs each call here and this library runs the same calls, and no
+      # result may differ. The seed is fixed, so a red run is the same run again.
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: uv sync --locked --group dev
+      - name: Compare the span resolvers with the TypeScript on generated input
+        env:
+          SPAN_SEED: "20261123"
+          SPAN_LOCATORS: "3000"
+          SPAN_TEXTS: "6000"
+          SPAN_CALLS: "228,000"
+        run: |
+          set -o pipefail
+          (cd store && node_modules/.bin/tsx ../scripts/fixtures/compare_spans.mjs "$RUNNER_TEMP/span-calls.jsonl" "$SPAN_SEED" "$SPAN_LOCATORS" "$SPAN_TEXTS")
+          PYTHONPATH=. uv run --no-sync python scripts/fixtures/compare_spans.py "$RUNNER_TEMP/span-calls.jsonl" | tee compare-spans.log
+          if ! grep -qx "${SPAN_CALLS} calls, 0 differ" compare-spans.log; then
+            echo "::error::The comparison did not make ${SPAN_CALLS} calls with none differing."
+            exit 1
+          fi
+          gzip -9 "$RUNNER_TEMP/span-calls.jsonl"
+      # The calls and what the TypeScript returned for each, so that a difference can be looked
+      # at on another machine, which cannot make the file without the data repository's
+      # dependencies.
+      - name: Keep the generated calls
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: span-calls
+          path: ${{ runner.temp }}/span-calls.jsonl*
+          retention-days: 7
+          if-no-files-found: ignore
       - name: Keep what was recorded
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -684,6 +760,8 @@ jobs:
             tests/fixtures/tables.json
             tests/fixtures/archive.json
             tests/fixtures/layers.json
+            tests/fixtures/spans.json
+            scripts/expected/store-spans-commands.json
             scripts/expected/store-archive.json
             scripts/expected/store-archive.jsonl.gz
             scripts/expected/store-tables.json
@@ -699,6 +777,7 @@ jobs:
             scripts/expected/store-recorded-writes.json
             scripts/expected/changes
             src/rewire_evidence/data/attribute-registry.json
+            src/rewire_evidence/data/case-units.json
             src/rewire_evidence/data/lowercase.json
             src/rewire_evidence/data/pattern-classes.json
             src/rewire_evidence/data/powers-of-ten.json
@@ -741,9 +820,24 @@ jobs:
   # the proof is the gate itself: every PDF row of a public object derived again and required
   # whole, with the page count pdfinfo gives. The job writes the image and the library
   # versions into its summary, so a row that stops reproducing can be set against them.
+  #
+  # Span resolution is held here too, because it reads the same objects and derives the same
+  # PDF layers. The data repository commits totals of what its measurement found, and totals
+  # cannot show that two resolvers agree on which span a result has. So the TypeScript's own
+  # measurement is run here over the public objects, and this library's beside it, and every
+  # file the two write has to be the same: one line for each of the 52,278 results with the
+  # layer and both ranges of its span or the reason it was refused, under both arms of the
+  # quote rule, the five tables, the figures file and what the command prints.
+  #
+  # 11,125 results can be tried on a layer of a restricted object. They cannot be measured
+  # here, and are held to the lines of a recording made once over every object, which
+  # scripts/expected/store-spans.jsonl.gz holds and which holds no text of any layer. The
+  # 41,153 that the public objects decide are measured and have to have the line that
+  # recording has. The five tables and the figures the data repository commits then have to
+  # be what the results give, each taken from the measurement where there is one.
   layers:
     runs-on: macos-15
-    timeout-minutes: 40
+    timeout-minutes: 60
     env:
       LAYERS_REF: e70b112078c6ba72112155caf3b091e166a405c5
       POPPLER: "26.08.0"
@@ -769,6 +863,18 @@ jobs:
       LAYER_SHEET_ROWS: "61"
       LAYER_DOCUMENT_ROWS: "9"
       LAYER_PDF_ROWS: "142"
+      # The results the public objects decide and the ones that need a restricted object, the
+      # files a measurement writes, and the figures the data repository commits.
+      SPAN_DETERMINED: "41153"
+      SPAN_HELD: "11125"
+      SPAN_RESOLVED: "17224"
+      SPAN_FILES: "11"
+      SPAN_TABLES: "5"
+      SPAN_FIGURES: "173"
+      # The inputs of the committed figures file that have gained records since it was
+      # written, which are left as it has them when the file is held byte for byte. It is
+      # the source records, which were 1,491 and are 1,497.
+      SPAN_INPUTS_GAINED: "1"
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
@@ -778,7 +884,9 @@ jobs:
         run: uv sync --locked --group dev
 
       # The manifest and the two generated files, at the pinned commit and at the commit
-      # that wrote the registry. Nothing else of either tree is read.
+      # that wrote the registry. The pinned checkout also holds what the span measurement
+      # reads and runs: the results, the source records, the receipts, the committed reports
+      # and the TypeScript itself.
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: rewire-bio/rewire-benchmark-data
@@ -787,6 +895,13 @@ jobs:
           sparse-checkout: |
             data/archive/objects
             data/omics/layers
+            data/omics/audits
+            data/entities
+            data/evidence/results
+            maintenance/reports
+            scripts
+            shared
+            lib
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           repository: rewire-bio/rewire-benchmark-data
@@ -860,10 +975,65 @@ jobs:
             fi
           done
 
+      # The TypeScript's measurement, with the data repository's locked dependencies, on the
+      # Node the other recordings are made on. It writes into the checkout and puts it back.
+      # A measurement loses a PDF layer without a word when pdftotext fails on it, which it did
+      # once here, so the recorder asks pdftotext again and writes each failure down.
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "24.22.3"
+          cache: npm
+          cache-dependency-path: store/package-lock.json
+      - name: Install the data repository's locked dependencies
+        working-directory: store
+        run: npm ci --no-audit --no-fund
+      - name: Record the TypeScript's measurement of every result over the public objects
+        working-directory: store
+        env:
+          ARCHIVE_CACHE: ${{ github.workspace }}/objects
+        run: |
+          node_modules/.bin/tsx ../scripts/fixtures/record_spans_store.mjs "$GITHUB_WORKSPACE/spans-recorded" "$(jq -r .date ../scripts/expected/store-spans.json)"
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::error::The recording changed the pinned checkout."
+            git status --porcelain
+            exit 1
+          fi
+
+      - name: Resolve every stored locator again and require the TypeScript's lines
+        run: |
+          set -o pipefail
+          uv run --no-sync python scripts/verify_store_spans.py store objects --recorded spans-recorded --json spans.json 2>&1 | tee spans.log
+          for pin in "view:public" "objects.held:$LAYER_OBJECTS" "results:$STORE_LOCATORS" "resolved:$SPAN_RESOLVED" "rows.expected:$SPAN_DETERMINED" "rows.same:$SPAN_DETERMINED" "legacy.expected:$SPAN_DETERMINED" "legacy.same:$SPAN_DETERMINED" "held:$SPAN_HELD" "digests.expected:$SPAN_FILES" "digests.same:$SPAN_FILES" "recorded.expected:$SPAN_FILES" "recorded.same:$SPAN_FILES" "tables.expected:$SPAN_TABLES" "tables.same:$SPAN_TABLES" "figures.expected:$SPAN_FIGURES" "figures.same:$SPAN_FIGURES" "figures_file.same:true" "figures_file.gained:$SPAN_INPUTS_GAINED"; do
+            measured=$(jq -r ".${pin%:*}" spans.json)
+            if [ "$measured" != "${pin##*:}" ]; then
+              echo "::error::The span gate measured ${pin%:*} as ${measured} against a pin of ${pin##*:}."
+              exit 1
+            fi
+          done
+          if [ -n "$(git -C store status --porcelain)" ]; then
+            echo "::error::The gate wrote to the pinned checkout."
+            exit 1
+          fi
+
+      # What the two measurements wrote, kept when they disagree. It holds the text of spans
+      # in layers of public objects, and of no other.
+      - name: Keep what was measured
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: spans-measured
+          path: |
+            spans-recorded
+            spans.json
+            spans.log
+          if-no-files-found: ignore
+
       - name: Summary
         if: always()
         run: |
           {
             echo "## Layers"
             if [ -f layers.log ]; then echo; echo '```'; cat layers.log; echo '```'; fi
+            if [ -f spans.log ]; then echo; echo "## Spans"; echo; echo '```'; cat spans.log; echo '```'; fi
+            if [ -f spans-recorded/pdftotext.json ]; then echo; echo "### pdftotext, as the TypeScript's measurement ran it"; echo; echo '```'; cat spans-recorded/pdftotext.json; echo '```'; fi
           } >> "$GITHUB_STEP_SUMMARY"

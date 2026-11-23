@@ -112,6 +112,31 @@ def recorded(mode: str, atom: str) -> Ranges:
         raise Unsupported(f"what {atom} matches under {flags} has not been recorded from Node") from None
 
 
+#: Where the units each unit matches under the `i` flag are, inside the package.
+CASE_UNITS_FILE = "data/case-units.json"
+_LITERAL = re.compile(r"\\u([0-9A-F]{4})")
+
+
+@functools.cache
+def _case_units() -> Mapping[int, Ranges]:
+    text = resources.files("rewire_evidence").joinpath(CASE_UNITS_FILE).read_text("utf-8")
+    return {int(unit, 16): _ranges(held) for unit, held in json.loads(text)["matches"]}
+
+
+def recorded_or_unit(mode: str, atom: str) -> Ranges:
+    """As `recorded`, and for any one unit under the `i` flag alone, the units Node matches for it.
+
+    A pattern built from text that arrives at run time, a table's number in a caption, holds
+    letters no list of patterns names in advance. `data/case-units.json` holds the answer for
+    every unit, recorded by `scripts/fixtures/record_case_units.mjs`.
+    """
+    literal = _LITERAL.fullmatch(atom) if mode == "i" else None
+    if literal is None:
+        return recorded(mode, atom)
+    unit = int(literal[1], 16)
+    return _case_units().get(unit, ((unit, unit),))
+
+
 def _code(code: int) -> str:
     return f"\\u{code:04x}" if code <= _LAST_UNIT else f"\\U{code:08x}"
 
@@ -361,19 +386,33 @@ class Found:
 class JsPattern:
     """A JavaScript pattern. Compiled when first used, so declaring one reads no data."""
 
-    def __init__(self, source: str, flags: str = "") -> None:
-        """Hold a pattern as JavaScript writes it between the slashes, and its flags."""
+    def __init__(self, source: str, flags: str = "", lookup: Lookup = recorded) -> None:
+        """Hold a pattern as JavaScript writes it between the slashes, and its flags.
+
+        `lookup` gives the characters each set matches. A pattern built at run time takes
+        `recorded_or_unit`, which knows every letter under the `i` flag.
+        """
         self.source = source
         self.flags = flags
+        self.lookup = lookup
 
     @functools.cached_property
     def _translated(self) -> tuple[re.Pattern[str], int]:
-        text, least = translate(self.source, self.flags)
+        text, least = translate(self.source, self.flags, self.lookup)
         try:
             return re.compile(text), least
         except re.error as error:
             # Python holds a lookbehind to one width and one name to one group.
             raise Unsupported(f"/{self.source}/{self.flags} cannot be written for Python: {error}") from error
+
+    @property
+    def compiled(self) -> re.Pattern[str]:
+        """The pattern as Python runs it, for a caller that searches text in units itself.
+
+        It has no flags. `^` and `$` are written as the two ends of the text, so `match` on a
+        pattern that opens with `^` is JavaScript's `exec`.
+        """
+        return self._translated[0]
 
     @property
     def least(self) -> int:
@@ -410,6 +449,23 @@ class JsPattern:
     def test(self, text: str) -> bool:
         """`pattern.test(text)` from the start of the text, which is in units."""
         return self.exec(text) is not None
+
+    def exec_from(self, text: str, start: int) -> Found | None:
+        """`pattern.exec(text)` with `lastIndex` at `start`, for a pattern with the `g` flag.
+
+        The text is in units and so is `start`. The search still sees the text before it, as
+        JavaScript's does. A pattern with the `u` flag is refused on text that holds a
+        character beyond U+FFFF, where a place in units is not a place in characters.
+        """
+        if "g" not in self.flags:
+            # Without the flag JavaScript ignores `lastIndex` and searches from the start.
+            raise Unsupported(f"/{self.source}/{self.flags} has no g flag, so it has no place to search from")
+        if self._characters(text) is not text:
+            raise Unsupported(f"/{self.source}/{self.flags} counts characters, and this text is in units")
+        if start > len(text):
+            return None
+        found = self._translated[0].search(text, start)
+        return None if found is None else Found(found.start(), found[0], found.groupdict())
 
     def all(self, text: str) -> list[Found]:
         """`[...text.matchAll(pattern)]`: every match in turn, for a pattern with the `g` flag.

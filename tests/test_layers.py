@@ -327,14 +327,17 @@ def test_a_build_writes_the_reason_for_such_a_sheet_and_goes_on(
 ) -> None:
     monkeypatch.delenv("ARCHIVE_CACHE", raising=False)
     text = b"read after the workbook\n"
-    for data in (NO_COLUMN, text):
+    # The workbook is zipped with the time it was made, so its key is another on every run, and
+    # one run in sixteen it falls in the shard the text is in. A shard holds its rows in key order.
+    for data in sorted((NO_COLUMN, text), key=sha256_hex):
         key = sha256_hex(data)
         row = {**BASE_ROW, "sha256": key, "bytes": len(data), "source_ids": ["s1"]}
         shard = tmp_path / f"data/archive/objects/{key[0]}.jsonl"
         shard.parent.mkdir(parents=True, exist_ok=True)
-        shard.write_text(canonical_line(row) + "\n", encoding="utf-8")
+        with shard.open("a", encoding="utf-8") as file:
+            file.write(canonical_line(row) + "\n")
         cached = tmp_path / f"data/archive/cache/{key[:2]}/{key}.gz"
-        cached.parent.mkdir(parents=True)
+        cached.parent.mkdir(parents=True, exist_ok=True)
         cached.write_bytes(gzip.compress(data))
     assert cli.main(["layers", "build", "--root", str(tmp_path)]) == 0
     assert "no normaliser    1\n" in capsys.readouterr().out

@@ -264,3 +264,9 @@ def read_registry(root: Path) -> list[JsonObject]:
     """The registry as it stands. A missing file is an empty registry."""
     path = registry_path(root)
     return parsed_lines(path, LAYER_RECORD, REGISTRY_FILE, skipping=True) if path.exists() else []
+
+
+def read_unsupported(root: Path) -> list[JsonObject]:
+    """The unsupported file as it stands. A missing file is an empty one."""
+    path = unsupported_path(root)
+    return parsed_lines(path, UNSUPPORTED_RECORD, UNSUPPORTED_FILE, skipping=True) if path.exists() else []

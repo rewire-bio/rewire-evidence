@@ -361,3 +361,39 @@ def fixed(value: float, digits: int) -> str:
     )
     sign = "-" if value < 0 else ""
     return f"{sign}{whole[:-digits]}.{whole[-digits:]}" if digits else f"{sign}{whole}"
+
+
+#: Below this exponent `toPrecision` writes a number with an exponent.
+_SMALLEST_PLAIN = -6
+
+
+def precision(value: float, digits: int) -> str:
+    """`value.toPrecision(digits)`, for 1 to 100 digits.
+
+    JavaScript takes the number of that many significant digits nearest the exact value of
+    the double, and the larger of two that are equally near. It writes an exponent where the
+    number is below 0.000001 or needs more digits than it was given before the point. A
+    number that is not finite is written as `String` writes it.
+    """
+    if math.isnan(value) or math.isinf(value):
+        return "NaN" if math.isnan(value) else js_string(value)
+    sign = "-" if value < 0 else ""
+    if value == 0:
+        return f"0.{'0' * (digits - 1)}" if digits > 1 else "0"
+    exact = abs(Fraction(value))
+    exponent = len(str(exact.numerator)) - len(str(exact.denominator))
+    exponent -= exact < Fraction(10) ** exponent
+    scaled = exact / Fraction(10) ** (exponent - digits + 1)
+    rounded = (2 * scaled.numerator + scaled.denominator) // (2 * scaled.denominator)
+    if rounded == 10**digits:
+        rounded //= 10
+        exponent += 1
+    written = str(rounded)
+    if exponent < _SMALLEST_PLAIN or exponent >= digits:
+        mantissa = f"{written[0]}.{written[1:]}" if digits > 1 else written
+        return f"{sign}{mantissa}e{'+' if exponent >= 0 else '-'}{abs(exponent)}"
+    if exponent == digits - 1:
+        return f"{sign}{written}"
+    if exponent >= 0:
+        return f"{sign}{written[: exponent + 1]}.{written[exponent + 1 :]}"
+    return f"{sign}0.{'0' * -(exponent + 1)}{written}"

@@ -18,6 +18,15 @@
     rewire-evidence layers build [--root ROOT]
     rewire-evidence layers check [--root ROOT]
     rewire-evidence layers thresholds
+    rewire-evidence layers coverage [--root ROOT]
+    rewire-evidence layers surface [--root ROOT]
+    rewire-evidence layers show [--root ROOT] SOURCE-OR-OBJECT
+    rewire-evidence spans measure [--root ROOT] [--out DIR] [--date YYYY-MM-DD]
+                                  [--no-grid] [--no-sheet] [--legacy-quote]
+    rewire-evidence spans retag [--root ROOT]
+    rewire-evidence spans control [--root ROOT]
+    rewire-evidence spans value-check [--root ROOT]
+    rewire-evidence spans show [--root ROOT] RESULT
 
 `check` loads the store at ROOT, the working directory by default, through every check
 `loadRecords` makes, and prints the line the TypeScript prints: how many records match their
@@ -74,8 +83,21 @@ holds, and writes `data/omics/layers/registry.jsonl` and `unsupported.jsonl`. `l
 derives them in memory and says whether the two committed files are what the store
 produces. Both print what the TypeScript prints, with a line on standard error after each
 hundred objects, and exit 1 when an object could not be read, or for `check` on any
-difference. `layers thresholds` prints the thresholds of the sanity gate. The TypeScript's
-`coverage`, `surface` and `show` are not here.
+difference. `layers thresholds` prints the thresholds of the sanity gate. `layers coverage`
+puts every source in one bucket by what the archive holds for it, `layers surface` says how
+much text that is and what would make the rest readable, and `layers show` lists the layers
+of a source or of an object and prints the opening of the best one.
+
+`spans measure` resolves the locator of every stored result against the layers the archive
+holds, prints five tables and writes them under ROOT's `maintenance/reports`, or under `--out`,
+named for the date of the run or for `--date`. Where they go to ROOT's own reports folder it
+also writes `span-resolution-figures.json` and the records beside it. It writes nothing with
+`--no-grid`, `--no-sheet` or `--legacy-quote`, each of which is one arm of a pair, and nothing
+when an input moved while it measured, which exits 1. `SPAN_DETAIL` names a file for one
+line to each result, as it does for the TypeScript. `spans retag` rewrites each tagged figure
+in the documents the figures file names. `spans control`, `spans value-check` and `spans show`
+measure and print, and write nothing. All of them need the object cache, and pdftotext for
+any PDF layer.
 
 Status 2 is for a store this library cannot judge, which is neither accepted nor refused:
 a URL whose host needs IDNA mapping (`weburl.UndecidedHost`). The TypeScript judges it. It
@@ -100,7 +122,7 @@ from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import TextIO
 
-from rewire_evidence import archivesaid, layersaid, ratchet
+from rewire_evidence import archivesaid, layersaid, ratchet, spansaid
 from rewire_evidence.agreement import check_summary
 from rewire_evidence.archivesaid import Said
 from rewire_evidence.attributes import said
@@ -154,7 +176,7 @@ def _date(given: str) -> str:
     return given
 
 
-def _parser() -> argparse.ArgumentParser:
+def _parser() -> argparse.ArgumentParser:  # noqa: PLR0915 - one command to a few lines
     parser = argparse.ArgumentParser(
         prog="rewire-evidence", description="Check a store of benchmark records, and write to it."
     )
@@ -212,12 +234,42 @@ def _parser() -> argparse.ArgumentParser:
         ("build", "derive every layer and write the registry"),
         ("check", "derive every layer and compare with the committed registry"),
         ("thresholds", "the thresholds of the sanity gate"),
+        ("coverage", "every source by what the archive holds of it"),
+        ("surface", "how much text exists and what would make the rest readable"),
+        ("show", "the layers of a source or an object"),
     ):
         command = layered.add_parser(name, help=about)
         command.add_argument("--root", type=Path, default=Path(), help="a rewire-benchmark-data checkout")
         # `records check` is an action too, so these are told apart by both words. What a
         # command's own parser sets replaces what the parser above it set.
         command.set_defaults(action=f"layers {name}")
+        if name == "show":
+            command.add_argument(
+                "named", metavar="SOURCE-OR-OBJECT", help="a source ID or an object's SHA-256"
+            )
+    spanned = groups.add_parser("spans", help="span resolution").add_subparsers(dest="action", required=True)
+    for name, about in (
+        ("measure", "resolve every stored locator and write the tables"),
+        ("retag", "rewrite each tagged figure in the documents to its measured value"),
+        ("control", "span outcomes against the committed value-check files"),
+        ("value-check", "what the numeric value check accepts"),
+        ("show", "what the measurement decided about one result"),
+    ):
+        command = spanned.add_parser(name, help=about)
+        command.add_argument("--root", type=Path, default=Path(), help="a rewire-benchmark-data checkout")
+        command.set_defaults(action=f"spans {name}")
+        if name == "show":
+            command.add_argument("result", metavar="RESULT", help="the ID of a result")
+        if name == "measure":
+            command.add_argument("--out", type=Path, default=None, help="write the tables to this folder")
+            command.add_argument("--date", type=_date, default=None, help="the date the tables are named for")
+            command.add_argument("--no-grid", action="store_true", help="read no table grid")
+            command.add_argument(
+                "--no-sheet", action="store_true", help="leave a sheet layer's blocks unread"
+            )
+            command.add_argument(
+                "--legacy-quote", action="store_true", help="select the quote as before the label rule"
+            )
     actions = commands.add_subparsers(dest="action", required=True)
     check = actions.add_parser("check", help="hold every record to every check loadRecords makes")
     check.add_argument("root", type=Path, nargs="?", default=Path(), help="a rewire-benchmark-data checkout")
@@ -390,6 +442,11 @@ def _parse(args: argparse.Namespace) -> str:
     )
 
 
+def _seconds() -> float:
+    """A clock for how long a measurement took."""
+    return time.monotonic()
+
+
 def _milliseconds() -> int:
     """`Date.now()`."""
     return time.time_ns() // 1_000_000
@@ -453,6 +510,48 @@ def _layers_thresholds(_: argparse.Namespace) -> Said:
     return layersaid.say_thresholds()
 
 
+def _layers_coverage(args: argparse.Namespace) -> Said:
+    return spansaid.say_coverage(args.root)
+
+
+def _layers_surface(args: argparse.Namespace) -> Said:
+    return spansaid.say_surface(args.root)
+
+
+def _layers_show(args: argparse.Namespace) -> Said:
+    return spansaid.say_show_layers(args.root, args.named)
+
+
+def _spans_measure(args: argparse.Namespace) -> Said:
+    detail = os.environ.get("SPAN_DETAIL")
+    return spansaid.say_measure(
+        args.root,
+        args.out,
+        today() if args.date is None else args.date,
+        grid=not args.no_grid,
+        sheet=not args.no_sheet,
+        legacy_quote=args.legacy_quote,
+        detail=Path(detail) if detail else None,
+        seconds=_seconds,
+    )
+
+
+def _spans_retag(args: argparse.Namespace) -> Said:
+    return spansaid.say_retag(args.root)
+
+
+def _spans_control(args: argparse.Namespace) -> Said:
+    return spansaid.say_control(args.root)
+
+
+def _spans_value_check(args: argparse.Namespace) -> Said:
+    return spansaid.say_value_check(args.root)
+
+
+def _spans_show(args: argparse.Namespace) -> Said:
+    return spansaid.say_show(args.root, args.result)
+
+
 _ACTIONS: dict[str, Callable[[argparse.Namespace], str | Said]] = {
     "check": _check,
     "descriptions": _listed,
@@ -471,6 +570,14 @@ _ACTIONS: dict[str, Callable[[argparse.Namespace], str | Said]] = {
     "layers build": _layers_build,
     "layers check": _layers_check,
     "layers thresholds": _layers_thresholds,
+    "layers coverage": _layers_coverage,
+    "layers surface": _layers_surface,
+    "layers show": _layers_show,
+    "spans measure": _spans_measure,
+    "spans retag": _spans_retag,
+    "spans control": _spans_control,
+    "spans value-check": _spans_value_check,
+    "spans show": _spans_show,
 }
 #: What a write is called when it is refused, as the TypeScript calls it.
 _WRITTEN = {"add": "The batch", "change": "The changed records"}
