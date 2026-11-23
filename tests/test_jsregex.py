@@ -378,7 +378,7 @@ def test_the_node_the_fixtures_job_runs_is_the_one_the_sets_were_recorded_with()
     assert RECORDED["recorded_from"]["unicode"] == held["recorded_from"]["unicode"] == "17.0"
     # Every action is named by a commit, which a tag is not.
     used = re.findall(r"uses: (\S+)", workflow)
-    assert len(used) == workflow.count("uses:") == 20
+    assert len(used) == workflow.count("uses:") == 22
     assert all(re.fullmatch(r"[\w./-]+@[0-9a-f]{40}", action) for action in used)
 
 

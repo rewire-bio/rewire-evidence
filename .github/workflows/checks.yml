@@ -707,6 +707,42 @@ jobs:
       - name: Record the span resolvers
         working-directory: store
         run: node_modules/.bin/tsx ../scripts/fixtures/record_spans_fixture.mjs
+      # The resolvers once more, on input no case was written for: locators put together at
+      # random and resolved against the recorded layers under both quote rules, and text made
+      # of the characters the two languages count, match and change the case of differently.
+      # The TypeScript runs each call here and this library runs the same calls, and no
+      # result may differ. The seed is fixed, so a red run is the same run again.
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: uv sync --locked --group dev
+      - name: Compare the span resolvers with the TypeScript on generated input
+        env:
+          SPAN_SEED: "20261123"
+          SPAN_LOCATORS: "3000"
+          SPAN_TEXTS: "6000"
+          SPAN_CALLS: "228,000"
+        run: |
+          set -o pipefail
+          (cd store && node_modules/.bin/tsx ../scripts/fixtures/compare_spans.mjs "$RUNNER_TEMP/span-calls.jsonl" "$SPAN_SEED" "$SPAN_LOCATORS" "$SPAN_TEXTS")
+          PYTHONPATH=. uv run --no-sync python scripts/fixtures/compare_spans.py "$RUNNER_TEMP/span-calls.jsonl" | tee compare-spans.log
+          if ! grep -qx "${SPAN_CALLS} calls, 0 differ" compare-spans.log; then
+            echo "::error::The comparison did not make ${SPAN_CALLS} calls with none differing."
+            exit 1
+          fi
+          gzip -9 "$RUNNER_TEMP/span-calls.jsonl"
+      # The calls and what the TypeScript returned for each, so that a difference can be looked
+      # at on another machine, which cannot make the file without the data repository's
+      # dependencies.
+      - name: Keep the generated calls
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: span-calls
+          path: ${{ runner.temp }}/span-calls.jsonl*
+          retention-days: 7
+          if-no-files-found: ignore
       - name: Keep what was recorded
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -835,6 +871,10 @@ jobs:
       SPAN_FILES: "11"
       SPAN_TABLES: "5"
       SPAN_FIGURES: "173"
+      # The inputs of the committed figures file that have gained records since it was
+      # written, which are left as it has them when the file is held byte for byte. It is
+      # the source records, which were 1,491 and are 1,497.
+      SPAN_INPUTS_GAINED: "1"
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
@@ -963,7 +1003,7 @@ jobs:
         run: |
           set -o pipefail
           uv run --no-sync python scripts/verify_store_spans.py store objects --recorded spans-recorded --json spans.json 2>&1 | tee spans.log
-          for pin in "view:public" "objects.held:$LAYER_OBJECTS" "results:$STORE_LOCATORS" "resolved:$SPAN_RESOLVED" "rows.expected:$SPAN_DETERMINED" "rows.same:$SPAN_DETERMINED" "legacy.expected:$SPAN_DETERMINED" "legacy.same:$SPAN_DETERMINED" "held:$SPAN_HELD" "digests.expected:$SPAN_FILES" "digests.same:$SPAN_FILES" "recorded.expected:$SPAN_FILES" "recorded.same:$SPAN_FILES" "tables.expected:$SPAN_TABLES" "tables.same:$SPAN_TABLES" "figures.expected:$SPAN_FIGURES" "figures.same:$SPAN_FIGURES"; do
+          for pin in "view:public" "objects.held:$LAYER_OBJECTS" "results:$STORE_LOCATORS" "resolved:$SPAN_RESOLVED" "rows.expected:$SPAN_DETERMINED" "rows.same:$SPAN_DETERMINED" "legacy.expected:$SPAN_DETERMINED" "legacy.same:$SPAN_DETERMINED" "held:$SPAN_HELD" "digests.expected:$SPAN_FILES" "digests.same:$SPAN_FILES" "recorded.expected:$SPAN_FILES" "recorded.same:$SPAN_FILES" "tables.expected:$SPAN_TABLES" "tables.same:$SPAN_TABLES" "figures.expected:$SPAN_FIGURES" "figures.same:$SPAN_FIGURES" "figures_file.same:true" "figures_file.gained:$SPAN_INPUTS_GAINED"; do
             measured=$(jq -r ".${pin%:*}" spans.json)
             if [ "$measured" != "${pin##*:}" ]; then
               echo "::error::The span gate measured ${pin%:*} as ${measured} against a pin of ${pin##*:}."

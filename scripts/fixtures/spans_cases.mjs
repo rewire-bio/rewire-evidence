@@ -125,6 +125,35 @@ const PROSE = lines(
   `Astral ${FACE} sentence with a face ${FACE} in it and a tail.`,
 );
 
+// Tables whose cells stand exactly at an edge: a block above its caption that opens the layer
+// while the last line of the layer is a caption, a sub heading that starts where its parent ends
+// and one that ends where its parent starts, a cell that does the same to its heading, and a
+// cell midway between two headings.
+const TOUCHING = lines(
+  "Model   Acc", // 0
+  "Alpha   0.5",
+  "Table 20. A caption under a table that opens the layer", // 2
+  "",
+  "Table 21. Sub headings that touch their parents", // 4
+  "Model   Wide          Next",
+  "Model   AA  BB      CC  DD",
+  "Alpha   1   2       3   4",
+  "",
+  "Table 22. A cell that starts where its heading ends", // 9
+  "Model   Acc                 F1",
+  "Alpha      0.5              0.6",
+  "",
+  "Table 23. A cell that ends where its heading starts", // 13
+  "Model       Acc             F1",
+  "Alpha    0.5                0.6",
+  "",
+  "Table 24. A cell midway between two headings", // 17
+  "Model   Acc   F11",
+  "Alpha       7",
+  "",
+  "Some text.",
+  "Table 25. A caption that is the last line", // 22
+);
 const PAGED = lines("Page one line one", "", "second paragraph of page one", "\fPage two line one", "", "\fPage three");
 
 const CSV = lines(
@@ -184,6 +213,7 @@ export const layers = {
   spaces: { normaliser: "pdf-text-layer@1", text: "one  two\nthree one\ttwo\n" },
   tiny: { normaliser: "html-text@1", text: "ab\ncd" },
   aligned: { normaliser: "pdf-text-layer@1", text: ALIGNED },
+  touching: { normaliser: "pdf-text-layer@1", text: TOUCHING },
   alignedAsText: { normaliser: "text-utf8@1", text: ALIGNED },
   prose: { normaliser: "pdf-text-layer@1", text: PROSE },
   proseLines: { normaliser: "europepmc-fulltext-xml@1", text: PROSE },
@@ -206,6 +236,26 @@ export const layers = {
   astral: { normaliser: "pdf-text-layer@1", text: lines(`a${FACE}b`, `${HIGH}lone ${LOW}halves${HIGH}`, `café ${FACE}${FACE} end`, "", `${LOW}${HIGH}`) },
   long: { normaliser: "pdf-text-layer@1", text: `${many(60, FACE)}MIDDLE${many(60, "é")}${many(120, "z")}` },
   sentence: { normaliser: "pdf-text-layer@1", text: `Opening words here. The value is 0.5 (see Fig. 2) and et al. agree; i.e. it holds. Next one! ${many(950, "x")}. End` },
+  // Where a rule turns on one unit. A heading line of exactly 80 units and one of 81, each
+  // before a line shaped like a heading that is the last line of the layer.
+  bounds: { normaliser: "pdf-text-layer@1", text: lines("Head", "", "para one.", "", `Long${many(73, " ")}Sec`, "", "para two.", "", "Tail") },
+  boundsOver: { normaliser: "pdf-text-layer@1", text: lines("Head", "", "para one.", "", `Long${many(74, " ")}Sec`, "", "para two.", "", "Tail") },
+  // An abbreviation that is the first word of the layer, a full stop after a digit that ends
+  // a sentence, and a last character that is a letter.
+  stops: { normaliser: "pdf-text-layer@1", text: "Figs. 2 and 3 show it scored 5. Then it was 0.5 and 9.9 in turn. The text ends in a word" },
+  // The first and the last unit of each half of a pair, paired and alone.
+  edges: { normaliser: "pdf-text-layer@1", text: `x\ud800\udc00y\udbff\udfffz\ud800w\udbffv\udc00u\udfffend` },
+  // Halves with no partner on both sides of a span, more of them than its context holds, and
+  // a layer that opens with a second half and ends on a first.
+  halves: { normaliser: "pdf-text-layer@1", text: `${many(30, `${HIGH}a${LOW}b`)}MID${many(30, `${HIGH}a${LOW}b`)}` },
+  halfEnds: { normaliser: "pdf-text-layer@1", text: `${LOW}a${HIGH}Xb${HIGH}` },
+  // A row longer than the header, and fields that are a quotation mark, two and three.
+  ragged: { normaliser: "text-utf8@1", text: lines("a,b", "1,2,3", 'x,"', '",y', '"', '"",z', '""",w', '"q"') },
+  // A layer whose first unit is a page break.
+  pagedFirst: { normaliser: "pdf-text-layer@1", text: "\fsecond page\fthird" },
+  // As many sheets as a refusal names, and one more.
+  eightSheets: { normaliser: "ooxml-sheet-tsv@1", text: lines(...[1, 2, 3, 4, 5, 6, 7, 8].flatMap((sheet) => [`\f# sheet\t${sheet}\tS${sheet}\tA1:A1`, "v"])) },
+  nineSheets: { normaliser: "ooxml-sheet-tsv@1", text: lines(...[1, 2, 3, 4, 5, 6, 7, 8, 9].flatMap((sheet) => [`\f# sheet\t${sheet}\tS${sheet}\tA1:A1`, "v"])) },
 };
 
 // ---------------------------------------------------------------------------------------
@@ -282,6 +332,12 @@ const offsetCalls = [
   ...[[0, 5], [60, 126], [119, 127], [120, 126], [121, 125], [126, 300], [0, 366], [245, 250], [1, 1]].map(([from, to]) => ["spanAt", "long", from, to]),
   ["spanAt", "empty", 0, 0],
   ["spanAt", "empty", 0, 5],
+  ...["edges", "halves", "halfEnds"].map((name) => ["index", name]),
+  ...["\ud800", "\udbff", "\udc00", "\udfff", "\ud7ff\udc00", "\udc00\ue000", "\ud800\udc00", "\udbff\udfff", "\ud800\udbff", "\udfff\udc00"].map((text) => ["countPoints", text]),
+  ...[[0, 2], [1, 2], [2, 3], [2, 2], [3, 5], [4, 5], [5, 6], [5, 5], [6, 8], [7, 9], [9, 10], [11, 12], [13, 14], [0, 17]].map(([from, to]) => ["spanAt", "edges", from, to]),
+  ...[[120, 123], [121, 122], [0, 1], [242, 243], [60, 61], [119, 124]].map(([from, to]) => ["spanAt", "halves", from, to]),
+  ...[[0, 1], [3, 4], [1, 2], [5, 6], [0, 6], [4, 5]].map(([from, to]) => ["spanAt", "halfEnds", from, to]),
+  ...[0, 1, 2, 3, 4, 5, 6, 7].map((unit) => ["lineAt", "halfEnds", unit]),
   ["spanAt", "blank", 1, 2],
   ...[[0, 0], [0, 2], [1, 1], [2, 1], [-1, 0], [3, 99], [99, 99], [4, 4]].map(([from, to]) => ["spanOfLines", "astral", from, to]),
   ["spanOfLines", "empty", 0, 0],
@@ -379,6 +435,20 @@ const tableCalls = [
   ["resolveTableCell", "aligned", { anchor: ["figure", "7"], row: "Alpha", column: "Acc" }],
   ["resolveTableCell", "aligned", { anchor: ["figure", "2"], row: "Alpha", column: "Acc" }],
   ["resolveTableCell", "alignedAsText", table1("Alpha", "Acc")],
+  ...[
+    anchored("20", "Alpha", "Acc"),
+    anchored("21", "Alpha", "Wide", { subColumns: ["AA"] }),
+    anchored("21", "Alpha", "Wide", { subColumns: ["BB"] }),
+    anchored("21", "Alpha", "Next", { subColumns: ["DD"] }),
+    anchored("21", "Alpha", "Next", { subColumns: ["CC"] }),
+    anchored("22", "Alpha", "Acc"),
+    anchored("22", "Alpha", "F1"),
+    anchored("23", "Alpha", "Acc"),
+    anchored("23", "Alpha", "F1"),
+    anchored("24", "Alpha", "Acc"),
+    anchored("24", "Alpha", "F11"),
+    anchored("25", "Alpha", "Acc"),
+  ].map((request) => ["resolveTableCell", "touching", request]),
   ...["2", "3", "7", "9"].map((value) => ["resolveFigureCaption", "aligned", value]),
   ["resolveFigureCaption", "prose", "1"],
 ];
@@ -423,6 +493,18 @@ const regionCalls = [
   ["resolveDelimitedCell", "csvAsPdf", { cell: "A1" }],
   ["resolveDelimitedCell", "empty", { cell: "A1" }],
   ["resolveDelimitedCell", "blank", { cell: "A1" }],
+  ...[1, 2, 3, 4, 5, 6, 7].map((line) => ["fieldsOf", "ragged", line, ","]),
+  ...[{ cell: "C2" }, { cell: "B2" }, { cell: "B3" }, { cell: "A4" }, { cell: "A5" }, { cell: "A6" }, { cell: "A7" }, { cell: "A8" }, { line: 2, column: "b" }].map((request) => ["resolveDelimitedCell", "ragged", request]),
+  // A key on the first column, on a column the row is too short for, and a value under the wrong heading.
+  ...[
+    { column: "acc", constraints: [{ key: "model", value: "0.5" }] },
+    { column: "acc", constraints: [{ key: "f1, macro", value: "0.92" }] },
+    { column: "acc", constraints: [{ key: "acc", value: "1.0" }] },
+    { column: "f1, macro", constraints: [{ key: "model", value: "Delta" }] },
+    { column: "acc", constraints: [{ key: "model", value: "Delta" }] },
+    { column: "model", constraints: [{ key: "acc2", value: "3" }] },
+  ].map((request) => ["resolveKeyedRow", "csv", request]),
+  ...[1, 2, 3, 4].map((page) => ["resolvePage", "pagedFirst", page]),
   ...[
     { column: "acc", constraints: [{ key: null, value: "Alpha" }] },
     { column: "acc", constraints: [{ key: "model", value: "alpha" }] },
@@ -475,6 +557,8 @@ const proseCalls = [
   ["resolveQuote", "sentence", "Next one", true],
   ["resolveQuote", "sentence", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", true],
   ["resolveQuote", "empty", "something", false],
+  // Four units are a quote and three are not.
+  ...[["Figs", true], ["Figs", false], ["Fig", true], [" Figs ", true], ["5. T", true], ["was 0.5", true], ["and 9", true], ["Then it was", true], ["The text ends", true], ["in turn", true], ["show", true]].map(([quote, whole]) => ["resolveQuote", "stops", quote, whole]),
   ...[
     ["Introduction", 1],
     ["introduction", 2],
@@ -499,6 +583,11 @@ const proseCalls = [
   ]),
   ["resolveSectionParagraph", "empty", "x", 1],
   ...[1, 2].map((paragraph) => ["resolveSectionParagraph", "ending", "Head", paragraph]),
+  ...["bounds", "boundsOver"].flatMap((name) => [
+    ...[1, 2, 3].map((paragraph) => ["resolveSectionParagraph", name, "Head", paragraph]),
+    ...[1, 2].map((paragraph) => ["resolveSectionParagraph", name, "Long Sec", paragraph]),
+    ["resolveSectionParagraph", name, "Tail", 1],
+  ]),
   ...[1, 2, 3].map((paragraph) => ["resolveSectionParagraph", "endingLines", "Head", paragraph]),
   ["reanchor", "spaces", { start: 0, end: 7, byte_start: 0, byte_end: 7, exact: "one two" }],
   ["reanchor", "spaces", { start: 0, end: 7, byte_start: 0, byte_end: 7, exact: "three  one" }],
@@ -512,6 +601,11 @@ const proseCalls = [
   ["reanchor", "prose", { start: 3, end: 8, byte_start: 3, byte_end: 8, exact: "repeats" }],
   ["reanchor", "prose", { start: 3, end: 8, byte_start: 3, byte_end: 8, exact: "repeats", prefix: "conclusion ", suffix: " repeats repeats itself." }],
   ["reanchor", "prose", { start: 3, end: 8, byte_start: 3, byte_end: 8, exact: "repeats", prefix: "nowhere ", suffix: " to be found" }],
+  // The context on one side alone, where the other side would not place the quote.
+  ["reanchor", "prose", { start: 3, end: 8, byte_start: 3, byte_end: 8, exact: "repeats", prefix: "repeats repeats ", suffix: "" }],
+  ["reanchor", "prose", { start: 3, end: 8, byte_start: 3, byte_end: 8, exact: "repeats", prefix: "", suffix: " itself." }],
+  ["reanchor", "prose", { start: 3, end: 8, byte_start: 3, byte_end: 8, exact: "repeats", prefix: "repeats repeats " }],
+  ["reanchor", "prose", { start: 3, end: 8, byte_start: 3, byte_end: 8, exact: "repeats", suffix: " itself." }],
   ["reanchor", "prose", { start: 3, end: 8, byte_start: 3, byte_end: 8, exact: "Results" }],
   ["reanchor", "prose", { start: 3, end: 8, byte_start: 3, byte_end: 8, exact: "ends on a second line." }],
   ["reanchor", "prose", { start: 3, end: 8, byte_start: 3, byte_end: 8, exact: "repeats  repeats" }],
@@ -699,6 +793,12 @@ const sheetCalls = [
     "sheet 'Scores', row 3, column 'acc', column 'f1'",
     "sheet 'Scores', row 3, row '5', column B",
     "sheet 'Scores', row '0', column B",
+    // No sheet, a sheet named twice, and a column named by two letters.
+    "row 3, column B",
+    "model 'Alpha', row 3, column B",
+    "sheet 'Scores', workbook sheet 'Other', row 3, column B",
+    "sheet 'Scores', row 3, column B 'acc', column C 'f1'",
+    "workbook sheet 'Scores', workbook sheet 'Other', row 3, column C",
     "",
   ].map((printed) => ["sheetRequest", printed]),
   ["sheetRequestParsed", { anchors: [{ kind: "sheet", value: "Scores", raw: "sheet 'Scores'" }], selectors: [{ key: "row", value: null, form: "bare", raw: "row" }, { key: "row", value: "3", form: "bare", raw: "row 3" }, { key: "column b", value: "x", form: "bare", raw: "column B x" }] }],
@@ -742,8 +842,25 @@ const sheetCalls = [
     { sheet: "Other Sheet", row: 2, column: 1 },
     { sheet: "Other Sheet", row: 2, column: 2, columnHeader: "b" },
     { sheet: "Last", row: 1, column: 1 },
+    // A reference and a column that is not its column.
+    { sheet: "Scores", cell: "B3", column: 3 },
+    { sheet: "Scores", cell: "B3", column: 3, columnHeader: "f1" },
+    // A row no locator gives: the header line of a sheet, and a line before it.
+    { sheet: "scores", row: 0, column: 1 },
+    { sheet: "Last", row: 0, column: 1 },
+    { sheet: "Scores", row: 0, column: 1 },
+    { sheet: "Other Sheet", row: 0, column: 3 },
+    { sheet: "Scores", row: -1, column: 1 },
+    { sheet: "Other Sheet", row: -1, column: 1 },
   ].map((request) => ["resolveSheetCell", "sheets", request]),
   ["resolveSheetCell", "noSheets", { sheet: "Scores", cell: "A1" }],
+  ...["eightSheets", "nineSheets"].flatMap((name) => [
+    ["resolveSheetCell", name, { sheet: "missing", cell: "A1" }],
+    ["resolveSheetCell", name, { sheet: null, cell: "A1" }],
+    ["resolveSheetCell", name, { sheet: "S8", cell: "A1" }],
+  ]),
+  ...["\f# sheet\t1", "\f# sheet\t1\tName", "\f# sheet", "\f# sheet\t1\t\tA1:B2\nrow"].map((held) => ["sheetBlocks", held]),
+  ...[13, 14].map((line) => ["fieldsOfLine", "sheets", line]),
   ["resolveSheetCell", "sheetsAsText", { sheet: "Scores", cell: "A1" }],
 ];
 
@@ -1217,6 +1334,10 @@ const figureCalls = [
   ["changedInputs", [input("data.jsonl", "1", rows(["a", "x"]))], [input("data.jsonl", "2", rows())]],
   ["changedInputs", [input("data.jsonl", "1", rows(["a", "x"], ["b", "y"], ["c", "z"], ["d", "w"]))], [input("data.jsonl", "2", rows(["a", "1"], ["b", "2"], ["c", "3"], ["d", "4"]))]],
   ["changedInputs", [input("b", "1"), input("a", "1")], [input("c", "1")]],
+  // A key held twice, which no file read by `inputFiles` gives: the later line is the one compared.
+  ["changedInputs", [input("data.jsonl", "1", rows(["a", "x"], ["a", "y"]))], [input("data.jsonl", "2", rows(["a", "x"], ["a", "y"], ["new", "n"]))]],
+  ["changedInputs", [input("data.jsonl", "1", rows(["a", "y"]))], [input("data.jsonl", "2", rows(["a", "x"], ["a", "y"], ["new", "n"]))]],
+  ["changedInputs", [input("data.jsonl", "1", rows(["a", "x"], ["a", "y"]))], [input("data.jsonl", "1", rows(["a", "x"], ["a", "y"]))]],
 ];
 
 export const calls = [...offsetCalls, ...tableCalls, ...regionCalls, ...proseCalls, ...jsonCalls, ...sheetCalls, ...gridCalls, ...resolveCalls, ...valueCalls, ...coverageCalls, ...figureCalls];
