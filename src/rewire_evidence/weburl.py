@@ -27,6 +27,7 @@ tests hold this module to it.
 from __future__ import annotations
 
 import re
+import urllib.parse
 from typing import NamedTuple
 
 #: Schemes the standard calls special: they have a host, and `\` is a path separator in them.
@@ -342,3 +343,13 @@ def host_of(text: str) -> Host | None:
     name = _host_text(authority[0], special=special)
     port = _decimal(authority[1], _MAX_PORT) if authority[1] else None
     return Host(name if port in {None, _DEFAULT_PORT.get(scheme)} else f"{name}:{port}", name)
+
+
+def encode_uri(text: str) -> str:
+    """`encodeURI(text)`: UTF-8 percent-encoding keeping RFC 3986 URI syntax characters literal."""
+    return urllib.parse.quote(text, safe=";,/?:@&=+$-_.!~*'()#")
+
+
+def encode_uri_component(text: str) -> str:
+    """`encodeURIComponent(text)`: UTF-8 percent-encoding keeping JS unreserved marks literal."""
+    return urllib.parse.quote(text, safe="-_.!~*'()")

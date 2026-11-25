@@ -10,11 +10,24 @@
     rewire-evidence checks report [--root ROOT] [--date YYYY-MM-DD] [--out REPORT.tsv]
     rewire-evidence checks baseline [--root ROOT] [--date YYYY-MM-DD] [--commit SHA] [--out REPORT.tsv]
     rewire-evidence archive worklist [--root ROOT] [--json]
+    rewire-evidence archive fetch [--root ROOT] [--limit N] [--retry-failed]
+                                  [--dry-run] [--quiet]
     rewire-evidence archive verify [--root ROOT]
     rewire-evidence archive status [--root ROOT] [--json]
     rewire-evidence archive reclassify [--root ROOT] [--dry-run] [--json] [--quiet]
-    rewire-evidence licence triage [--root ROOT] [--date YYYY-MM-DD] [--out QUEUE.tsv] [--stdout]
+    rewire-evidence archive publish [--root ROOT] [--limit N] [--dry-run]
+                                    [--no-mark] [--json] [--quiet]
+    rewire-evidence archive upload [--root ROOT] [--dry-run]
+    rewire-evidence archive pull [--root ROOT] [--from r2|release] [--key SHA]...
+                                 [--source ID]... [--sources-from FILE] [--limit N]
+                                 [--dry-run] [--json] [--quiet]
+    rewire-evidence licence triage [--root ROOT] [--date YYYY-MM-DD] [--out QUEUE.tsv]
+                                   [--stdout]
     rewire-evidence licence counts [ROOT]
+    rewire-evidence licence resolve [--root ROOT] [--date YYYY-MM-DD] [--cache DIR]
+                                    [--delay-ms MS] [--limit N] [--source ID]...
+                                    [--route ROUTE]... [--batch-size N] [--dry-run]
+                                    [--quiet]
     rewire-evidence layers build [--root ROOT]
     rewire-evidence layers check [--root ROOT]
     rewire-evidence layers thresholds
@@ -118,6 +131,7 @@ command exits 1.
 from __future__ import annotations
 
 import argparse
+import math
 import os
 import re
 import sys
@@ -127,7 +141,18 @@ from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import TextIO
 
-from rewire_evidence import archivesaid, kgexport, kgpublish, kgshapes, layersaid, ratchet, spansaid
+from rewire_evidence import (
+    archive,
+    archivefetch,
+    archivesaid,
+    kgexport,
+    kgpublish,
+    kgshapes,
+    layersaid,
+    licenceresolve,
+    ratchet,
+    spansaid,
+)
 from rewire_evidence.agreement import check_summary
 from rewire_evidence.archivesaid import Said
 from rewire_evidence.attributes import said
@@ -205,18 +230,35 @@ def _parser() -> argparse.ArgumentParser:  # noqa: PLR0915 - one command to a fe
         run.add_argument("--root", type=Path, default=Path(), help="a rewire-benchmark-data checkout")
         run.add_argument("--date", type=_date, default=None, help="the date of the run, today's by default")
         run.add_argument("--out", type=Path, default=None, help="write the report here")
-    archived = groups.add_parser("archive", help="the source archive, read side").add_subparsers(
+    archived = groups.add_parser("archive", help="the source archive").add_subparsers(
         dest="action", required=True
     )
     for name, about in (
         ("worklist", "the fetch work list: sources, URLs, classes and hosts"),
+        ("fetch", "fetch every missing source through routes and store artifacts"),
         ("verify", "hold every cached object to the manifest"),
         ("status", "what the archive holds of the work list"),
         ("reclassify", "read every manifest row's licence again and write the tier it justifies"),
+        ("publish", "publish public cached objects onto archive release shard tags"),
+        ("upload", "upload cached non-removed objects into Cloudflare R2"),
+        ("pull", "pull missing objects from R2 or public release tags"),
     ):
         # The TypeScript takes every option on every command and each uses the ones it reads.
         command = archived.add_parser(name, help=about)
         command.add_argument("--root", type=Path, default=Path(), help="a rewire-benchmark-data checkout")
+        command.add_argument("--concurrency", default=None, help="concurrent hosts while fetching")
+        command.add_argument("--delay-ms", default=None, help="minimum per-host delay in milliseconds")
+        command.add_argument("--max-bytes", default=None, help="maximum accepted download byte size")
+        command.add_argument("--timeout-ms", default=None, help="request timeout in milliseconds")
+        command.add_argument("--limit", default=None, help="maximum URLs or objects for one run")
+        command.add_argument("--retry-failed", action="store_true", help="retry previously failed sources")
+        command.add_argument("--source", action="append", default=[], help="filter by source_id")
+        command.add_argument("--key", action="append", default=[], help="filter by object sha256")
+        command.add_argument("--sources-from", type=Path, default=None, help="file of source IDs to pull")
+        command.add_argument("--from", dest="pull_from", default="r2", help="pull backend: r2 or release")
+        command.add_argument(
+            "--no-mark", action="store_true", help="publish assets without updating manifest"
+        )
         command.add_argument("--json", action="store_true", help="print the summary as JSON")
         command.add_argument("--dry-run", action="store_true", help="write nothing")
         command.add_argument("--quiet", action="store_true", help="say nothing on standard error")
@@ -232,6 +274,17 @@ def _parser() -> argparse.ArgumentParser:  # noqa: PLR0915 - one command to a fe
     counted.add_argument(
         "root", type=Path, nargs="?", default=Path(), help="a rewire-benchmark-data checkout"
     )
+    resolved = licensed.add_parser("resolve", help="resolve source licences across public metadata APIs")
+    resolved.add_argument("--root", type=Path, default=Path(), help="a rewire-benchmark-data checkout")
+    resolved.add_argument("--date", type=_date, default=None, help="report date, today's UTC date by default")
+    resolved.add_argument("--cache", type=Path, default=None, help="directory of cached API JSON replies")
+    resolved.add_argument("--delay-ms", default=None, help="default per-host delay in milliseconds")
+    resolved.add_argument("--limit", default=None, help="resolve at most N sources")
+    resolved.add_argument("--source", action="append", default=[], help="resolve only named source IDs")
+    resolved.add_argument("--route", action="append", default=[], help="run only named resolve routes")
+    resolved.add_argument("--batch-size", default=None, help="Europe PMC PMCIDs per batch request")
+    resolved.add_argument("--dry-run", action="store_true", help="write no candidates, receipts, or reports")
+    resolved.add_argument("--quiet", action="store_true", help="suppress progress logging on stderr")
     layered = groups.add_parser("layers", help="the layer registry").add_subparsers(
         dest="action", required=True
     )
@@ -524,6 +577,60 @@ def _reclassify(args: argparse.Namespace) -> Said:
     return archivesaid.say_reclassify(args.root, dry_run=args.dry_run, as_json=args.json, quiet=args.quiet)
 
 
+def _positive_int(raw: str | None, name: str, default: int | None = None) -> int | None:
+    if raw is None:
+        return default
+    try:
+        parsed = float(raw)
+    except ValueError:
+        raise archive.ArchiveError(f"--{name} must be a positive number") from None
+    if not math.isfinite(parsed) or parsed <= 0:
+        raise archive.ArchiveError(f"--{name} must be a positive number")
+    return int(parsed)
+
+
+def _fetch(args: argparse.Namespace) -> Said:
+    options = archivefetch.FetchOptions(
+        concurrency=_positive_int(args.concurrency, "concurrency", 4) or 4,
+        delay_ms=_positive_int(args.delay_ms, "delay-ms", 2000) or 2000,
+        max_bytes=_positive_int(args.max_bytes, "max-bytes", 64 * 1024 * 1024) or 64 * 1024 * 1024,
+        request_timeout_ms=_positive_int(args.timeout_ms, "timeout-ms", 120_000) or 120_000,
+        limit=_positive_int(args.limit, "limit"),
+        retry_failed=args.retry_failed,
+        dry_run=args.dry_run,
+    )
+    return archivesaid.say_fetch(args.root, options, quiet=args.quiet)
+
+
+def _publish(args: argparse.Namespace) -> Said:
+    return archivesaid.say_publish(
+        args.root,
+        limit=_positive_int(args.limit, "limit"),
+        dry_run=args.dry_run,
+        mark=not args.no_mark,
+        as_json=args.json,
+        quiet=args.quiet,
+    )
+
+
+def _upload(args: argparse.Namespace) -> Said:
+    return archivesaid.say_upload(args.root, dry_run=args.dry_run)
+
+
+def _pull(args: argparse.Namespace) -> Said:
+    return archivesaid.say_pull(
+        args.root,
+        source=args.pull_from,
+        keys=args.key,
+        sources=args.source,
+        sources_from=args.sources_from,
+        limit=_positive_int(args.limit, "limit"),
+        dry_run=args.dry_run,
+        as_json=args.json,
+        quiet=args.quiet,
+    )
+
+
 def _triage(args: argparse.Namespace) -> Said:
     date = today() if args.date is None else args.date
     return archivesaid.say_triage(args.root, date, out=args.out, to_stdout=args.stdout)
@@ -531,6 +638,22 @@ def _triage(args: argparse.Namespace) -> Said:
 
 def _counts(args: argparse.Namespace) -> Said:
     return archivesaid.say_counts(args.root)
+
+
+def _resolve(args: argparse.Namespace) -> Said:
+    date = today() if args.date is None else args.date
+    options = licenceresolve.ResolveOptions(
+        date=date,
+        cache_dir=args.cache,
+        delay_ms=_positive_int(args.delay_ms, "delay-ms", 250) or 250,
+        limit=_positive_int(args.limit, "limit"),
+        only=args.source,
+        routes=args.route,
+        batch_size=_positive_int(args.batch_size, "batch-size", 25) or 25,
+        github_token=licenceresolve.github_token_from_cli(),
+        crossref_contact=os.environ.get("UNPAYWALL_EMAIL"),
+    )
+    return archivesaid.say_licence_resolve(args.root, options, dry_run=args.dry_run, quiet=args.quiet)
 
 
 def _layers_build(args: argparse.Namespace) -> Said:
@@ -636,11 +759,16 @@ _ACTIONS: dict[str, Callable[[argparse.Namespace], str | Said]] = {
     "report": _report,
     "baseline": _baseline,
     "worklist": _worklist,
+    "fetch": _fetch,
     "verify": _verify,
     "status": _status,
     "reclassify": _reclassify,
+    "publish": _publish,
+    "upload": _upload,
+    "pull": _pull,
     "triage": _triage,
     "counts": _counts,
+    "resolve": _resolve,
     "layers build": _layers_build,
     "layers check": _layers_check,
     "layers thresholds": _layers_thresholds,

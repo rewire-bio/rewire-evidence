@@ -28,6 +28,7 @@ from pathlib import Path
 
 from rewire_evidence import (
     agreement,
+    archivenetparity,
     archiveparity,
     checkparity,
     conformance,
@@ -591,5 +592,67 @@ def _kg(
     sys.stdout.write(
         f"\nAll {report.asserted_quads:,} asserted quads across {report.chunks_same} chunks, "
         f"ontology outputs, and {report.subset_cases.same} subset/SHACL cases reproduce.\n"
+    )
+    return 0
+
+
+def archive_network_gate(
+    arguments: Sequence[str],
+    expected: Path,
+    fixture: Path | None = None,
+    description: str | None = None,
+) -> int:
+    """Run the archive network and licence resolver parity gate. Returns the status."""
+    parser = _parser(description)
+    parser.add_argument("--expected", type=Path, default=expected, help="what the TypeScript recorded")
+    parser.add_argument(
+        "--fixture", type=Path, default=fixture, help="recorded offline unit/scenario fixture"
+    )
+    parser.add_argument(
+        "--resolve-root",
+        type=Path,
+        default=None,
+        help="QUEUE_REF checkout for zero-network 2026-11-17 regeneration",
+    )
+    parser.add_argument("--json", type=Path, default=None, help="write what was measured here")
+    args = parser.parse_args(arguments)
+    return _run(
+        lambda: _archive_network(args.root, args.expected, args.fixture, args.resolve_root, args.json)
+    )
+
+
+def _archive_network(
+    root: Path,
+    expected: Path,
+    fixture_path: Path | None,
+    resolve_root: Path | None,
+    report_file: Path | None,
+) -> int:
+    recorded = conformance.read_recorded(expected)
+    loaded_fixture = None if fixture_path is None else archivenetparity.load_fixture(fixture_path)
+    sys.stdout.write(
+        f"expecting archive network and resolver behaviour as TypeScript recorded at "
+        f"{conformance.recorded_ref(recorded)}\n"
+    )
+    report = archivenetparity.verify_archive_network(
+        root, recorded, loaded_fixture, resolve_root=resolve_root
+    )
+    sys.stdout.write(f"{archivenetparity.summary(report)}\n")
+    _write_report(report_file, archivenetparity.to_json(report))
+
+    if not report.targets_expected:
+        sys.stderr.write("Cannot verify: expectation lists no targets\n")
+        return 2
+    for problem in report.problems[:PROBLEMS_SHOWN]:
+        sys.stderr.write(f"  {problem[:PROBLEM_WIDTH]}\n")
+    if report.problems:
+        sys.stderr.write(
+            f"\n{len(report.problems):,} problems. "
+            f"{report.targets_same:,} of {report.targets_expected:,} targets reproduced.\n"
+        )
+        return 1
+    sys.stdout.write(
+        f"\nAll {report.targets_same:,} targets, {report.modules.same} TS modules, "
+        f"and {report.fixtures_same} recorded fixtures reproduce.\n"
     )
     return 0

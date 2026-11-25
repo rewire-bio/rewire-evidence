@@ -1,0 +1,903 @@
+{
+  "recorded_from": {
+    "script": "scripts/fixtures/record_archive_network_fixture.mjs",
+    "store_ref": "91f76cf8e61cba9d6037a01a19c9aa3051184900"
+  },
+  "canonical_github_urls": [
+    [
+      "https://example.org/file.pdf",
+      "https://example.org/file.pdf"
+    ],
+    [
+      "not a url",
+      "not a url"
+    ],
+    [
+      "https://github.com/org/repo",
+      "https://github.com/org/repo"
+    ],
+    [
+      "https://github.com/org/repo/tree/main/dir",
+      "https://github.com/org/repo/tree/main/dir"
+    ],
+    [
+      "https://github.com/org/repo/blob/abc123/path/to/file.py",
+      "https://raw.githubusercontent.com/org/repo/abc123/path/to/file.py"
+    ],
+    [
+      "https://github.com/org/repo/blob/main/a/b.tsv?plain=1",
+      "https://raw.githubusercontent.com/org/repo/main/a/b.tsv?plain=1"
+    ],
+    [
+      "https://www.github.com/org/repo/blob/main/a.txt",
+      "https://www.github.com/org/repo/blob/main/a.txt"
+    ]
+  ],
+  "artifact_checks": [
+    {
+      "name": "unknown_empty",
+      "body_b64": "",
+      "media_type": null,
+      "final_url": "https://example.org/x",
+      "requested_url": null,
+      "has_doi": false,
+      "pdftotext": false,
+      "expected": {
+        "terminal": true,
+        "reason": null,
+        "layer_class": "unknown",
+        "characters": null,
+        "signals": []
+      }
+    },
+    {
+      "name": "zip_container",
+      "body_b64": "UEsDBBQAAAAAAAAAAACFEUoNCwAAAAsAAAAFAAAAYS50eHRoZWxsbyB3b3JsZFBLAQIUABQAAAAAAAAAAACFEUoNCwAAAAsAAAAFAAAAAAAAAAAAAAAAAAAAAABhLnR4dFBLBQYAAAAAAQABADMAAAAuAAAAAAA=",
+      "media_type": "application/zip",
+      "final_url": "https://example.org/a.zip",
+      "requested_url": null,
+      "has_doi": false,
+      "pdftotext": false,
+      "expected": {
+        "terminal": true,
+        "reason": null,
+        "layer_class": "container",
+        "characters": null,
+        "signals": []
+      }
+    },
+    {
+      "name": "short_cookie_wall",
+      "body_b64": "PGh0bWw+PGJvZHk+PHA+V2UgdXNlIGNvb2tpZXMgb24gdGhpcyBzaXRlLjwvcD48cD5TaG9ydCB0aXRsZSBvbmx5LjwvcD48L2JvZHk+PC9odG1sPg==",
+      "media_type": "text/html",
+      "final_url": "https://link.springer.com/article/10.1/x",
+      "requested_url": null,
+      "has_doi": true,
+      "pdftotext": false,
+      "expected": {
+        "terminal": false,
+        "reason": "interstitial_body",
+        "layer_class": "html",
+        "characters": 48,
+        "signals": [
+          "cookie-consent"
+        ]
+      }
+    },
+    {
+      "name": "long_with_cookie_notice",
+      "body_b64": "PGh0bWw+PGJvZHk+PHA+V2UgdXNlIGNvb2tpZXMgb24gdGhpcyBzaXRlLjwvcD48cD5Mb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCA8L3A+PC9ib2R5PjwvaHRtbD4=",
+      "media_type": "text/html",
+      "final_url": "https://github.com/org/repo",
+      "requested_url": null,
+      "has_doi": false,
+      "pdftotext": false,
+      "expected": {
+        "terminal": true,
+        "reason": null,
+        "layer_class": "html",
+        "characters": 4110,
+        "signals": []
+      }
+    },
+    {
+      "name": "human_verify_teaser",
+      "body_b64": "PGh0bWw+PGJvZHk+PGgxPkp1c3QgYSBtb21lbnQ8L2gxPjxwPlZlcmlmeSB5b3UgYXJlIGh1bWFuIGJlZm9yZSBjb250aW51aW5nLjwvcD48L2JvZHk+PC9odG1sPg==",
+      "media_type": "text/html",
+      "final_url": "https://example.org/paper",
+      "requested_url": null,
+      "has_doi": false,
+      "pdftotext": false,
+      "expected": {
+        "terminal": false,
+        "reason": "interstitial_body",
+        "layer_class": "html",
+        "characters": 55,
+        "signals": [
+          "human-verification"
+        ]
+      }
+    },
+    {
+      "name": "stop_path_login",
+      "body_b64": "PGh0bWw+PGJvZHk+PHA+V2UgdXNlIGNvb2tpZXMgb24gdGhpcyBzaXRlLjwvcD48cD5Mb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCBMb25nIGdlbnVpbmUgc2NpZW50aWZpYyB0ZXh0IHdvcmQgTG9uZyBnZW51aW5lIHNjaWVudGlmaWMgdGV4dCB3b3JkIExvbmcgZ2VudWluZSBzY2llbnRpZmljIHRleHQgd29yZCA8L3A+PC9ib2R5PjwvaHRtbD4=",
+      "media_type": "text/html",
+      "final_url": "https://idp.example.org/auth/login?next=1",
+      "requested_url": null,
+      "has_doi": false,
+      "pdftotext": false,
+      "expected": {
+        "terminal": false,
+        "reason": "interstitial_body",
+        "layer_class": "html",
+        "characters": 4110,
+        "signals": [
+          "stop-path"
+        ]
+      }
+    },
+    {
+      "name": "tiny_html_stub",
+      "body_b64": "PGh0bWw+PGJvZHk+PHA+VGlueSBzdHViLjwvcD48L2JvZHk+PC9odG1sPg==",
+      "media_type": "text/html",
+      "final_url": "https://example.org/stub",
+      "requested_url": null,
+      "has_doi": false,
+      "pdftotext": false,
+      "expected": {
+        "terminal": false,
+        "reason": "text_below_threshold",
+        "layer_class": "html",
+        "characters": 11,
+        "signals": []
+      }
+    },
+    {
+      "name": "publisher_html_with_doi",
+      "body_b64": "PGh0bWw+PGJvZHk+PG1haW4+U2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCA8L21haW4+PC9ib2R5PjwvaHRtbD4=",
+      "media_type": "text/html",
+      "final_url": "https://www.nature.com/articles/s41586",
+      "requested_url": null,
+      "has_doi": true,
+      "pdftotext": false,
+      "expected": {
+        "terminal": false,
+        "reason": "publisher_html_only",
+        "layer_class": "html",
+        "characters": 2720,
+        "signals": []
+      }
+    },
+    {
+      "name": "publisher_redirect_with_doi",
+      "body_b64": "PGh0bWw+PGJvZHk+PG1haW4+U2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCA8L21haW4+PC9ib2R5PjwvaHRtbD4=",
+      "media_type": "text/html",
+      "final_url": "https://cdn.example.net/render",
+      "requested_url": "https://www.nature.com/articles/s41586",
+      "has_doi": true,
+      "pdftotext": false,
+      "expected": {
+        "terminal": false,
+        "reason": "publisher_html_only",
+        "layer_class": "html",
+        "characters": 2720,
+        "signals": []
+      }
+    },
+    {
+      "name": "publisher_html_no_doi",
+      "body_b64": "PGh0bWw+PGJvZHk+PG1haW4+U2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCBTY2llbnRpZmljIGFydGljbGUgYm9keSBwYXJhZ3JhcGggU2NpZW50aWZpYyBhcnRpY2xlIGJvZHkgcGFyYWdyYXBoIFNjaWVudGlmaWMgYXJ0aWNsZSBib2R5IHBhcmFncmFwaCA8L21haW4+PC9ib2R5PjwvaHRtbD4=",
+      "media_type": "text/html",
+      "final_url": "https://www.nature.com/articles/s41586",
+      "requested_url": null,
+      "has_doi": false,
+      "pdftotext": false,
+      "expected": {
+        "terminal": true,
+        "reason": null,
+        "layer_class": "html",
+        "characters": 2720,
+        "signals": []
+      }
+    },
+    {
+      "name": "pdf_no_pdftotext",
+      "body_b64": "JVBERi0xLjQKJWZha2U=",
+      "media_type": "application/pdf",
+      "final_url": "https://example.org/paper.pdf",
+      "requested_url": null,
+      "has_doi": true,
+      "pdftotext": false,
+      "expected": {
+        "terminal": true,
+        "reason": null,
+        "layer_class": "pdf",
+        "characters": null,
+        "signals": []
+      }
+    },
+    {
+      "name": "plain_text",
+      "body_b64": "T2JzZXJ2YXRpb24gbWVhc3VyZW1lbnQgdmFsdWUgT2JzZXJ2YXRpb24gbWVhc3VyZW1lbnQgdmFsdWUgT2JzZXJ2YXRpb24gbWVhc3VyZW1lbnQgdmFsdWUgT2JzZXJ2YXRpb24gbWVhc3VyZW1lbnQgdmFsdWUgT2JzZXJ2YXRpb24gbWVhc3VyZW1lbnQgdmFsdWUgT2JzZXJ2YXRpb24gbWVhc3VyZW1lbnQgdmFsdWUgT2JzZXJ2YXRpb24gbWVhc3VyZW1lbnQgdmFsdWUgT2JzZXJ2YXRpb24gbWVhc3VyZW1lbnQgdmFsdWUgT2JzZXJ2YXRpb24gbWVhc3VyZW1lbnQgdmFsdWUgT2JzZXJ2YXRpb24gbWVhc3VyZW1lbnQgdmFsdWUg",
+      "media_type": "text/plain",
+      "final_url": "https://example.org/notes.txt",
+      "requested_url": null,
+      "has_doi": false,
+      "pdftotext": false,
+      "expected": {
+        "terminal": true,
+        "reason": null,
+        "layer_class": "text",
+        "characters": 300,
+        "signals": []
+      }
+    }
+  ],
+  "failure_reasons": [
+    {
+      "doi": "10.1000/a",
+      "tried": [
+        {
+          "route": "direct",
+          "url": "https://p.example/a",
+          "status": 403,
+          "reason": "http_error"
+        },
+        {
+          "route": "unpaywall",
+          "url": null,
+          "status": null,
+          "reason": "no_open_copy"
+        },
+        {
+          "route": "europepmc",
+          "url": null,
+          "status": null,
+          "reason": "not_found"
+        },
+        {
+          "route": "preprint",
+          "url": "https://biorxiv.org/a.pdf",
+          "status": 404,
+          "reason": "not_found"
+        }
+      ],
+      "expected": "paywalled_not_held"
+    },
+    {
+      "doi": "10.1000/b",
+      "tried": [
+        {
+          "route": "direct",
+          "url": "https://p.example/b",
+          "status": 403,
+          "reason": "http_error"
+        },
+        {
+          "route": "unpaywall",
+          "url": null,
+          "status": null,
+          "reason": "unpaywall_no_email"
+        },
+        {
+          "route": "europepmc",
+          "url": null,
+          "status": null,
+          "reason": "no_open_copy"
+        },
+        {
+          "route": "preprint",
+          "url": null,
+          "status": null,
+          "reason": "no_open_copy"
+        }
+      ],
+      "expected": "http_error"
+    },
+    {
+      "doi": null,
+      "tried": [
+        {
+          "route": "direct",
+          "url": "https://p.example/c",
+          "status": 500,
+          "reason": "http_error"
+        },
+        {
+          "route": "unpaywall",
+          "url": null,
+          "status": null,
+          "reason": "no_doi"
+        },
+        {
+          "route": "europepmc",
+          "url": null,
+          "status": null,
+          "reason": "no_doi"
+        },
+        {
+          "route": "preprint",
+          "url": null,
+          "status": null,
+          "reason": "no_doi"
+        }
+      ],
+      "expected": "http_error"
+    }
+  ],
+  "r2_signatures": [
+    {
+      "method": "PUT",
+      "key": "abcd.gz",
+      "body": "hello bytes",
+      "timestamp": "2026-11-21T12:34:56.000Z",
+      "settings": {
+        "accountId": "acc123",
+        "accessKeyId": "key456",
+        "secretAccessKey": "secret789",
+        "bucket": "bkt"
+      },
+      "url": "https://acc123.r2.cloudflarestorage.com/bkt/abcd.gz",
+      "headers": {
+        "host": "acc123.r2.cloudflarestorage.com",
+        "x-amz-content-sha256": "5608b71da2b2228faf1aa9fcfdfca682607045d650b3a984b4c752991f97b86d",
+        "x-amz-date": "20261121T123456Z",
+        "Authorization": "AWS4-HMAC-SHA256 Credential=key456/20261121/auto/s3/aws4_request, SignedHeaders=host;x-amz-content-sha256;x-amz-date, Signature=12fa3e170f94a27280c85d510bff07b745869babe076eaf96744ec62955786de"
+      }
+    },
+    {
+      "method": "HEAD",
+      "key": "abcd.gz",
+      "body": "",
+      "timestamp": "2026-11-21T12:34:56.000Z",
+      "settings": {
+        "accountId": "acc123",
+        "accessKeyId": "key456",
+        "secretAccessKey": "secret789",
+        "bucket": "bkt"
+      },
+      "url": "https://acc123.r2.cloudflarestorage.com/bkt/abcd.gz",
+      "headers": {
+        "host": "acc123.r2.cloudflarestorage.com",
+        "x-amz-content-sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "x-amz-date": "20261121T123456Z",
+        "Authorization": "AWS4-HMAC-SHA256 Credential=key456/20261121/auto/s3/aws4_request, SignedHeaders=host;x-amz-content-sha256;x-amz-date, Signature=8ded6f24abac0d321cfcdbe9afe94b1c0e88133b5395f877924ac137a348bcb0"
+      }
+    },
+    {
+      "method": "GET",
+      "key": "ef01.gz",
+      "body": "",
+      "timestamp": "2026-11-21T12:34:56.000Z",
+      "settings": {
+        "accountId": "acc123",
+        "accessKeyId": "key456",
+        "secretAccessKey": "secret789",
+        "bucket": "bkt"
+      },
+      "url": "https://acc123.r2.cloudflarestorage.com/bkt/ef01.gz",
+      "headers": {
+        "host": "acc123.r2.cloudflarestorage.com",
+        "x-amz-content-sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "x-amz-date": "20261121T123456Z",
+        "Authorization": "AWS4-HMAC-SHA256 Credential=key456/20261121/auto/s3/aws4_request, SignedHeaders=host;x-amz-content-sha256;x-amz-date, Signature=30eea7380b1700e238f547e01b41f3207f6df434657cd1fe393d7f63d59cb67f"
+      }
+    }
+  ],
+  "publish_refusals": {
+    "shard_tag_a": "archive/objects-a",
+    "shard_notes_a": "Archive objects whose sha256 begins with a.\n\nEach asset is named <sha256>.gz and holds the gzip of the exact bytes of one\nprimary source. Expand it and check the sha256 against the asset name.\n\nThe row for every asset here is in data/archive/objects/a.jsonl: the media type,\nthe byte count, the URL the bytes came from, the licence tier they are published under\nand the source records they answer for.\n\nOnly objects at a licence tier that permits publication are here. See\ndocs/source-preservation.md, which also carries the takedown contact.",
+    "no_store_tier": "t5-no-store"
+  },
+  "route_keys": [
+    {
+      "url": "https://raw.githubusercontent.com/org/repo/0123456789abcdef0123456789abcdef01234567/README.md",
+      "doi": null,
+      "expected": {
+        "github": {
+          "owner": "org",
+          "repo": "repo",
+          "ref": "0123456789abcdef0123456789abcdef01234567"
+        }
+      }
+    },
+    {
+      "url": "https://codeload.github.com/org/repo/tar.gz/0123456789abcdef0123456789abcdef01234567",
+      "doi": null,
+      "expected": {
+        "github": {
+          "owner": "org",
+          "repo": "repo",
+          "ref": "0123456789abcdef0123456789abcdef01234567"
+        }
+      }
+    },
+    {
+      "url": "https://api.github.com/repos/org/repo/license?ref=0123456789abcdef0123456789abcdef01234567",
+      "doi": null,
+      "expected": {
+        "github": {
+          "owner": "org",
+          "repo": "repo",
+          "ref": "0123456789abcdef0123456789abcdef01234567"
+        }
+      }
+    },
+    {
+      "url": "https://github.com/org/repo.git",
+      "doi": "10.1038/s41586-024-00001-1",
+      "expected": {
+        "crossref": "10.1038/s41586-024-00001-1",
+        "github": {
+          "owner": "org",
+          "repo": "repo",
+          "ref": null
+        }
+      }
+    },
+    {
+      "url": "https://huggingface.co/datasets/org/ds/blob/fedcba9876543210fedcba9876543210fedcba98/data.tsv",
+      "doi": null,
+      "expected": {
+        "huggingface": {
+          "kind": "datasets",
+          "id": "org/ds",
+          "revision": "fedcba9876543210fedcba9876543210fedcba98"
+        }
+      }
+    },
+    {
+      "url": "https://www.biorxiv.org/content/10.1101/2025.01.02.123456v2.full.pdf",
+      "doi": "10.1101/2025.01.02.123456",
+      "expected": {
+        "crossref": "10.1101/2025.01.02.123456",
+        "preprint": {
+          "server": "biorxiv",
+          "doi": "10.1101/2025.01.02.123456",
+          "version": "2"
+        }
+      }
+    },
+    {
+      "url": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC9999999/fullTextXML",
+      "doi": "10.1093/bioinformatics/btaf417",
+      "expected": {
+        "crossref": "10.1093/bioinformatics/btaf417",
+        "europepmc": "PMC9999999"
+      }
+    }
+  ],
+  "scenarios": {
+    "store_layers": {
+      "zip_b64": "UEsDBBQAAAAAAAAAAAD8ChVuEgAAABIAAAAIAAAAbm90ZS50eHRwbGFpbiBub3RlIGNvbnRlbnRQSwMEFAAAAAAAAAAAAIVvNS5DAAAAQwAAAAkAAABwYWdlLmh0bWw8aHRtbD48Ym9keT48aDE+VGl0bGU8L2gxPjxwPkJvZHkgcGFyYWdyYXBoIGhlcmUuPC9wPjwvYm9keT48L2h0bWw+UEsBAhQAFAAAAAAAAAAAAPwKFW4SAAAAEgAAAAgAAAAAAAAAAAAAAAAAAAAAAG5vdGUudHh0UEsBAhQAFAAAAAAAAAAAAIVvNS5DAAAAQwAAAAkAAAAAAAAAAAAAAAAAOAAAAHBhZ2UuaHRtbFBLBQYAAAAAAgACAG0AAACiAAAAAAA=",
+      "stored": [
+        {
+          "sha256": "fa4f2256599a530760d7859c73f6dab07124bb0edd3bd836937b694e6d9ed4b5",
+          "layer": "archive-member",
+          "derived_from": "9df990dd7517a15a1b45630743fcb848a7bcf688ce5caf0229cea5ba2ca19a38",
+          "derivation": "archive-member@1 note.txt",
+          "bytes": 18,
+          "characters": null,
+          "written": true,
+          "added": true
+        },
+        {
+          "sha256": "a999a7051d887cbc2e609dc7846721be4252f12a41d4545f02c6cb0a72093aba",
+          "layer": "archive-member",
+          "derived_from": "9df990dd7517a15a1b45630743fcb848a7bcf688ce5caf0229cea5ba2ca19a38",
+          "derivation": "archive-member@1 page.html",
+          "bytes": 67,
+          "characters": null,
+          "written": true,
+          "added": true
+        },
+        {
+          "sha256": "0f40a119821499987007f0924ff4ddf3bf69d3068dbc7160ea59483c12b28e50",
+          "layer": "text-layer",
+          "derived_from": "a999a7051d887cbc2e609dc7846721be4252f12a41d4545f02c6cb0a72093aba",
+          "derivation": "html-text@1 strip aside,canvas,dialog,footer,header,iframe,nav,noscript,script,style,svg,template then tags",
+          "bytes": 28,
+          "characters": 28,
+          "written": true,
+          "added": true
+        }
+      ],
+      "identities": [
+        "fa4f2256599a530760d7859c73f6dab07124bb0edd3bd836937b694e6d9ed4b5"
+      ],
+      "unsupported": [],
+      "problems": []
+    },
+    "pull_verbatim": {
+      "hello_b64": "aGVsbG8gcHVsbCBieXRlcw==",
+      "hello_sha256": "9177ca7d58e5506befbc6d8cc27978269f7dba00fefabb26ef58ec436240b337",
+      "fixed_gzip_b64": "H4sIAAAAAAAEE8tIzcnJVygozclRSKosSS0GAHiCU84QAAAA",
+      "release_dry": {
+        "manifest_rows": 3,
+        "matched": 3,
+        "removed": 1,
+        "selected": 2,
+        "selected_restricted": 1,
+        "selected_public": 1,
+        "already_held": 0,
+        "held_back_by_limit": 0,
+        "already_in_the_bucket": 1,
+        "no_remote_copy": 1,
+        "downloaded": 0,
+        "expanded_bytes": 0,
+        "compressed_bytes": 0,
+        "dry_run": true,
+        "failed": []
+      },
+      "pull_real": {
+        "manifest_rows": 3,
+        "matched": 3,
+        "removed": 1,
+        "selected": 2,
+        "selected_restricted": 1,
+        "selected_public": 1,
+        "already_held": 0,
+        "held_back_by_limit": 0,
+        "already_in_the_bucket": 0,
+        "no_remote_copy": 0,
+        "downloaded": 1,
+        "expanded_bytes": 16,
+        "compressed_bytes": 36,
+        "dry_run": false,
+        "failed": [
+          {
+            "key": "1327db72d7273e2c5e6664d0664cff52036bd217b20e2bbb2b667af0deae31b8",
+            "status": 200,
+            "message": "R2 object 1327db72d7273e2c5e6664d0664cff52036bd217b20e2bbb2b667af0deae31b8 is not the listed gzip file"
+          }
+        ]
+      },
+      "disk_b64": "H4sIAAAAAAAEE8tIzcnJVygozclRSKosSS0GAHiCU84QAAAA",
+      "equal_verbatim": true
+    },
+    "publish_marking": {
+      "local_key": "d9a94fd3393c02bf8fbc898923fdca5d36828a07195a7bf7b5e699d68f4d7f1d",
+      "r2_key": "6e0f019328e082ece26d071e7f169a7a4a3ff5d1161412feade060b81e47155f",
+      "priv_key": "1d4fec327a6cac6f1521d1b5321f55136d0472499d8482c4115eeacffaff140f",
+      "summary": {
+        "dry_run": false,
+        "manifest_rows": 3,
+        "public_rows": 2,
+        "public_by_tier": {
+          "t1-public-nc": 1,
+          "t0-public": 1
+        },
+        "public_bytes": 33,
+        "public_compressed_bytes": 73,
+        "refused": 1,
+        "refused_by_tier": {
+          "t4-private": 1
+        },
+        "public_not_in_cache": 0,
+        "considered": 2,
+        "uploaded": 2,
+        "already_present": 0,
+        "failed": [],
+        "tags_created": [
+          "archive/objects-6",
+          "archive/objects-d"
+        ],
+        "tags_present": [],
+        "marked": 2,
+        "urls": [
+          "https://github.com/rewire-bio/rewire-benchmark-data/releases/download/archive/objects-6/6e0f019328e082ece26d071e7f169a7a4a3ff5d1161412feade060b81e47155f.gz",
+          "https://github.com/rewire-bio/rewire-benchmark-data/releases/download/archive/objects-d/d9a94fd3393c02bf8fbc898923fdca5d36828a07195a7bf7b5e699d68f4d7f1d.gz"
+        ]
+      },
+      "rows": {
+        "1d4fec327a6cac6f1521d1b5321f55136d0472499d8482c4115eeacffaff140f": {
+          "store": "local-cache",
+          "mirrors": []
+        },
+        "6e0f019328e082ece26d071e7f169a7a4a3ff5d1161412feade060b81e47155f": {
+          "store": "r2",
+          "mirrors": [
+            "github-release"
+          ]
+        },
+        "d9a94fd3393c02bf8fbc898923fdca5d36828a07195a7bf7b5e699d68f4d7f1d": {
+          "store": "github-release",
+          "mirrors": []
+        }
+      },
+      "created_tags": [
+        "archive/objects-6",
+        "archive/objects-d"
+      ],
+      "uploaded_count": 2
+    },
+    "upload_repair": {
+      "repair_key": "4e5a6482b58bde4a955c09863c3c2c460e7d46bf4b42223be5e3ba424ec575b3",
+      "send_key": "19b940eec0d5cffba87757bb176de78f4fc88b8123ba5420cd3bf322256c6cf0",
+      "removed_key": "98c4497e883a73d21e1578435902c4cd5b665bc17c6c85ef5d247beeb8c4d9c6",
+      "summary": {
+        "considered": 2,
+        "uploaded": 1,
+        "skipped": 1,
+        "would_upload": 0,
+        "dry_run": false,
+        "removed": 1,
+        "failed": [],
+        "marked": 2
+      },
+      "calls": [
+        "HEAD 19b940eec0d5cffba87757bb176de78f4fc88b8123ba5420cd3bf322256c6cf0.gz",
+        "PUT 19b940eec0d5cffba87757bb176de78f4fc88b8123ba5420cd3bf322256c6cf0.gz",
+        "HEAD 4e5a6482b58bde4a955c09863c3c2c460e7d46bf4b42223be5e3ba424ec575b3.gz"
+      ],
+      "manifest": {
+        "19b940eec0d5cffba87757bb176de78f4fc88b8123ba5420cd3bf322256c6cf0": {
+          "store": "r2",
+          "mirrors": []
+        },
+        "4e5a6482b58bde4a955c09863c3c2c460e7d46bf4b42223be5e3ba424ec575b3": {
+          "store": "r2",
+          "mirrors": [
+            "github-release"
+          ]
+        },
+        "98c4497e883a73d21e1578435902c4cd5b665bc17c6c85ef5d247beeb8c4d9c6": {
+          "store": "r2",
+          "mirrors": []
+        }
+      }
+    },
+    "fetch_fallback": {
+      "jats_xml": "<article><body><p>Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word Genuine JATS full text body word </p></body></article>",
+      "publisher_html": "<html><body><main>Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph Scientific article body paragraph </main></body></html>",
+      "calls": [
+        "https://www.nature.com/articles/s41586",
+        "https://api.unpaywall.org/v2/10.1038%2Fs41586?email=contact%40example.org",
+        "https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=DOI:%2210.1038%2Fs41586%22&resultType=core&format=json",
+        "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC1234567/fullTextXML"
+      ],
+      "logs": [
+        "stored https://www.nature.com/articles/s41586 (1 source)"
+      ],
+      "summary": {
+        "planned": 1,
+        "skipped_held": 0,
+        "skipped_failed": 0,
+        "skipped_not_artifact": 0,
+        "skipped_removed": 0,
+        "attempted": 1,
+        "stored": 1,
+        "not_artifact": 0,
+        "failed": 0,
+        "objects_written": 1,
+        "bytes_stored": 2019,
+        "failures_by_reason": {},
+        "not_artifact_by_reason": {},
+        "hosts_stopped": [],
+        "sources_left_for_next_run": 0
+      },
+      "receipts": [
+        {
+          "bytes": 2019,
+          "content_type": "application/xml",
+          "fetched_at": "2026-11-21T12:34:56Z",
+          "final_url": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC1234567/fullTextXML",
+          "http_status": 200,
+          "outcome": "stored",
+          "reason": null,
+          "requested_url": "https://www.nature.com/articles/s41586",
+          "route": "europepmc",
+          "routes_tried": [
+            {
+              "route": "direct",
+              "url": "https://www.nature.com/articles/s41586",
+              "status": 200,
+              "reason": "publisher_html_only"
+            },
+            {
+              "route": "unpaywall",
+              "url": null,
+              "status": null,
+              "reason": "no_open_copy"
+            },
+            {
+              "route": "europepmc",
+              "url": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC1234567/fullTextXML",
+              "status": 200,
+              "reason": null
+            }
+          ],
+          "schema_version": 1,
+          "sha256": "ffb683c445fab8e9595795dec812f977c11109f59d258eea127ac68da53491e8",
+          "source_class": "publisher",
+          "source_id": "src-xml-rescue"
+        }
+      ]
+    },
+    "resolve_offline": {
+      "targets": [
+        {
+          "source_id": "r-gh",
+          "url": "https://github.com/org/repo",
+          "host": "github.com",
+          "doi": null,
+          "recorded_licence": null,
+          "recorded_tier": "t4-private",
+          "keys": {
+            "github": {
+              "owner": "org",
+              "repo": "repo",
+              "ref": null
+            }
+          }
+        },
+        {
+          "source_id": "r-unmapped",
+          "url": "https://huggingface.co/org/mod",
+          "host": "huggingface.co",
+          "doi": null,
+          "recorded_licence": null,
+          "recorded_tier": "t4-private",
+          "keys": {
+            "huggingface": {
+              "kind": "models",
+              "id": "org/mod",
+              "revision": null
+            }
+          }
+        }
+      ],
+      "candidates": [
+        {
+          "schema_version": 1,
+          "source_id": "r-gh",
+          "status": "resolved",
+          "observed_licence": "MIT",
+          "family": "permissive-code",
+          "archive_tier": "t0-public",
+          "recorded_licence": null,
+          "recorded_tier": "t4-private",
+          "agreement": "none-recorded",
+          "unmapped_values": [],
+          "reason": null,
+          "observations": [
+            {
+              "route": "github",
+              "endpoint": "https://api.github.com/repos/org/repo/license",
+              "field": "license.spdx_id (from LICENSE)",
+              "value": "MIT",
+              "observed_at": "2026-11-21T12:34:56Z"
+            }
+          ]
+        },
+        {
+          "schema_version": 1,
+          "source_id": "r-unmapped",
+          "status": "unmapped",
+          "observed_licence": null,
+          "family": null,
+          "archive_tier": null,
+          "recorded_licence": null,
+          "recorded_tier": "t4-private",
+          "agreement": "no-candidate",
+          "unmapped_values": [
+            "apache-2.0"
+          ],
+          "reason": "no row in data/archive/licence-map.tsv for \"apache-2.0\"",
+          "observations": [
+            {
+              "route": "huggingface",
+              "endpoint": "https://huggingface.co/api/models/org/mod",
+              "field": "cardData.license",
+              "value": "apache-2.0",
+              "observed_at": "2026-11-21T12:34:56Z"
+            }
+          ]
+        }
+      ],
+      "receipts": [
+        {
+          "schema_version": 1,
+          "source_id": "r-gh",
+          "route": "github",
+          "endpoint": "https://api.github.com/repos/org/repo/license",
+          "attempted_at": "2026-11-21T12:34:56Z",
+          "http_status": 200,
+          "outcome": "licence",
+          "reason": null,
+          "values": [
+            "MIT"
+          ]
+        },
+        {
+          "schema_version": 1,
+          "source_id": "r-unmapped",
+          "route": "huggingface",
+          "endpoint": "https://huggingface.co/api/models/org/mod",
+          "attempted_at": "2026-11-21T12:34:56Z",
+          "http_status": 200,
+          "outcome": "licence",
+          "reason": null,
+          "values": [
+            "apache-2.0"
+          ]
+        }
+      ],
+      "counts": {
+        "sources": 2,
+        "attempted": 2,
+        "candidates": 2,
+        "by_status": {
+          "resolved": 1,
+          "conflict": 0,
+          "unmapped": 1
+        },
+        "by_route": {
+          "crossref": {
+            "sources": 0,
+            "licence": 0,
+            "no_licence": 0,
+            "by_reason": {}
+          },
+          "github": {
+            "sources": 1,
+            "licence": 1,
+            "no_licence": 0,
+            "by_reason": {}
+          },
+          "huggingface": {
+            "sources": 1,
+            "licence": 1,
+            "no_licence": 0,
+            "by_reason": {}
+          },
+          "preprint": {
+            "sources": 0,
+            "licence": 0,
+            "no_licence": 0,
+            "by_reason": {}
+          },
+          "europepmc": {
+            "sources": 0,
+            "licence": 0,
+            "no_licence": 0,
+            "by_reason": {}
+          }
+        },
+        "resolved_by_route": {
+          "crossref": 0,
+          "github": 1,
+          "huggingface": 0,
+          "preprint": 0,
+          "europepmc": 0
+        },
+        "by_tier": {
+          "t0-public": 1
+        },
+        "leaves_t4": 1,
+        "leaves_t4_if_proposed": 1,
+        "agreement": {
+          "none-recorded": 1,
+          "no-candidate": 1
+        },
+        "unmapped_strings": [
+          {
+            "value": "apache-2.0",
+            "sources": 1,
+            "routes": [
+              "huggingface"
+            ],
+            "example": "r-unmapped",
+            "proposed": null,
+            "proposed_tier": null
+          }
+        ],
+        "unresolved_hosts": [],
+        "unresolved_classes": [],
+        "unresolved_reasons": {}
+      },
+      "tsv": "# Licence candidates, one row per source with at least one observation. Generated, never hand written.\n#   npm run licence:resolve\n# Generated 2026-11-21. A candidate is never promoted into a source record by this file.\nsource_id\tstatus\tobserved_licence\tfamily\tarchive_tier\trecorded_licence\trecorded_tier\tagreement\troutes\tendpoints\tfields\tobserved_at\tunmapped_values\treason\nr-gh\tresolved\tMIT\tpermissive-code\tt0-public\t\tt4-private\tnone-recorded\tgithub\thttps://api.github.com/repos/org/repo/license\tlicense.spdx_id (from LICENSE)\t2026-11-21T12:34:56Z\t\t\nr-unmapped\tunmapped\t\t\t\t\tt4-private\tno-candidate\thuggingface\thttps://huggingface.co/api/models/org/mod\tcardData.license\t2026-11-21T12:34:56Z\tapache-2.0\tno row in data/archive/licence-map.tsv for \"apache-2.0\"\n",
+      "md": "# Licence resolver run, 2026-11-21\n\nGenerated by `npm run licence:resolve`. Do not edit. Every figure below is counted over the\ncandidates and receipts this run wrote, not modelled.\n\nA candidate is a candidate. Nothing here is written into a source record, no licence a person\nrecorded is changed, and no tier comes from anywhere but `data/archive/licence-map.tsv`.\n\n## What the run did\n\n| What | Count |\n| --- | --- |\n| source records read | 2 |\n| sources at least one route applied to | 2 |\n| sources a service stated a licence for | 2 |\n| resolved to a tier through the licence map | 1 |\n| served a string the map has no row for | 1 |\n| two services disagreeing, resolved to nothing | 0 |\n| no service stated a licence | 0 |\n\n## The number that decides how much can be published\n\nSources that leave t4-private if these candidates are accepted, with the licence map exactly as\nit stands today: **1**. That is the measurement, counted over the candidates below.\n\nOne further figure is conditional and is not a measurement of anything yet. Sources that would\nleave t4-private if the owner also added a reviewed row for each unmapped string below, with the\nreading this report proposes: 1. Those rows do not exist, so that number is a forecast of a\ndecision rather than a count of a state.\n\n## Per route\n\nOne attempt per source per route. A route that applies to a source and states no licence is\ncounted here, which is what makes the hit rate a measurement.\n\n| Route | Sources asked | Stated a licence | Hit rate | Carried the resolved value |\n| --- | --- | --- | --- | --- |\n| `github` | 1 | 1 | 100.0 percent | 1 |\n| `huggingface` | 1 | 1 | 100.0 percent | 0 |\n\nWhy a route stated nothing:\n\n\n## Tiers the resolved candidates map to\n\n| Tier | Candidates |\n| --- | --- |\n| `t0-public` | 1 |\n\n## Against the licence a person recorded\n\n| Candidate sits | Sources |\n| --- | --- |\n| no-candidate | 1 |\n| none-recorded | 1 |\n\n`disagrees` is a research lead, not a correction. The recorded value stays exactly as it is and\nthe candidate sits beside it in `data/archive/licence-candidates.jsonl`.\n\n## Strings the licence map has no row for\n\nEach one is a build failure by design: the resolver exits non-zero while any of these is\nunmapped, so a new licence string cannot become a silent t4-private. The proposed key is the\nexisting map row a reviewer would most likely point the string at. It is a suggestion for the\nowner, it sets no tier, and the resolver does not consult it.\n\n| Value as served | Sources | Routes | Example source | Proposed map row | Tier that row carries |\n| --- | --- | --- | --- | --- | --- |\n| `apache-2.0` | 1 | huggingface | `r-unmapped` | none proposed |  |\n\n## Still unresolved\n\n0 sources came away with no licence statement from any service. By host:\n\n| Host | Sources |\n| --- | --- |\n\n\nBy the host-behaviour class the repository keys treatments on. A class with no route is one\nthis resolver leaves alone on purpose: the rule is to resolve nothing rather than guess, and\narXiv, a data repository's rights field and a project web page each need their own route.\n\n| Source class | Sources |\n| --- | --- |\n\nWhy, by route and reason:\n\n\n## Requests made\n\nOne line per host, counting every request the run sent, including a retry after a 429 or a 503.\n\n| Host | Requests |\n| --- | --- |\n| api.github.com | 1 |\n| huggingface.co | 1 |\n\n## Files\n\n- `data/archive/licence-candidates.jsonl`: one row per candidate. `readCandidates()` in\n  `scripts/licence/resolve.ts` parses it. The triage queue does not consume it yet.\n- `data/omics/audits/2026-11-21-licence-resolve.receipts.jsonl`: every attempt, including the ones\n  that stated nothing.\n- `maintenance/reports/licence-resolve-2026-11-21.tsv`: the full candidate list as a table.\n\nA candidate is promoted into `attributes.licence` by a record change like any other, and the\nmanifest's `observed_licence` is written by the archive work, not here.\n"
+    }
+  }
+}
