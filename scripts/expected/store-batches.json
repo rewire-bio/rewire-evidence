@@ -1,0 +1,1536 @@
+{
+  "recorded_from": {
+    "store_ref": "91f76cf8e61cba9d6037a01a19c9aa3051184900"
+  },
+  "total_batch_dirs": 199,
+  "python_batches": 148,
+  "py_files": 412,
+  "py_lines": 114117,
+  "lib_copies": 42,
+  "lib_digests": 11,
+  "committed_batches_with_jsonl": 145,
+  "committed_rows": 64132,
+  "store_unchanged_rows": 50508,
+  "store_changed_rows": 13620,
+  "store_other_rows": 4,
+  "schema_valid_rows": 64081,
+  "schema_drift_rows": 51,
+  "num_agreed_rows": 32883,
+  "reproduced_batches": 6,
+  "reproduced_rows": 1804,
+  "non_reproducing_batches": 142,
+  "non_reproducing_reasons": {
+    "needs_external_cli_or_custom_invocation": 107,
+    "needs_external_cli_or_unarchived_input": 27,
+    "no_batch_jsonl": 3,
+    "post_build_review_or_store_edits": 4,
+    "uses_network_import": 1
+  },
+  "waves": [
+    {
+      "wave": "use-case-coverage",
+      "batches": 57,
+      "py_files": 122,
+      "py_lines": 35354,
+      "lib_copies": 12,
+      "committed_rows": 23613,
+      "store_unchanged_rows": 19656,
+      "store_changed_rows": 3957,
+      "store_other_rows": 0,
+      "reproduced_batches": 0,
+      "reproduced_rows": 0,
+      "non_reproducing_batches": 57,
+      "reproduction_rate": 0.0,
+      "store_row_match_rate": 0.8324
+    },
+    {
+      "wave": "benchmark-batches",
+      "batches": 39,
+      "py_files": 186,
+      "py_lines": 59687,
+      "lib_copies": 1,
+      "committed_rows": 16531,
+      "store_unchanged_rows": 12237,
+      "store_changed_rows": 4290,
+      "store_other_rows": 4,
+      "reproduced_batches": 6,
+      "reproduced_rows": 1804,
+      "non_reproducing_batches": 33,
+      "reproduction_rate": 0.1538,
+      "store_row_match_rate": 0.7402
+    },
+    {
+      "wave": "gfm-guides",
+      "batches": 12,
+      "py_files": 15,
+      "py_lines": 3568,
+      "lib_copies": 0,
+      "committed_rows": 4356,
+      "store_unchanged_rows": 0,
+      "store_changed_rows": 4356,
+      "store_other_rows": 0,
+      "reproduced_batches": 0,
+      "reproduced_rows": 0,
+      "non_reproducing_batches": 12,
+      "reproduction_rate": 0.0,
+      "store_row_match_rate": 0.0
+    },
+    {
+      "wave": "lit-genomics",
+      "batches": 8,
+      "py_files": 16,
+      "py_lines": 2298,
+      "lib_copies": 8,
+      "committed_rows": 5712,
+      "store_unchanged_rows": 5483,
+      "store_changed_rows": 229,
+      "store_other_rows": 0,
+      "reproduced_batches": 0,
+      "reproduced_rows": 0,
+      "non_reproducing_batches": 8,
+      "reproduction_rate": 0.0,
+      "store_row_match_rate": 0.9599
+    },
+    {
+      "wave": "qa-descriptions",
+      "batches": 7,
+      "py_files": 10,
+      "py_lines": 2381,
+      "lib_copies": 0,
+      "committed_rows": 258,
+      "store_unchanged_rows": 258,
+      "store_changed_rows": 0,
+      "store_other_rows": 0,
+      "reproduced_batches": 0,
+      "reproduced_rows": 0,
+      "non_reproducing_batches": 7,
+      "reproduction_rate": 0.0,
+      "store_row_match_rate": 1.0
+    },
+    {
+      "wave": "lit-cells-networks",
+      "batches": 5,
+      "py_files": 14,
+      "py_lines": 2141,
+      "lib_copies": 5,
+      "committed_rows": 5363,
+      "store_unchanged_rows": 5271,
+      "store_changed_rows": 92,
+      "store_other_rows": 0,
+      "reproduced_batches": 0,
+      "reproduced_rows": 0,
+      "non_reproducing_batches": 5,
+      "reproduction_rate": 0.0,
+      "store_row_match_rate": 0.9828
+    },
+    {
+      "wave": "lit-interactions",
+      "batches": 4,
+      "py_files": 8,
+      "py_lines": 1674,
+      "lib_copies": 4,
+      "committed_rows": 1258,
+      "store_unchanged_rows": 1108,
+      "store_changed_rows": 150,
+      "store_other_rows": 0,
+      "reproduced_batches": 0,
+      "reproduced_rows": 0,
+      "non_reproducing_batches": 4,
+      "reproduction_rate": 0.0,
+      "store_row_match_rate": 0.8808
+    },
+    {
+      "wave": "gfm2",
+      "batches": 3,
+      "py_files": 6,
+      "py_lines": 1443,
+      "lib_copies": 0,
+      "committed_rows": 741,
+      "store_unchanged_rows": 422,
+      "store_changed_rows": 319,
+      "store_other_rows": 0,
+      "reproduced_batches": 0,
+      "reproduced_rows": 0,
+      "non_reproducing_batches": 3,
+      "reproduction_rate": 0.0,
+      "store_row_match_rate": 0.5695
+    },
+    {
+      "wave": "lit-rna",
+      "batches": 3,
+      "py_files": 6,
+      "py_lines": 1233,
+      "lib_copies": 3,
+      "committed_rows": 3120,
+      "store_unchanged_rows": 3067,
+      "store_changed_rows": 53,
+      "store_other_rows": 0,
+      "reproduced_batches": 0,
+      "reproduced_rows": 0,
+      "non_reproducing_batches": 3,
+      "reproduction_rate": 0.0,
+      "store_row_match_rate": 0.983
+    },
+    {
+      "wave": "lit-structure",
+      "batches": 3,
+      "py_files": 11,
+      "py_lines": 1441,
+      "lib_copies": 3,
+      "committed_rows": 711,
+      "store_unchanged_rows": 688,
+      "store_changed_rows": 23,
+      "store_other_rows": 0,
+      "reproduced_batches": 0,
+      "reproduced_rows": 0,
+      "non_reproducing_batches": 3,
+      "reproduction_rate": 0.0,
+      "store_row_match_rate": 0.9677
+    },
+    {
+      "wave": "lit-otheromics",
+      "batches": 2,
+      "py_files": 4,
+      "py_lines": 917,
+      "lib_copies": 2,
+      "committed_rows": 749,
+      "store_unchanged_rows": 690,
+      "store_changed_rows": 59,
+      "store_other_rows": 0,
+      "reproduced_batches": 0,
+      "reproduced_rows": 0,
+      "non_reproducing_batches": 2,
+      "reproduction_rate": 0.0,
+      "store_row_match_rate": 0.9212
+    },
+    {
+      "wave": "lit-protein",
+      "batches": 2,
+      "py_files": 7,
+      "py_lines": 1053,
+      "lib_copies": 2,
+      "committed_rows": 1356,
+      "store_unchanged_rows": 1317,
+      "store_changed_rows": 39,
+      "store_other_rows": 0,
+      "reproduced_batches": 0,
+      "reproduced_rows": 0,
+      "non_reproducing_batches": 2,
+      "reproduction_rate": 0.0,
+      "store_row_match_rate": 0.9712
+    },
+    {
+      "wave": "lit-rna-other",
+      "batches": 2,
+      "py_files": 4,
+      "py_lines": 596,
+      "lib_copies": 2,
+      "committed_rows": 364,
+      "store_unchanged_rows": 311,
+      "store_changed_rows": 53,
+      "store_other_rows": 0,
+      "reproduced_batches": 0,
+      "reproduced_rows": 0,
+      "non_reproducing_batches": 2,
+      "reproduction_rate": 0.0,
+      "store_row_match_rate": 0.8544
+    },
+    {
+      "wave": "lit-search",
+      "batches": 1,
+      "py_files": 3,
+      "py_lines": 331,
+      "lib_copies": 0,
+      "committed_rows": 0,
+      "store_unchanged_rows": 0,
+      "store_changed_rows": 0,
+      "store_other_rows": 0,
+      "reproduced_batches": 0,
+      "reproduced_rows": 0,
+      "non_reproducing_batches": 1,
+      "reproduction_rate": 0.0,
+      "store_row_match_rate": 0.0
+    }
+  ],
+  "non_reproducing": [
+    {
+      "batch": "alavi-alphagenome-dispute-20261023",
+      "wave": "benchmark-batches",
+      "rows": 5,
+      "store_unchanged_rows": 5,
+      "store_changed_rows": 0,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "alavi-v2-20261101",
+      "wave": "benchmark-batches",
+      "rows": 76,
+      "store_unchanged_rows": 76,
+      "store_changed_rows": 0,
+      "reason": "needs_external_cli_or_unarchived_input",
+      "detail": "build.py could not run cleanly offline without external inputs"
+    },
+    {
+      "batch": "alphagenome-atlas-20261019",
+      "wave": "benchmark-batches",
+      "rows": 276,
+      "store_unchanged_rows": 275,
+      "store_changed_rows": 1,
+      "reason": "needs_external_cli_or_unarchived_input",
+      "detail": "extract/build_batch.py could not run cleanly offline without external inputs"
+    },
+    {
+      "batch": "amp-coverage-20261007",
+      "wave": "benchmark-batches",
+      "rows": 0,
+      "store_unchanged_rows": 0,
+      "store_changed_rows": 0,
+      "reason": "no_batch_jsonl",
+      "detail": "directory holds helper or audit scripts without batch.jsonl"
+    },
+    {
+      "batch": "bacformer-20261115",
+      "wave": "benchmark-batches",
+      "rows": 490,
+      "store_unchanged_rows": 6,
+      "store_changed_rows": 484,
+      "reason": "post_build_review_or_store_edits",
+      "detail": "extract/build_batch.py ran cleanly offline; committed batch.jsonl carries post-build review or store edits"
+    },
+    {
+      "batch": "bioemu2-20261115",
+      "wave": "benchmark-batches",
+      "rows": 94,
+      "store_unchanged_rows": 0,
+      "store_changed_rows": 94,
+      "reason": "post_build_review_or_store_edits",
+      "detail": "build.py ran cleanly offline; committed batch.jsonl carries post-build review or store edits"
+    },
+    {
+      "batch": "coordinator-fixes-20261116",
+      "wave": "benchmark-batches",
+      "rows": 18,
+      "store_unchanged_rows": 0,
+      "store_changed_rows": 18,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "editjumps-20261115",
+      "wave": "benchmark-batches",
+      "rows": 465,
+      "store_unchanged_rows": 1,
+      "store_changed_rows": 464,
+      "reason": "needs_external_cli_or_unarchived_input",
+      "detail": "extract/build_batch.py could not run cleanly offline without external inputs"
+    },
+    {
+      "batch": "enchant-v3-20261102",
+      "wave": "benchmark-batches",
+      "rows": 4,
+      "store_unchanged_rows": 0,
+      "store_changed_rows": 0,
+      "reason": "needs_external_cli_or_unarchived_input",
+      "detail": "build.py could not run cleanly offline without external inputs"
+    },
+    {
+      "batch": "feng-dna-fm-20261013",
+      "wave": "benchmark-batches",
+      "rows": 447,
+      "store_unchanged_rows": 326,
+      "store_changed_rows": 121,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "feng-dna-fm-20261014",
+      "wave": "benchmark-batches",
+      "rows": 698,
+      "store_unchanged_rows": 570,
+      "store_changed_rows": 128,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "finedna-20261101",
+      "wave": "benchmark-batches",
+      "rows": 4,
+      "store_unchanged_rows": 3,
+      "store_changed_rows": 1,
+      "reason": "needs_external_cli_or_unarchived_input",
+      "detail": "build.py could not run cleanly offline without external inputs"
+    },
+    {
+      "batch": "gfm-guide-sources-20261014",
+      "wave": "benchmark-batches",
+      "rows": 127,
+      "store_unchanged_rows": 0,
+      "store_changed_rows": 127,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "gfm-guides-20261014-esm1b",
+      "wave": "gfm-guides",
+      "rows": 152,
+      "store_unchanged_rows": 0,
+      "store_changed_rows": 152,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "gfm-guides-20261014-esm1b-supp2",
+      "wave": "gfm-guides",
+      "rows": 731,
+      "store_unchanged_rows": 0,
+      "store_changed_rows": 731,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "gfm-guides-20261014-evo-generation",
+      "wave": "gfm-guides",
+      "rows": 9,
+      "store_unchanged_rows": 0,
+      "store_changed_rows": 9,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "gfm-guides-20261014-evo2-brixi2026",
+      "wave": "gfm-guides",
+      "rows": 2195,
+      "store_unchanged_rows": 0,
+      "store_changed_rows": 2195,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "gfm-guides-20261014-gpnmsa",
+      "wave": "gfm-guides",
+      "rows": 190,
+      "store_unchanged_rows": 0,
+      "store_changed_rows": 190,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "gfm-guides-20261014-gpnmsa-gnomad",
+      "wave": "gfm-guides",
+      "rows": 53,
+      "store_unchanged_rows": 0,
+      "store_changed_rows": 53,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "gfm-guides-20261014-identity",
+      "wave": "gfm-guides",
+      "rows": 20,
+      "store_unchanged_rows": 0,
+      "store_changed_rows": 20,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "gfm-guides-20261014-kedzierska2025",
+      "wave": "gfm-guides",
+      "rows": 740,
+      "store_unchanged_rows": 0,
+      "store_changed_rows": 740,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "gfm-guides-20261014-kedzierska2025-avg",
+      "wave": "gfm-guides",
+      "rows": 176,
+      "store_unchanged_rows": 0,
+      "store_changed_rows": 176,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "gfm-guides-20261014-kendiukhov2026",
+      "wave": "gfm-guides",
+      "rows": 69,
+      "store_unchanged_rows": 0,
+      "store_changed_rows": 69,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "gfm-guides-20261014-kendiukhov2026-delta",
+      "wave": "gfm-guides",
+      "rows": 20,
+      "store_unchanged_rows": 0,
+      "store_changed_rows": 20,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "gfm-guides-20261014-mahtha2026-monomer-claim",
+      "wave": "gfm-guides",
+      "rows": 1,
+      "store_unchanged_rows": 0,
+      "store_changed_rows": 1,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "gfm2-20261011-buzkova2026",
+      "wave": "gfm2",
+      "rows": 196,
+      "store_unchanged_rows": 53,
+      "store_changed_rows": 143,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "gfm2-20261011-datta2026",
+      "wave": "gfm2",
+      "rows": 303,
+      "store_unchanged_rows": 147,
+      "store_changed_rows": 156,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "gfm2-20261011-you2026",
+      "wave": "gfm2",
+      "rows": 242,
+      "store_unchanged_rows": 222,
+      "store_changed_rows": 20,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "gpn-msa-published-20261116",
+      "wave": "benchmark-batches",
+      "rows": 15,
+      "store_unchanged_rows": 15,
+      "store_changed_rows": 0,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "gpn-paper-20261116",
+      "wave": "benchmark-batches",
+      "rows": 81,
+      "store_unchanged_rows": 39,
+      "store_changed_rows": 42,
+      "reason": "post_build_review_or_store_edits",
+      "detail": "build.py ran cleanly offline; committed batch.jsonl carries post-build review or store edits"
+    },
+    {
+      "batch": "gpn-star-20261116",
+      "wave": "benchmark-batches",
+      "rows": 219,
+      "store_unchanged_rows": 0,
+      "store_changed_rows": 219,
+      "reason": "needs_external_cli_or_unarchived_input",
+      "detail": "extract/build.py could not run cleanly offline without external inputs"
+    },
+    {
+      "batch": "hycell-20261106",
+      "wave": "benchmark-batches",
+      "rows": 560,
+      "store_unchanged_rows": 553,
+      "store_changed_rows": 7,
+      "reason": "needs_external_cli_or_unarchived_input",
+      "detail": "extract/build.py could not run cleanly offline without external inputs"
+    },
+    {
+      "batch": "hyinv-20261106",
+      "wave": "benchmark-batches",
+      "rows": 1103,
+      "store_unchanged_rows": 518,
+      "store_changed_rows": 585,
+      "reason": "needs_external_cli_or_unarchived_input",
+      "detail": "extract/build.py could not run cleanly offline without external inputs"
+    },
+    {
+      "batch": "hyplm-flash-20261106",
+      "wave": "benchmark-batches",
+      "rows": 1131,
+      "store_unchanged_rows": 1125,
+      "store_changed_rows": 6,
+      "reason": "needs_external_cli_or_unarchived_input",
+      "detail": "extract/build.py could not run cleanly offline without external inputs"
+    },
+    {
+      "batch": "lit-agents-20261013-biomlbench",
+      "wave": "benchmark-batches",
+      "rows": 220,
+      "store_unchanged_rows": 208,
+      "store_changed_rows": 12,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "lit-cells-networks-20261011-chen2026",
+      "wave": "lit-cells-networks",
+      "rows": 542,
+      "store_unchanged_rows": 507,
+      "store_changed_rows": 35,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "lit-cells-networks-20261011-perturbench-v4",
+      "wave": "lit-cells-networks",
+      "rows": 416,
+      "store_unchanged_rows": 410,
+      "store_changed_rows": 6,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "lit-cells-networks-20261011-scmbench",
+      "wave": "lit-cells-networks",
+      "rows": 544,
+      "store_unchanged_rows": 500,
+      "store_changed_rows": 44,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "lit-cells-networks-20261011-sun2026de",
+      "wave": "lit-cells-networks",
+      "rows": 286,
+      "store_unchanged_rows": 283,
+      "store_changed_rows": 3,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "lit-cells-networks-20261011-ye2026grn",
+      "wave": "lit-cells-networks",
+      "rows": 3575,
+      "store_unchanged_rows": 3571,
+      "store_changed_rows": 4,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "lit-genomics-20261011-dnalongbench",
+      "wave": "lit-genomics",
+      "rows": 188,
+      "store_unchanged_rows": 171,
+      "store_changed_rows": 17,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "lit-genomics-20261011-evo2mito",
+      "wave": "lit-genomics",
+      "rows": 13,
+      "store_unchanged_rows": 12,
+      "store_changed_rows": 1,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "lit-genomics-20261011-genbench",
+      "wave": "lit-genomics",
+      "rows": 836,
+      "store_unchanged_rows": 832,
+      "store_changed_rows": 4,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "lit-genomics-20261011-geneb",
+      "wave": "lit-genomics",
+      "rows": 2034,
+      "store_unchanged_rows": 1973,
+      "store_changed_rows": 61,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "lit-genomics-20261011-gfmbench",
+      "wave": "lit-genomics",
+      "rows": 770,
+      "store_unchanged_rows": 749,
+      "store_changed_rows": 21,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "lit-genomics-20261011-guanine",
+      "wave": "lit-genomics",
+      "rows": 539,
+      "store_unchanged_rows": 467,
+      "store_changed_rows": 72,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "lit-genomics-20261011-ntbench",
+      "wave": "lit-genomics",
+      "rows": 921,
+      "store_unchanged_rows": 895,
+      "store_changed_rows": 26,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "lit-genomics-20261011-traitgym",
+      "wave": "lit-genomics",
+      "rows": 411,
+      "store_unchanged_rows": 384,
+      "store_changed_rows": 27,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "lit-interactions-20261011-leakctl",
+      "wave": "lit-interactions",
+      "rows": 363,
+      "store_unchanged_rows": 343,
+      "store_changed_rows": 20,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "lit-interactions-20261011-mochibind",
+      "wave": "lit-interactions",
+      "rows": 49,
+      "store_unchanged_rows": 41,
+      "store_changed_rows": 8,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "lit-interactions-20261011-plmdta",
+      "wave": "lit-interactions",
+      "rows": 131,
+      "store_unchanged_rows": 101,
+      "store_changed_rows": 30,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "lit-interactions-20261011-ppiemb",
+      "wave": "lit-interactions",
+      "rows": 715,
+      "store_unchanged_rows": 623,
+      "store_changed_rows": 92,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "lit-microbial-20261011-virobench",
+      "wave": "benchmark-batches",
+      "rows": 1932,
+      "store_unchanged_rows": 1843,
+      "store_changed_rows": 89,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "lit-otheromics-20261011-msgwild",
+      "wave": "lit-otheromics",
+      "rows": 382,
+      "store_unchanged_rows": 330,
+      "store_changed_rows": 52,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "lit-otheromics-20261011-pepspecbench",
+      "wave": "lit-otheromics",
+      "rows": 367,
+      "store_unchanged_rows": 360,
+      "store_changed_rows": 7,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "lit-protein-20261011-deepprotein",
+      "wave": "lit-protein",
+      "rows": 986,
+      "store_unchanged_rows": 950,
+      "store_changed_rows": 36,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "lit-protein-20261011-prime",
+      "wave": "lit-protein",
+      "rows": 370,
+      "store_unchanged_rows": 367,
+      "store_changed_rows": 3,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "lit-rna-20261011-rna3d",
+      "wave": "lit-rna",
+      "rows": 485,
+      "store_unchanged_rows": 479,
+      "store_changed_rows": 6,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "lit-rna-20261011-rnagym",
+      "wave": "lit-rna",
+      "rows": 157,
+      "store_unchanged_rows": 137,
+      "store_changed_rows": 20,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "lit-rna-20261011-rnalm-zeroshot",
+      "wave": "lit-rna",
+      "rows": 2478,
+      "store_unchanged_rows": 2451,
+      "store_changed_rows": 27,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "lit-rna-other-20261011-khoo2026",
+      "wave": "lit-rna-other",
+      "rows": 226,
+      "store_unchanged_rows": 209,
+      "store_changed_rows": 17,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "lit-rna-other-20261011-zhong2026",
+      "wave": "lit-rna-other",
+      "rows": 138,
+      "store_unchanged_rows": 102,
+      "store_changed_rows": 36,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "lit-search-20261011-gfm-2",
+      "wave": "lit-search",
+      "rows": 0,
+      "store_unchanged_rows": 0,
+      "store_changed_rows": 0,
+      "reason": "no_batch_jsonl",
+      "detail": "directory holds helper or audit scripts without batch.jsonl"
+    },
+    {
+      "batch": "lit-structure-20261011-afesmfold",
+      "wave": "lit-structure",
+      "rows": 298,
+      "store_unchanged_rows": 294,
+      "store_changed_rows": 4,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "lit-structure-20261011-lipp",
+      "wave": "lit-structure",
+      "rows": 74,
+      "store_unchanged_rows": 65,
+      "store_changed_rows": 9,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "lit-structure-20261011-scaffoldlab",
+      "wave": "lit-structure",
+      "rows": 339,
+      "store_unchanged_rows": 329,
+      "store_changed_rows": 10,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "lu-brandes-2025-heterogeneity-20261019",
+      "wave": "benchmark-batches",
+      "rows": 307,
+      "store_unchanged_rows": 306,
+      "store_changed_rows": 1,
+      "reason": "needs_external_cli_or_unarchived_input",
+      "detail": "extract/build_batch.py could not run cleanly offline without external inputs"
+    },
+    {
+      "batch": "method-type-corrections-20261012",
+      "wave": "benchmark-batches",
+      "rows": 248,
+      "store_unchanged_rows": 248,
+      "store_changed_rows": 0,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "perturbation-ahlmann-derived-20261011",
+      "wave": "benchmark-batches",
+      "rows": 131,
+      "store_unchanged_rows": 111,
+      "store_changed_rows": 20,
+      "reason": "needs_external_cli_or_unarchived_input",
+      "detail": "extract/build_batch.py could not run cleanly offline without external inputs"
+    },
+    {
+      "batch": "phylogpn-20261116",
+      "wave": "benchmark-batches",
+      "rows": 294,
+      "store_unchanged_rows": 26,
+      "store_changed_rows": 268,
+      "reason": "needs_external_cli_or_unarchived_input",
+      "detail": "extract/build_batch.py could not run cleanly offline without external inputs"
+    },
+    {
+      "batch": "poisk-20261115",
+      "wave": "benchmark-batches",
+      "rows": 229,
+      "store_unchanged_rows": 98,
+      "store_changed_rows": 131,
+      "reason": "needs_external_cli_or_unarchived_input",
+      "detail": "extract/build_batch.py could not run cleanly offline without external inputs"
+    },
+    {
+      "batch": "proteingym-origin-audit-20261014",
+      "wave": "benchmark-batches",
+      "rows": 275,
+      "store_unchanged_rows": 0,
+      "store_changed_rows": 275,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "qa-beeline-names-20261010",
+      "wave": "benchmark-batches",
+      "rows": 250,
+      "store_unchanged_rows": 250,
+      "store_changed_rows": 0,
+      "reason": "needs_external_cli_or_unarchived_input",
+      "detail": "build.py could not run cleanly offline without external inputs"
+    },
+    {
+      "batch": "qa-descriptions-20261011",
+      "wave": "qa-descriptions",
+      "rows": 9,
+      "store_unchanged_rows": 9,
+      "store_changed_rows": 0,
+      "reason": "needs_external_cli_or_unarchived_input",
+      "detail": "build.py could not run cleanly offline without external inputs"
+    },
+    {
+      "batch": "qa-descriptions-20261011-a",
+      "wave": "qa-descriptions",
+      "rows": 62,
+      "store_unchanged_rows": 62,
+      "store_changed_rows": 0,
+      "reason": "needs_external_cli_or_unarchived_input",
+      "detail": "build.py could not run cleanly offline without external inputs"
+    },
+    {
+      "batch": "qa-descriptions-20261011-b",
+      "wave": "qa-descriptions",
+      "rows": 63,
+      "store_unchanged_rows": 63,
+      "store_changed_rows": 0,
+      "reason": "needs_external_cli_or_unarchived_input",
+      "detail": "build.py could not run cleanly offline without external inputs"
+    },
+    {
+      "batch": "qa-descriptions-20261011-c",
+      "wave": "qa-descriptions",
+      "rows": 41,
+      "store_unchanged_rows": 41,
+      "store_changed_rows": 0,
+      "reason": "needs_external_cli_or_unarchived_input",
+      "detail": "build.py could not run cleanly offline without external inputs"
+    },
+    {
+      "batch": "qa-descriptions-20261011-d",
+      "wave": "qa-descriptions",
+      "rows": 34,
+      "store_unchanged_rows": 34,
+      "store_changed_rows": 0,
+      "reason": "needs_external_cli_or_unarchived_input",
+      "detail": "build.py could not run cleanly offline without external inputs"
+    },
+    {
+      "batch": "qa-descriptions-20261011-e",
+      "wave": "qa-descriptions",
+      "rows": 49,
+      "store_unchanged_rows": 49,
+      "store_changed_rows": 0,
+      "reason": "needs_external_cli_or_unarchived_input",
+      "detail": "build.py could not run cleanly offline without external inputs"
+    },
+    {
+      "batch": "qa-descriptions-20261014",
+      "wave": "qa-descriptions",
+      "rows": 0,
+      "store_unchanged_rows": 0,
+      "store_changed_rows": 0,
+      "reason": "no_batch_jsonl",
+      "detail": "directory holds helper or audit scripts without batch.jsonl"
+    },
+    {
+      "batch": "qa-suffix-reasons-20261010",
+      "wave": "benchmark-batches",
+      "rows": 51,
+      "store_unchanged_rows": 51,
+      "store_changed_rows": 0,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "saadat-fellay-20261015",
+      "wave": "benchmark-batches",
+      "rows": 38,
+      "store_unchanged_rows": 0,
+      "store_changed_rows": 38,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "use-case-coverage-binder-20261022",
+      "wave": "use-case-coverage",
+      "rows": 420,
+      "store_unchanged_rows": 399,
+      "store_changed_rows": 21,
+      "reason": "post_build_review_or_store_edits",
+      "detail": "extract/build_batch.py ran cleanly offline; committed batch.jsonl carries post-build review or store edits"
+    },
+    {
+      "batch": "use-case-coverage-brca-20261009",
+      "wave": "use-case-coverage",
+      "rows": 862,
+      "store_unchanged_rows": 842,
+      "store_changed_rows": 20,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "use-case-coverage-cell-type-20261009",
+      "wave": "use-case-coverage",
+      "rows": 175,
+      "store_unchanged_rows": 123,
+      "store_changed_rows": 52,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "use-case-coverage-cnv-20261009",
+      "wave": "use-case-coverage",
+      "rows": 598,
+      "store_unchanged_rows": 554,
+      "store_changed_rows": 44,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "use-case-coverage-cnv-20261011-hwang2026",
+      "wave": "use-case-coverage",
+      "rows": 71,
+      "store_unchanged_rows": 68,
+      "store_changed_rows": 3,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "use-case-coverage-cnv-20261011-zhang2026",
+      "wave": "use-case-coverage",
+      "rows": 98,
+      "store_unchanged_rows": 85,
+      "store_changed_rows": 13,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "use-case-coverage-ctdna-cpgpt2026-20261011",
+      "wave": "use-case-coverage",
+      "rows": 31,
+      "store_unchanged_rows": 23,
+      "store_changed_rows": 8,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "use-case-coverage-ctdna-fragmentia2026-20261011",
+      "wave": "use-case-coverage",
+      "rows": 67,
+      "store_unchanged_rows": 42,
+      "store_changed_rows": 25,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "use-case-coverage-ctdna-fragmentiawgs2026-20261011",
+      "wave": "use-case-coverage",
+      "rows": 53,
+      "store_unchanged_rows": 47,
+      "store_changed_rows": 6,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "use-case-coverage-ctdna-fragmentomics-20261009",
+      "wave": "use-case-coverage",
+      "rows": 772,
+      "store_unchanged_rows": 509,
+      "store_changed_rows": 263,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "use-case-coverage-ctdna-helzer2025-20261011",
+      "wave": "use-case-coverage",
+      "rows": 938,
+      "store_unchanged_rows": 908,
+      "store_changed_rows": 30,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "use-case-coverage-ctdna-jamshidi-20261010",
+      "wave": "use-case-coverage",
+      "rows": 79,
+      "store_unchanged_rows": 54,
+      "store_changed_rows": 25,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "use-case-coverage-ctdna-methylation-20261009",
+      "wave": "use-case-coverage",
+      "rows": 487,
+      "store_unchanged_rows": 440,
+      "store_changed_rows": 47,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "use-case-coverage-ctdna-zeng2026-20261011",
+      "wave": "use-case-coverage",
+      "rows": 107,
+      "store_unchanged_rows": 90,
+      "store_changed_rows": 17,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "use-case-coverage-dna-pathogen-20261009",
+      "wave": "use-case-coverage",
+      "rows": 926,
+      "store_unchanged_rows": 878,
+      "store_changed_rows": 48,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "use-case-coverage-dna-pathogen-20261011-hu2026",
+      "wave": "use-case-coverage",
+      "rows": 128,
+      "store_unchanged_rows": 121,
+      "store_changed_rows": 7,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "use-case-coverage-dna-pathogen-20261011-huang2026",
+      "wave": "use-case-coverage",
+      "rows": 97,
+      "store_unchanged_rows": 92,
+      "store_changed_rows": 5,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "use-case-coverage-dna-pathogen-20261011-wolf2026",
+      "wave": "use-case-coverage",
+      "rows": 62,
+      "store_unchanged_rows": 58,
+      "store_changed_rows": 4,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "use-case-coverage-dna-pathogen-20261012-bertax",
+      "wave": "use-case-coverage",
+      "rows": 227,
+      "store_unchanged_rows": 194,
+      "store_changed_rows": 33,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "use-case-coverage-dna-pathogen-20261012-metagenn",
+      "wave": "use-case-coverage",
+      "rows": 58,
+      "store_unchanged_rows": 28,
+      "store_changed_rows": 30,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "use-case-coverage-egfr-nsclc-20261009",
+      "wave": "use-case-coverage",
+      "rows": 128,
+      "store_unchanged_rows": 87,
+      "store_changed_rows": 41,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "use-case-coverage-hitdisc-20261022",
+      "wave": "use-case-coverage",
+      "rows": 1375,
+      "store_unchanged_rows": 1351,
+      "store_changed_rows": 24,
+      "reason": "uses_network_import",
+      "detail": "script imports a network module; blocked offline"
+    },
+    {
+      "batch": "use-case-coverage-leadopt-20261022",
+      "wave": "use-case-coverage",
+      "rows": 369,
+      "store_unchanged_rows": 0,
+      "store_changed_rows": 369,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "use-case-coverage-model-execution-20261009",
+      "wave": "use-case-coverage",
+      "rows": 639,
+      "store_unchanged_rows": 120,
+      "store_changed_rows": 519,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "use-case-coverage-model-execution-20261011-clair3gpu",
+      "wave": "use-case-coverage",
+      "rows": 407,
+      "store_unchanged_rows": 399,
+      "store_changed_rows": 8,
+      "reason": "needs_external_cli_or_unarchived_input",
+      "detail": "extract/build.py could not run cleanly offline without external inputs"
+    },
+    {
+      "batch": "use-case-coverage-model-execution-20261011-dnascopehybrid",
+      "wave": "use-case-coverage",
+      "rows": 34,
+      "store_unchanged_rows": 32,
+      "store_changed_rows": 2,
+      "reason": "needs_external_cli_or_unarchived_input",
+      "detail": "extract/build.py could not run cleanly offline without external inputs"
+    },
+    {
+      "batch": "use-case-coverage-model-execution-20261011-fp8genomeocean",
+      "wave": "use-case-coverage",
+      "rows": 58,
+      "store_unchanged_rows": 56,
+      "store_changed_rows": 2,
+      "reason": "needs_external_cli_or_unarchived_input",
+      "detail": "extract/build.py could not run cleanly offline without external inputs"
+    },
+    {
+      "batch": "use-case-coverage-model-execution-20261011-genepi",
+      "wave": "use-case-coverage",
+      "rows": 33,
+      "store_unchanged_rows": 32,
+      "store_changed_rows": 1,
+      "reason": "needs_external_cli_or_unarchived_input",
+      "detail": "extract/build.py could not run cleanly offline without external inputs"
+    },
+    {
+      "batch": "use-case-coverage-model-execution-20261011-moderngena",
+      "wave": "use-case-coverage",
+      "rows": 115,
+      "store_unchanged_rows": 113,
+      "store_changed_rows": 2,
+      "reason": "needs_external_cli_or_unarchived_input",
+      "detail": "extract/build.py could not run cleanly offline without external inputs"
+    },
+    {
+      "batch": "use-case-coverage-perturbation-response-20261009",
+      "wave": "use-case-coverage",
+      "rows": 447,
+      "store_unchanged_rows": 439,
+      "store_changed_rows": 8,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "use-case-coverage-protein-stability-20261009",
+      "wave": "use-case-coverage",
+      "rows": 651,
+      "store_unchanged_rows": 573,
+      "store_changed_rows": 78,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "use-case-coverage-rare-ranking-20261009",
+      "wave": "use-case-coverage",
+      "rows": 616,
+      "store_unchanged_rows": 572,
+      "store_changed_rows": 44,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "use-case-coverage-rare-reanalysis-20261009",
+      "wave": "use-case-coverage",
+      "rows": 904,
+      "store_unchanged_rows": 844,
+      "store_changed_rows": 60,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "use-case-coverage-reanalysis-kaschta-20261010",
+      "wave": "use-case-coverage",
+      "rows": 48,
+      "store_unchanged_rows": 41,
+      "store_changed_rows": 7,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "use-case-coverage-regulatory-variant-20261009",
+      "wave": "use-case-coverage",
+      "rows": 388,
+      "store_unchanged_rows": 321,
+      "store_changed_rows": 67,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "use-case-coverage-rna-fusion-20261009",
+      "wave": "use-case-coverage",
+      "rows": 425,
+      "store_unchanged_rows": 390,
+      "store_changed_rows": 35,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "use-case-coverage-rna-fusion-20261012-haas2019",
+      "wave": "use-case-coverage",
+      "rows": 6,
+      "store_unchanged_rows": 6,
+      "store_changed_rows": 0,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "use-case-coverage-rna-fusion-leukaemia-20261011",
+      "wave": "use-case-coverage",
+      "rows": 89,
+      "store_unchanged_rows": 85,
+      "store_changed_rows": 4,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "use-case-coverage-rna-fusion-longread-20261011",
+      "wave": "use-case-coverage",
+      "rows": 644,
+      "store_unchanged_rows": 630,
+      "store_changed_rows": 14,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "use-case-coverage-rna-pathogen-20261009",
+      "wave": "use-case-coverage",
+      "rows": 1177,
+      "store_unchanged_rows": 1022,
+      "store_changed_rows": 155,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "use-case-coverage-rna-pathogen-20261011-sanderson2026",
+      "wave": "use-case-coverage",
+      "rows": 24,
+      "store_unchanged_rows": 22,
+      "store_changed_rows": 2,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "use-case-coverage-rna-pathogen-20261011-tisza2026",
+      "wave": "use-case-coverage",
+      "rows": 144,
+      "store_unchanged_rows": 134,
+      "store_changed_rows": 10,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "use-case-coverage-rna-splicing-20261009",
+      "wave": "use-case-coverage",
+      "rows": 441,
+      "store_unchanged_rows": 414,
+      "store_changed_rows": 27,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "use-case-coverage-rna-splicing-20261011-alavi2026",
+      "wave": "use-case-coverage",
+      "rows": 225,
+      "store_unchanged_rows": 167,
+      "store_changed_rows": 58,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "use-case-coverage-rna-splicing-20261011-fortier2026",
+      "wave": "use-case-coverage",
+      "rows": 144,
+      "store_unchanged_rows": 137,
+      "store_changed_rows": 7,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "use-case-coverage-rna-splicing-20261011-silverstein2026",
+      "wave": "use-case-coverage",
+      "rows": 112,
+      "store_unchanged_rows": 98,
+      "store_changed_rows": 14,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "use-case-coverage-rna-splicing-20261013-spliceai2",
+      "wave": "use-case-coverage",
+      "rows": 182,
+      "store_unchanged_rows": 165,
+      "store_changed_rows": 17,
+      "reason": "needs_external_cli_or_unarchived_input",
+      "detail": "extract/build_batch.py could not run cleanly offline without external inputs"
+    },
+    {
+      "batch": "use-case-coverage-somatic-20261009",
+      "wave": "use-case-coverage",
+      "rows": 1238,
+      "store_unchanged_rows": 1162,
+      "store_changed_rows": 76,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "use-case-coverage-somatic-clairs-to-20261011",
+      "wave": "use-case-coverage",
+      "rows": 508,
+      "store_unchanged_rows": 483,
+      "store_changed_rows": 25,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "use-case-coverage-somatic-hg008-20261011",
+      "wave": "use-case-coverage",
+      "rows": 185,
+      "store_unchanged_rows": 175,
+      "store_changed_rows": 10,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "use-case-coverage-somatic-neusomatic-20261010",
+      "wave": "use-case-coverage",
+      "rows": 2595,
+      "store_unchanged_rows": 2571,
+      "store_changed_rows": 24,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "use-case-coverage-somatic-oncogenicity-20261009",
+      "wave": "use-case-coverage",
+      "rows": 1191,
+      "store_unchanged_rows": 264,
+      "store_changed_rows": 927,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "use-case-coverage-somatic-varnet-t-20261011",
+      "wave": "use-case-coverage",
+      "rows": 237,
+      "store_unchanged_rows": 220,
+      "store_changed_rows": 17,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "use-case-coverage-somatic-wes-synthetic-20261011",
+      "wave": "use-case-coverage",
+      "rows": 28,
+      "store_unchanged_rows": 24,
+      "store_changed_rows": 4,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "use-case-coverage-splicing-follow-up-20261009",
+      "wave": "use-case-coverage",
+      "rows": 680,
+      "store_unchanged_rows": 633,
+      "store_changed_rows": 47,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "use-case-coverage-structural-20261009",
+      "wave": "use-case-coverage",
+      "rows": 100,
+      "store_unchanged_rows": 80,
+      "store_changed_rows": 20,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "use-case-coverage-target-validation-20261009",
+      "wave": "use-case-coverage",
+      "rows": 770,
+      "store_unchanged_rows": 239,
+      "store_changed_rows": 531,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "use-case-refresh-phenotype-20261022",
+      "wave": "benchmark-batches",
+      "rows": 1279,
+      "store_unchanged_rows": 1235,
+      "store_changed_rows": 44,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "vep-literature-20261014",
+      "wave": "benchmark-batches",
+      "rows": 3365,
+      "store_unchanged_rows": 3191,
+      "store_changed_rows": 174,
+      "reason": "needs_external_cli_or_custom_invocation",
+      "detail": "no standard zero-arg builder script present"
+    },
+    {
+      "batch": "vep-use-cases-20261014",
+      "wave": "benchmark-batches",
+      "rows": 295,
+      "store_unchanged_rows": 246,
+      "store_changed_rows": 49,
+      "reason": "needs_external_cli_or_unarchived_input",
+      "detail": "extract/build_batch.py could not run cleanly offline without external inputs"
+    }
+  ],
+  "problems": []
+}

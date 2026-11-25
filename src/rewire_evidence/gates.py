@@ -30,6 +30,7 @@ from rewire_evidence import (
     agreement,
     archivenetparity,
     archiveparity,
+    batchparity,
     checkparity,
     conformance,
     kgparity,
@@ -654,5 +655,39 @@ def _archive_network(
     sys.stdout.write(
         f"\nAll {report.targets_same:,} targets, {report.modules.same} TS modules, "
         f"and {report.fixtures_same} recorded fixtures reproduce.\n"
+    )
+    return 0
+
+
+def batches_gate(arguments: Sequence[str], expected: Path, description: str | None = None) -> int:
+    """Run the per-wave batch inventory and isolated script reproduction gate. Returns the status."""
+    parser = _parser(description)
+    parser.add_argument("--expected", type=Path, default=expected, help="pinned per-wave expectation")
+    parser.add_argument("--json", type=Path, default=None, help="write what was measured here")
+    args = parser.parse_args(arguments)
+    return _run(lambda: _batches(args.root, args.expected, args.json))
+
+
+def _batches(root: Path, expected: Path, report_file: Path | None) -> int:
+    recorded = conformance.read_recorded(expected)
+    store_ref = conformance.recorded_ref(recorded)
+    sys.stdout.write(f"expecting batch inventory and wave reproduction as measured at {store_ref}\n")
+    report = batchparity.verify_store_batches(root, recorded)
+    for line in batchparity.summary_lines(report):
+        sys.stdout.write(f"{line}\n")
+    _write_report(report_file, batchparity.to_json(report, store_ref=store_ref))
+
+    if not report.python_batches:
+        sys.stderr.write("Cannot verify: the store holds no Python batch directories\n")
+        return 2
+    for problem in report.problems[:PROBLEMS_SHOWN]:
+        sys.stderr.write(f"  {problem[:PROBLEM_WIDTH]}\n")
+    if report.problems:
+        sys.stderr.write(f"\n{len(report.problems):,} problems. Batch wave counts do not match.\n")
+        return 1
+    sys.stdout.write(
+        f"\nAll {report.python_batches} Python batches ({report.committed_rows:,} committed rows, "
+        f"{report.reproduced_batches} reproduced offline, "
+        f"{len(report.non_reproducing)} listed with reasons) verified.\n"
     )
     return 0
