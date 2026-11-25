@@ -136,9 +136,10 @@ jobs:
           said=$(jq -r .recorded_from.store_ref scripts/expected/store-spans-commands.json)
           kged=$(jq -r .recorded_from.store_ref scripts/expected/store-kg.json)
           archived_net=$(jq -r .recorded_from.store_ref scripts/expected/store-archive-network.json)
-          for named in "$held" "$expected" "$recorded" "$validated" "$registry" "$located" "$checked" "$tabled" "$archived" "$spanned" "$said" "$kged" "$archived_net"; do
+          batched=$(jq -r .recorded_from.store_ref scripts/expected/store-batches.json)
+          for named in "$held" "$expected" "$recorded" "$validated" "$registry" "$located" "$checked" "$tabled" "$archived" "$spanned" "$said" "$kged" "$archived_net" "$batched"; do
             if [ "$named" != "$STORE_REF" ]; then
-              echo "::error::STORE_REF is ${STORE_REF}, the checkout is ${held}, the pinned layout was measured at ${expected}, the TypeScript was recorded at ${recorded} and at ${validated}, the attribute registry was read at ${registry}, the locators at ${located}, the checks at ${checked}, the tables at ${tabled}, the archive at ${archived}, the spans at ${spanned}, the KG at ${kged} and archive network at ${archived_net}. All must be one commit."
+              echo "::error::STORE_REF is ${STORE_REF}, the checkout is ${held}, the pinned layout was measured at ${expected}, the TypeScript was recorded at ${recorded} and at ${validated}, the attribute registry was read at ${registry}, the locators at ${located}, the checks at ${checked}, the tables at ${tabled}, the archive at ${archived}, the spans at ${spanned}, the KG at ${kged}, archive network at ${archived_net} and batches at ${batched}. All must be one commit."
               exit 1
             fi
           done
@@ -560,6 +561,21 @@ jobs:
           test -z "$(git -C store status --porcelain)"
           cat kg.log
 
+      - name: Check shared batch tooling and per-wave store reproduction
+        run: |
+          set -o pipefail
+          uv run --no-sync python scripts/verify_store_batches.py store --json batches.json 2>&1 | tee batches.log
+          jq -e '
+            .python_batches == 148 and
+            .py_files == 412 and
+            .py_lines == 114117 and
+            .lib_copies == 42 and
+            .lib_digests == 11 and
+            (.reproduced_batches + (.non_reproducing | length)) == 148 and
+            (.problems | length) == 0
+          ' batches.json > /dev/null
+          test -z "$(git -C store status --porcelain)"
+
       - name: Summary
         if: always()
         run: |
@@ -579,6 +595,7 @@ jobs:
             if [ -f queue.log ]; then echo; echo "### Committed triage queue"; echo; echo '```'; cat queue.log; echo '```'; fi
             if [ -f archive-network.log ]; then echo; echo "### Archive network and resolver"; echo; echo '```'; cat archive-network.log; echo '```'; fi
             if [ -f kg.log ]; then echo; echo "### Knowledge graph export and SHACL"; echo; echo '```'; cat kg.log; echo '```'; fi
+            if [ -f batches.log ]; then echo; echo "### Shared batch tooling and wave reproduction"; echo; echo '```'; cat batches.log; echo '```'; fi
           } >> "$GITHUB_STEP_SUMMARY"
 
   # The write path, held to the data repository's own history. Each case is a merged pull
