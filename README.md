@@ -29,6 +29,7 @@ The old store is the test oracle, and it is big enough to be decisive. Nothing h
 | P10 | Layer derivation: classification from the bytes, the gzip, tar and zip readers, `text-utf8@1`, the markup scanner with `europepmc-fulltext-xml@1` and `html-text@1`, `ooxml-sheet-tsv@1` and `ooxml-document-text@1`, the two table grids and the candidate header rule, `pdf-text-layer@1` through the pinned pdftotext, the sanity gate, the registry build, and the `layers build`, `check` and `thresholds` commands | every line of `data/omics/layers/registry.jsonl` and `unsupported.jsonl` derived again from the stored bytes and required whole, from the manifest of the commit that wrote them; the two files written again from their own rows; what the pinned manifest would write otherwise, measured and pinned; 908 cases and 32 command runs recorded from the TypeScript | 871 public objects, 2,240 of 2,595 registry lines and 232 of 245 unsupported lines in CI; all 1,167 objects and every line once on a machine that holds them | Passing for the public objects ([notes](docs/stages/p10.md)). 355 lines of 296 restricted objects are not checked in CI. The readers of a layer are P11 |
 | P11 | Span resolution: the offset index, the resolvers for a table cell in aligned text, a cell of a table grid, a delimited cell, a sheet cell, a JSON value, a quote, a paragraph, a caption, a line and a page, the dispatch, re-anchoring, the measurement with its five tables and its figures file, the layer readers and the coverage table, and the `spans` commands with `layers coverage`, `surface` and `show` | one line for each result as the TypeScript's own measurement decides it, under both arms of the quote rule, with the layer and both ranges of its span or the reason it was refused; every file the measurement writes, byte for byte; the five committed tables of 2026-11-19, the 173 committed figures and the committed figures file byte for byte but for one input that has gained records; 1,366 calls, 35 steps on the figures file and 74 command runs recorded from the TypeScript, and 228,000 calls on generated input compared with it on every run | 52,278 results: 41,153 measured in CI over the 871 public objects and held to the TypeScript's lines, 11,125 held to a recording over all 1,167; all 52,278 measured once on a machine that holds every object | Passing ([notes](docs/stages/p11.md)). The results that need a restricted object are not measured in CI |
 | P12 | Extractor equivalence | position-joined candidate comparison | 418,440 | Not started |
+| P13 | Knowledge graph export, attribute terms, draft block, SHACL validation, release bundle publisher, and Node-free write-path shape checking | every asserted N-Quads line of `public/kg/asserted.nq` by overall SHA-256 and 50k-line chunk digests; `context.jsonld`, `rb-attributes.ttl`, `attribute-shapes.ttl` and manifest `draft` block byte for byte; 24 P5 validator subset cases and 12 P6 write-path subset/SHACL cases; in-process Node-free SHACL check on `records add` and `records change` | 93,216 records (92,746 public), 2,445,824 asserted quads across 49 chunks, 4 ontology modules, 36 subset/SHACL cases | Passing ([notes](docs/stages/p13.md)) |
 
 Every stage has to meet three things before it is accepted: a gate under `scripts/` that reproduces committed data and asserts the row count, 100% line and branch coverage of the library, and clean runs of `mypy --strict` and Ruff. All three run in CI. The gate scripts hold no logic of their own, so the coverage figure includes what they do.
 
@@ -50,6 +51,7 @@ uv run python scripts/verify_store_archive.py ../rewire-benchmark-data
 uv run python scripts/fetch_public_objects.py ../rewire-benchmark-data ../objects
 uv run python scripts/verify_store_layers.py ../rewire-benchmark-data ../rewire-benchmark-data-layers-ref ../objects
 uv run python scripts/verify_store_spans.py ../rewire-benchmark-data ../objects
+uv run python scripts/verify_store_kg.py ../rewire-benchmark-data
 ```
 
 The first four and the sixth read a checkout. The fifth reads history and no checkout, so a clone without file contents is enough, and it fetches the blobs of the stores it lays out:
@@ -84,7 +86,9 @@ The tenth derives every text layer and table grid again from the stored bytes an
 
 The eleventh resolves the locator of every result against the layers the same folder of objects gives, as `npm run spans -- measure` does, and writes what that command writes with one line more for each result. The data repository commits totals, which cannot show that two resolvers agree on a span, so the oracle is recorded: `scripts/fixtures/record_spans_store.mjs` runs the TypeScript's own measurement, in the `layers` job over the public objects on every run, and once over every object, whose lines are `scripts/expected/store-spans.jsonl.gz` with each text as a digest. Every file has to be the TypeScript's for the objects held. Each result those objects decide has to have the line the full recording has, and the rest are taken from it and counted. The five committed tables and the committed figures then have to be what the results give, and the committed figures file has to be the bytes they give, with the one input that has gained records since left as it is. Both files of recorded lines are held to their digests, and the lines to the results in their order. The recorder runs the pinned `measure-store-spans.ts` itself and requires its bytes. It needs the pinned pdftotext, as the tenth does.
 
-All eleven exit 0 when everything reproduces, 1 on a disagreement and 2 when the run could not be made: a store, a vocabulary, a history or an expectation that cannot be read, or a report that cannot be written. No one gate holds every byte. What each catches of an edited checkout is set out in the [P2 and P3 notes](docs/stages/p2-p3.md), and CI runs all ten.
+The twelfth exports the asserted N-Quads graph (`public/kg/asserted.nq`), `context.jsonld`, `rb-attributes.ttl`, `attribute-shapes.ttl`, and the manifest `draft` block, checks every 50,000-line chunk SHA-256 and artifact digest against `scripts/expected/store-kg.json`, and verifies 36 recorded P5/P6 subset exports and `pyshacl` `--shapes-only` verdicts. The [P13 notes](docs/stages/p13.md) have the measurements.
+
+All twelve exit 0 when everything reproduces, 1 on a disagreement and 2 when the run could not be made: a store, a vocabulary, a history or an expectation that cannot be read, or a report that cannot be written. No one gate holds every byte. What each catches of an edited checkout is set out in the [P2 and P3 notes](docs/stages/p2-p3.md), and CI runs all eleven (`fetch_public_objects.py` is the download helper).
 
 `records check` is also a command, and prints the line the TypeScript prints:
 
@@ -142,7 +146,7 @@ uv run rewire-evidence records change --root ../rewire-benchmark-data docs/revie
 uv run rewire-evidence records change --root ../rewire-benchmark-data docs/reviews/a-review.md data/omics/a-batch --changes changes.jsonl
 ```
 
-Without `--dry-run` they write every store file as the TypeScript writes it and then hold what they wrote to the SHACL shapes, through the data repository's own `npm run kg -- subset` and `npm run kg:build -- --shapes-only`, which are not ported yet. So `--root` has to be a checkout of the data repository with its dependencies installed. If the batch, the change or the shapes are refused, every store file is put back as it was, including any the shapes commands touched, a store file that was not there is removed, and the command exits 1.
+Without `--dry-run` they write every store file as the TypeScript writes it and then hold what they wrote to the SHACL shapes in process via `subset_quad_lines` and `shapes_only_check`, with no Node or `npm` installation required. If the batch, the change or the shapes are refused, every store file is put back as it was, a store file that was not there is removed, and the command exits 1.
 
 ## Why byte identity matters here
 
@@ -228,7 +232,12 @@ src/rewire_evidence/layercoverage.py every source in one bucket by what the arch
 src/rewire_evidence/figures.py      the figures a document prints, tied to the inputs they were measured over
 src/rewire_evidence/spanmeasure.py  every stored locator resolved, the value check, the five tables
 src/rewire_evidence/spansaid.py     what the span commands and the layer reading commands print
-src/rewire_evidence/cli.py          the rewire-evidence command: records, locator, checks, archive, licence, layers, spans
+src/rewire_evidence/kgterms.py      OWL declarations and SHACL attribute shapes generated from the registry
+src/rewire_evidence/kgdraft.py      manifest draft JSON Schema block for typed editing
+src/rewire_evidence/kgexport.py     JSON-LD context, N-Quads export, and subset extraction
+src/rewire_evidence/kgshapes.py     OWL 2 RL inference and SHACL shape validation
+src/rewire_evidence/kgpublish.py    immutable GitHub release bundle packing and verification
+src/rewire_evidence/cli.py          the rewire-evidence command: records, locator, checks, archive, licence, layers, spans, kg
 src/rewire_evidence/parity.py       what the digest and layout gates measure
 src/rewire_evidence/conformance.py  what the schema gate measures
 src/rewire_evidence/agreement.py    what the validation gate measures
@@ -238,6 +247,7 @@ src/rewire_evidence/tableparity.py  what the table gate measures: every committe
 src/rewire_evidence/archiveparity.py what the archive gate measures: the manifest, receipts and licence map as the TypeScript read them
 src/rewire_evidence/layerparity.py  what the layer gate measures: every committed registry line derived again
 src/rewire_evidence/spanparity.py   what the span gate measures: every result as the TypeScript's measurement decides it
+src/rewire_evidence/kgparity.py     what the KG gate measures: asserted N-Quads, ontology artifacts, and subset SHACL checks
 src/rewire_evidence/gates.py        the gates as commands: arguments, report, exit status
 scripts/                            one thin file per gate, the expectations, the fixture recorders
 tests/                              pytest and Hypothesis, with the Node fixtures

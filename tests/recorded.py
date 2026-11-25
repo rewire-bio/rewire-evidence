@@ -22,6 +22,7 @@ from rewire_evidence.vocab import MAPPING_FILE, VOCAB_DIR, Concept, ControlledFi
 FIXTURES = Path(__file__).parent / "fixtures"
 VALIDATION: dict[str, Any] = json.loads((FIXTURES / "validation.json").read_text("utf-8"))
 SEMANTICS: dict[str, Any] = json.loads((FIXTURES / "js-semantics.json").read_text("utf-8"))
+KG_FIXTURE: dict[str, Any] = json.loads((FIXTURES / "kg.json").read_text("utf-8"))
 
 #: The base store: real records, valid on their own, in the order the store files them.
 #: Typed loosely, because the tests reach into them by name.
@@ -71,7 +72,7 @@ def write_scripts(root: Path, files: dict[str, str] | None = None) -> Path:
 
 
 def write_configuration(root: Path) -> None:
-    """The recorded mapping and vocabularies as a checkout holds them: JSON and Turtle."""
+    """The recorded mapping, vocabularies and ontology/SHACL files under a checkout root."""
     write_text(root / MAPPING_FILE, json.dumps(VALIDATION["mapping"]))
     for name, held in VALIDATION["schemes"].items():
         iri = held["iri"]
@@ -82,6 +83,9 @@ def write_configuration(root: Path) -> None:
             for _, concept, label in held["concepts"]
         )
         write_text(root / VOCAB_DIR / f"{name}.ttl", body)
+    for rel, text in KG_FIXTURE["ontology"].items():
+        if rel != MAPPING_FILE:
+            write_text(root / rel, text)
 
 
 def provenance_of(rows: list[JsonObject]) -> list[JsonObject]:

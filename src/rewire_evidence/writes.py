@@ -25,12 +25,9 @@ the disk as the TypeScript leaves it.
 
 `write` takes a check to run once the files are written. If the check or a write fails,
 every store file is put back as it was and a store file that was not there is removed,
-whether the write or the check's own commands made the difference, which is
-`writeCheckedAgainstShapes`. `shapes_check` is the check the TypeScript runs: the SHACL
-shapes over the records written, the records that link to them and their targets, through
-the data repository's own `npm run kg -- subset` and `npm run kg:build -- --shapes-only`.
-Those two are not ported yet, so the check needs a data repository checkout with its
-dependencies installed.
+whether the write or the check's own work made the difference, which is
+`writeCheckedAgainstShapes`. `shapes_check` exports the subset N-Quads in memory and checks
+the SHACL shapes in process without Node.
 
 A provenance row is written with the members it was read with, in their order. A change
 sets `sha256` where it stands and adds to the end of `changed_by`.
@@ -40,24 +37,24 @@ from __future__ import annotations
 
 import datetime as dt
 import difflib
-import subprocess
-import tempfile
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
 from rewire_evidence.attributes import JsTypeError, said, validate_attributes
-from rewire_evidence.canonical import JsonObject, JsonValue, js_utf8, js_written, sha256_hex, utf16_key
+from rewire_evidence.canonical import JsonObject, JsonValue, js_written, sha256_hex, utf16_key
 from rewire_evidence.concerns import validate_concerns
 from rewire_evidence.derivations import validate_derivations
 from rewire_evidence.descriptions import validate_descriptions
 from rewire_evidence.js import MISSING, truthy
 from rewire_evidence.jsonl import StoreError, read_values
+from rewire_evidence.kgexport import load_ontology_mapping, subset_quad_lines
+from rewire_evidence.kgshapes import BuildError, graph_from_lines, shapes_only_check
 from rewire_evidence.records import load_records
 from rewire_evidence.schema import Record, RecordError, SchemaError, parse_record
 from rewire_evidence.store import provenance_files, read_provenance, record_files, store_bodies
 from rewire_evidence.validation import validate_records
-from rewire_evidence.vocab import load_schemes, read_mapping, validate_vocabularies
+from rewire_evidence.vocab import VocabularyError, load_schemes, read_mapping, validate_vocabularies
 
 #: What `records add` writes as the step that added a record.
 ADDED_BY = "records:add"
@@ -66,8 +63,6 @@ CHANGE_STEP = "records:change"
 
 #: Runs once the files are written, with the IDs written. Raising undoes the write.
 type Check = Callable[[Sequence[str]], None]
-#: Runs a command in a folder and returns its exit status.
-type Runner = Callable[[Sequence[str], Path], int]
 
 
 class ShapesError(Exception):
@@ -407,51 +402,32 @@ def write(plan: Plan, check: Check | None = None) -> list[Change]:
     return changes
 
 
-def run_command(command: Sequence[str], folder: Path) -> int:
-    """Run a command in a folder, its output going where this process's goes. Returns its status."""
-    return subprocess.run(command, cwd=folder, check=False).returncode  # noqa: S603 - the commands are the two below
-
-
-def shapes_check(root: Path, run: Runner = run_command) -> Check:
+def shapes_check(root: Path) -> Check:
     """The check `records add` and `records change` make of what they wrote: the SHACL shapes.
 
-    The records written, the records that link to them and their link targets are exported
-    by `npm run kg -- subset` and held to the shapes by `npm run kg:build -- --shapes-only`,
-    both run in `root`, which has to be a data repository checkout with its dependencies
-    installed. The whole store is not checked: that takes minutes and runs in the data
-    repository's CI. The check raises `ShapesError` if either command fails or cannot be
-    run.
+    The records written, the records that link to them and their link targets are projected to
+    subset N-Quads in memory and checked against `data/ontology/shapes.ttl` and
+    `attribute-shapes.ttl` in process, with no Node installation required. Raises `ShapesError`
+    if validation or loading fails.
     """
 
     def check(ids: Sequence[str]) -> None:
-        with tempfile.TemporaryDirectory(prefix="records-shapes-") as scratch:
-            listed = Path(scratch) / "ids.txt"
-            listed.write_bytes(js_utf8("\n".join(ids) + "\n"))
-            context = Path(scratch) / "context.txt"
-            commands = (
-                ["npm", "run", "-s", "kg", "--", "subset", str(listed), scratch],
-                [
-                    "npm",
-                    "run",
-                    "-s",
-                    "kg:build",
-                    "--",
-                    "--shapes-only",
-                    "--kg-dir",
-                    scratch,
-                    "--context",
-                    str(context),
-                ],
-            )
-            for command in commands:
-                try:
-                    status = run(command, root)
-                except OSError as error:
-                    raise ShapesError(
-                        f"`{' '.join(command[:4])}` could not be run in {root}: {error}"
-                    ) from error
-                if status:
-                    raise ShapesError(f"`{' '.join(command[:4])}` exited with status {status}")
+        try:
+            mapping = load_ontology_mapping(root)
+            records = load_records(root)
+            subset = subset_quad_lines(mapping, records, ids)
+            asserted = graph_from_lines(subset.lines)
+            context = set(subset.context) if subset.context else None
+            shapes_only_check(root, asserted, context=context)
+        except (
+            StoreError,
+            VocabularyError,
+            RecordError,
+            SchemaError,
+            BuildError,
+            OSError,
+        ) as error:
+            raise ShapesError(str(error)) from error
 
     return check
 

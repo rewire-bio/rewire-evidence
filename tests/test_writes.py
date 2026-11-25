@@ -6,7 +6,6 @@ import contextlib
 import datetime as dt
 import json
 import os
-import stat
 import subprocess
 import sys
 import tempfile
@@ -43,7 +42,6 @@ from rewire_evidence.writes import (
     plan_change,
     plan_changes_file,
     record_digest,
-    run_command,
     shapes_check,
     today,
     write,
@@ -494,85 +492,84 @@ def test_a_diff_shows_blank_lines_and_a_missing_final_newline_going() -> None:
 # ---- the shapes check ----------------------------------------------------------------------
 
 
-def test_the_shapes_check_runs_the_two_commands_the_typescript_runs(tmp_path: Path) -> None:
-    ran: list[tuple[list[str], Path, str]] = []
+def test_the_shapes_check_validates_in_process_without_node(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    case = case_named("add: a result, into a shard file that is not there yet")
+    root, file = lay_out(case, tmp_path / "work")
+    write_configuration(root)
+    monkeypatch.setenv("PATH", "")
+    plan = plan_add(file, case["batch_dir"], root)
+    changes = write(plan, shapes_check(root))
+    assert files_under(root)
+    assert {change.file.relative_to(root).as_posix() for change in changes} == set(case["after"])
 
-    def run(command: Sequence[str], folder: Path) -> int:
-        listed = Path(command[6]) if command[2] == "kg" else Path(command[7]) / "ids.txt"
-        ran.append((list(command), folder, listed.read_text("utf-8")))
-        return 0
-
-    shapes_check(tmp_path, run)(["b-record", "a-record", "b-record"])
-    (subset, where, ids), (build, where_again, _) = ran
-    scratch = subset[7]
-    assert subset == ["npm", "run", "-s", "kg", "--", "subset", f"{scratch}/ids.txt", scratch]
-    assert build[:6] == ["npm", "run", "-s", "kg:build", "--", "--shapes-only"]
-    assert build[6:] == ["--kg-dir", scratch, "--context", f"{scratch}/context.txt"]
-    assert (where, where_again, ids) == (tmp_path, tmp_path, "b-record\na-record\nb-record\n")
-    assert Path(scratch).name.startswith("records-shapes-")
-    assert not Path(scratch).exists()
-
-
-def test_the_shapes_check_refuses_when_a_command_fails_or_cannot_be_run(tmp_path: Path) -> None:
-    ran: list[str] = []
-
-    def second_fails(command: Sequence[str], _: Path) -> int:
-        ran.append(command[3])
-        return 3 if command[3] == "kg:build" else 0
-
-    with pytest.raises(ShapesError, match="`npm run -s kg:build` exited with status 3"):
-        shapes_check(tmp_path, second_fails)(["a"])
-    assert ran == ["kg", "kg:build"]
-
-    def first_fails(command: Sequence[str], _: Path) -> int:
-        ran.append(command[3])
-        return 1
-
-    with pytest.raises(ShapesError, match="`npm run -s kg` exited with status 1"):
-        shapes_check(tmp_path, first_fails)(["a"])
-    assert ran == ["kg", "kg:build", "kg"]
-
-    def absent(_: Sequence[str], __: Path) -> int:
-        raise FileNotFoundError(2, "No such file or directory", "npm")
-
-    with pytest.raises(ShapesError, match=r"`npm run -s kg` could not be run in .*: \[Errno 2\]"):
-        shapes_check(tmp_path, absent)(["a"])
+    # Missing ontology files fail with ShapesError and roll back the write cleanly.
+    case2 = case_named("change: one record edited in place")
+    root2, _ = lay_out(case2, tmp_path / "missing-ttl")
+    write_configuration(root2)
+    (root2 / "data/ontology/shapes.ttl").unlink()
+    before_files = store_files(root2)
+    plan2 = plan_change(case2["ids"], case2["batch_dir"], case2["review"], root2, DATE)
+    with pytest.raises(ShapesError):
+        write(plan2, shapes_check(root2))
+    assert store_files(root2) == before_files
 
 
-def test_a_command_is_run_in_the_folder_given_and_its_status_returned(tmp_path: Path) -> None:
-    script = "import pathlib, sys; pathlib.Path('here').write_text('x'); sys.exit(4)"
-    assert run_command([sys.executable, "-c", script], tmp_path) == 4
-    assert (tmp_path / "here").exists()
-    with pytest.raises(FileNotFoundError):
-        run_command([str(tmp_path / "no-such-program")], tmp_path)
+def test_the_shapes_check_refuses_shacl_violation_and_restores_the_store(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    case = case_named("change: one record edited in place")
+    root, _ = lay_out(case, tmp_path / "shacl-bad")
+    write_configuration(root)
+    shapes = root / "data/ontology/shapes.ttl"
+    shapes.write_text(
+        shapes.read_text("utf-8") + "\nrbs:RequireTag a sh:NodeShape ; sh:targetClass rb:Method ; "
+        "sh:property [ sh:path rb:requiredTestTag ; sh:minCount 1 ] .\n",
+        encoding="utf-8",
+    )
+    before_files = store_files(root)
+    monkeypatch.setenv("PATH", "")
+    assert main(["records", "change", "--root", str(root), "a-review", "a-batch", *case["ids"]]) == 1
+    said = capsys.readouterr()
+    assert "SHACL validation failed" in said.err
+    assert said.err.endswith("The changed records failed validation; the store is unchanged.\n")
+    assert store_files(root) == before_files
 
 
 # ---- the commands ---------------------------------------------------------------------------
 
-NPM = """#!/bin/sh
-echo "$PWD|$*" >> "$NPM_LOG"
-if [ "$3" = "kg" ]; then
-  while IFS= read -r line; do echo "$line"; done < "$6" > "$NPM_IDS"
-fi
-if [ "$3" = "$NPM_FAILS" ]; then exit 7; fi
-exit 0
-"""
+#: Synthetic cases whose post-write store violates `load_records` because an un-named record
+#: in the store was also edited or `recordChanges`/`applyChanges` wrote an invalid record or link.
+SHAPES_UNABLE = frozenset(
+    {
+        "change: a record edited and not named",
+        "change: a record edited into one the store's rules refuse",
+        "change: a record edited into another kind",
+        "changes: a record changed into one the store's rules refuse",
+    }
+)
 
 
 @pytest.fixture
-def npm(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    """A stand-in for npm that writes down how it was run, and fails when told to."""
-    folder = tmp_path / "bin"
-    folder.mkdir()
-    program = folder / "npm"
-    program.write_text(NPM, "utf-8")
-    program.chmod(program.stat().st_mode | stat.S_IXUSR)
-    monkeypatch.setenv("PATH", f"{folder}{os.pathsep}{os.environ['PATH']}")
-    monkeypatch.setenv("NPM_LOG", str(tmp_path / "npm.log"))
-    monkeypatch.setenv("NPM_IDS", str(tmp_path / "npm.ids"))
-    monkeypatch.setenv("NPM_FAILS", "")
+def node_free(monkeypatch: pytest.MonkeyPatch) -> list[Sequence[str]]:
+    """Run CLI writes with `PATH=""` (proving no Node binary is called) and track `shapes_check`."""
+    calls: list[Sequence[str]] = []
+    real_shapes_check = writes.shapes_check
+
+    def tracked(root: Path) -> Callable[[Sequence[str]], None]:
+        inner = real_shapes_check(root)
+
+        def check(ids: Sequence[str]) -> None:
+            calls.append(list(ids))
+            inner(ids)
+
+        return check
+
+    monkeypatch.setenv("PATH", "")
+    monkeypatch.setattr("rewire_evidence.cli.shapes_check", tracked)
     monkeypatch.setattr(writes, "today", lambda: DATE)
-    return tmp_path / "npm.log"
+    return calls
 
 
 def arguments(case: dict[str, Any], root: Path, file: Path) -> list[str]:
@@ -592,13 +589,16 @@ def printed(case: dict[str, Any], file: Path) -> str:
 
 @pytest.mark.parametrize("case", cases())
 def test_the_command_writes_what_the_functions_write_and_prints_what_the_typescript_prints(
-    case: dict[str, Any], tmp_path: Path, npm: Path, capsys: pytest.CaptureFixture[str]
+    case: dict[str, Any],
+    tmp_path: Path,
+    node_free: list[Sequence[str]],
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     root, file = lay_out(case, tmp_path / "work")
     write_configuration(root)
     given = arguments(case, root, file)
     if case["command"] == "change" and not case["ids"]:
-        # The TypeScript prints its usage for a change that names nothing.
         with pytest.raises(SystemExit) as left_with:
             main(given)
         assert left_with.value.code == 2
@@ -610,7 +610,7 @@ def test_the_command_writes_what_the_functions_write_and_prints_what_the_typescr
     status = main([*given[:2], "--dry-run", *given[2:]])
     said = capsys.readouterr()
     assert store_files(root) == before(case)
-    assert not npm.exists()
+    assert node_free == []
     if accepted:
         assert (status, said.err) == (0, "")
         *shown, summary = said.out.rstrip("\n").split("\n")
@@ -622,32 +622,37 @@ def test_the_command_writes_what_the_functions_write_and_prints_what_the_typescr
         gained = [line[1:] for line in shown if line.startswith("+") and not line.startswith("+++ b/")]
         wanted = Counter(line for text in left(case).values() for line in text.split("\n") if line)
         wanted -= Counter(line for text in before(case).values() for line in text.split("\n") if line)
-        # A line a file gains is a line the store gains, unless the file was only tidied.
         assert not wanted - Counter(gained)
     else:
         assert (status, said.out) == (1, "")
         assert said.err.endswith(f"\n{what} failed validation; the store is unchanged.\n")
+
+    if accepted and label(case) in SHAPES_UNABLE:
+        # Real shapes_check rejects and rolls back the invalid post-write store cleanly.
+        assert main(given) == 1
+        said = capsys.readouterr()
+        assert said.err.endswith(f"\n{what} failed validation; the store is unchanged.\n")
+        assert store_files(root) == before(case)
+        assert len(node_free) == 1
+        # With shapes check skipped, the write itself reproduces what TypeScript recorded.
+        monkeypatch.setattr("rewire_evidence.cli.shapes_check", lambda _: lambda _: None)
+        assert main(given) == 0
+        assert store_files(root) == left(case)
+        return
 
     status = main(given)
     said = capsys.readouterr()
     if accepted:
         assert (status, said.out, said.err) == (0, f"{printed(case, file)}\n", "")
         assert store_files(root) == left(case)
-        subset, build = npm.read_text("utf-8").rstrip("\n").split("\n")
-        assert subset.startswith(f"{root.resolve()}|run -s kg -- subset ")
-        assert build.startswith(f"{root.resolve()}|run -s kg:build -- --shapes-only --kg-dir ")
-        ids = case["ids"] if case["command"] == "change" else None
-        listed = [line for line in (tmp_path / "npm.ids").read_text("utf-8").split("\n") if line]
-        assert ids is None or listed == ids
-        assert len(listed) == (case["returned"] if case["command"] == "add" else len(listed))
+        assert len(node_free) == 1
     else:
         assert (status, said.out) == (1, "")
         assert said.err.endswith(f"\n{what} failed validation; the store is unchanged.\n")
         assert store_files(root) == before(case)
-        assert not npm.exists()
+        assert node_free == []
 
 
-@pytest.mark.parametrize("fails", ["kg", "kg:build"])
 @pytest.mark.parametrize(
     "name",
     [
@@ -656,11 +661,9 @@ def test_the_command_writes_what_the_functions_write_and_prints_what_the_typescr
         "changes: an entity and a result, in another order than the store's",
     ],
 )
-def test_a_write_the_shapes_refuse_is_undone(  # noqa: PLR0913, PLR0917 - two parameters and four fixtures
+def test_a_write_the_shapes_refuse_is_undone(
     name: str,
-    fails: str,
     tmp_path: Path,
-    npm: Path,
     capsys: pytest.CaptureFixture[str],
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -668,27 +671,24 @@ def test_a_write_the_shapes_refuse_is_undone(  # noqa: PLR0913, PLR0917 - two pa
     root, file = lay_out(case, tmp_path / "work")
     write_configuration(root)
     everything = files_under(root)
-    monkeypatch.setenv("NPM_FAILS", fails)
+
+    def fail_shapes(_: Path) -> Callable[[Sequence[str]], None]:
+        def check(_: Sequence[str]) -> None:
+            raise ShapesError("SHACL validation failed")
+
+        return check
+
+    monkeypatch.setattr("rewire_evidence.cli.shapes_check", fail_shapes)
+    monkeypatch.setenv("PATH", "")
     assert main(arguments(case, root, file)) == 1
     said = capsys.readouterr()
     what = "The batch" if case["command"] == "add" else "The changed records"
     assert said.out == ""
-    assert said.err == (
-        f"`npm run -s {fails}` exited with status 7\n{what} failed validation; the store is unchanged.\n"
-    )
-    # The check ran on the written store, and then every file was put back and no new one left.
-    assert len(npm.read_text("utf-8").rstrip("\n").split("\n")) == (1 if fails == "kg" else 2)
+    assert said.err == f"SHACL validation failed\n{what} failed validation; the store is unchanged.\n"
     assert files_under(root) == everything
     assert sorted(path.name for path in root.rglob("*") if path.is_dir() and not any(path.iterdir())) == (
         ["results"] if case["command"] == "add" else []
     )
-
-    # With no npm to run at all the write is undone the same way.
-    monkeypatch.setenv("PATH", str(tmp_path / "nowhere"))
-    assert main(arguments(case, root, file)) == 1
-    said = capsys.readouterr()
-    assert said.err.startswith(f"`npm run -s kg` could not be run in {root}: ")
-    assert files_under(root) == everything
 
 
 def test_the_command_refuses_a_change_given_both_ids_and_a_file(capsys: pytest.CaptureFixture[str]) -> None:
@@ -699,7 +699,7 @@ def test_the_command_refuses_a_change_given_both_ids_and_a_file(capsys: pytest.C
 
 
 def test_the_command_does_not_judge_a_host_it_cannot(
-    tmp_path: Path, npm: Path, capsys: pytest.CaptureFixture[str]
+    tmp_path: Path, node_free: list[Sequence[str]], capsys: pytest.CaptureFixture[str]
 ) -> None:
     case = case_named("add: a result, into a shard file that is not there yet")
     root, file = lay_out(case, tmp_path / "work")
@@ -720,7 +720,7 @@ def test_the_command_does_not_judge_a_host_it_cannot(
     said = capsys.readouterr()
     assert said.err.startswith("Cannot judge the store: ")
     assert "failed validation" not in said.err
-    assert not npm.exists()
+    assert node_free == []
 
 
 def test_an_id_twice_in_the_store_is_one_record_for_a_change(tmp_path: Path) -> None:
@@ -820,7 +820,10 @@ def test_a_file_half_written_is_put_back(tmp_path: Path, monkeypatch: pytest.Mon
 
 
 def test_a_write_that_fails_before_it_changes_anything_leaves_a_store_that_is_unchanged(
-    tmp_path: Path, npm: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+    tmp_path: Path,
+    node_free: list[Sequence[str]],
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
 ) -> None:
     case, root, plan = edited_store(tmp_path)
     write_configuration(root)
@@ -845,7 +848,7 @@ def test_a_write_that_fails_before_it_changes_anything_leaves_a_store_that_is_un
         "The changed records failed validation; the store is unchanged.\n"
     )
     assert bytes_under(root) == everything
-    assert not npm.exists()
+    assert node_free == []
 
 
 def test_a_store_that_cannot_be_listed_again_is_said_to_be_neither(
@@ -873,7 +876,7 @@ def test_a_store_that_cannot_be_listed_again_is_said_to_be_neither(
 
 
 def test_a_folder_that_holds_no_store_is_refused_by_name(
-    tmp_path: Path, npm: Path, capsys: pytest.CaptureFixture[str]
+    tmp_path: Path, node_free: list[Sequence[str]], capsys: pytest.CaptureFixture[str]
 ) -> None:
     case = case_named("add: a result, into a shard file that is not there yet")
     _, file = lay_out(case, tmp_path / "work")
@@ -895,7 +898,7 @@ def test_a_folder_that_holds_no_store_is_refused_by_name(
                 f"{what} failed validation; the store is unchanged.\n"
             )
     assert not nowhere.exists()
-    assert not npm.exists()
+    assert node_free == []
 
 
 class Refusing:
@@ -918,7 +921,7 @@ class Refusing:
 def test_a_result_that_cannot_be_printed_does_not_end_in_a_traceback_or_undo_a_write(
     error: Exception,
     tmp_path: Path,
-    npm: Path,
+    node_free: list[Sequence[str]],
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
@@ -937,7 +940,7 @@ def test_a_result_that_cannot_be_printed_does_not_end_in_a_traceback_or_undo_a_w
     assert main(given) == 0
     assert capsys.readouterr().err == "What the command did could not be printed. The store was written.\n"
     assert store_files(root) == left(case)
-    assert len(npm.read_text("utf-8").rstrip("\n").split("\n")) == 2
+    assert len(node_free) == 1
     # The store now checks, and a check that cannot say so has failed too.
     assert main(["records", "check", str(root)]) == 1
     assert capsys.readouterr().err == "What the command did could not be printed.\n"
@@ -948,7 +951,7 @@ def test_a_result_that_cannot_be_printed_does_not_end_in_a_traceback_or_undo_a_w
 
 
 def test_a_command_started_with_its_output_closed_prints_nothing_and_is_otherwise_the_same(
-    tmp_path: Path, npm: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, node_free: list[Sequence[str]], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     # Python has no stream at all then. Node opens the null device in its place.
     case, root, _ = edited_store(tmp_path)
@@ -961,7 +964,7 @@ def test_a_command_started_with_its_output_closed_prints_nothing_and_is_otherwis
     assert store_files(root) == before(case)
     assert main([*given, *case["ids"]]) == 0
     assert store_files(root) == left(case)
-    assert npm.exists()
+    assert len(node_free) == 1
 
     # The real thing: a process whose standard output is closed before it starts.
     done = subprocess.run(  # noqa: S603 - this interpreter, running this library
