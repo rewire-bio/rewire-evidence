@@ -46,7 +46,13 @@ from rewire_evidence.canonical import (
 )
 from rewire_evidence.families import AUDIT_DIR, OBJECT_SHARDS, manifest_shard_path
 from rewire_evidence.js import lower, trim, truthy
-from rewire_evidence.jsonl import StoreError, append_text, parse_value, write_text_atomically
+from rewire_evidence.jsonl import (
+    StoreError,
+    append_text,
+    parse_value,
+    write_bytes_atomically,
+    write_text_atomically,
+)
 from rewire_evidence.schema import Issue
 
 LAYERS: Final = ("exact-bytes", "archive-member", "text-layer", "canonical-json", "warc")
@@ -98,6 +104,10 @@ DEFAULT_ARCHIVE_TIER: Final = "t4-private"
 NO_STORE: Final = "t5-no-store"
 #: The data repository, whose release tags hold the public mirror.
 REPOSITORY: Final = "rewire-bio/rewire-benchmark-data"
+#: User-Agent sent by the archive fetcher to publisher and repository hosts.
+FETCH_USER_AGENT: Final = "rewire-benchmark-data archive fetcher (+https://rewire.it)"
+#: User-Agent sent by the licence resolver to metadata APIs.
+LICENCE_RESOLVE_USER_AGENT: Final = "rewire-benchmark-data licence resolver (+https://rewire.it)"
 CACHE_DIR: Final = "data/archive/cache"
 #: `expand` gives up on a file that expands to more than this, as `scripts/release/files.ts` does.
 MAX_EXPANDED: Final = 4 * 1024**3
@@ -618,6 +628,43 @@ def has_object(key: str, root: Path) -> bool:
     except (OSError, ArchiveError):
         return False
     return True
+
+
+def _gzip_level_9(data: bytes) -> bytes:
+    """Compress raw bytes with gzip at level 9."""
+    compressor = zlib.compressobj(level=9, wbits=31)
+    return compressor.compress(data) + compressor.flush()
+
+
+def put_object(data: bytes, root: Path = Path()) -> JsonObject:
+    """Store bytes in the local object cache under their SHA-256 key if not already present."""
+    if len(data) > MAX_EXPANDED:
+        raise ArchiveError(f"Object of {len(data)} bytes exceeds maximum expanded size {MAX_EXPANDED}")
+    key = sha256_hex(data)
+    destination = object_path(key, root)
+    if has_object(key, root):
+        return {"key": key, "bytes": len(data), "written": False}
+    write_bytes_atomically(destination, _gzip_level_9(data))
+    return {"key": key, "bytes": len(data), "written": True}
+
+
+def adopt_file(file: Path, key: str, root: Path = Path()) -> JsonObject:
+    """Move a streamed uncompressed file on disk into the gzip cache under `key`."""
+    destination = object_path(key, root)
+    if has_object(key, root):
+        file.unlink(missing_ok=True)
+        return {"key": key, "written": False}
+    try:
+        data = file.read_bytes()
+    except OSError as error:
+        raise StoreError(f"{file} cannot be read: {error}") from error
+    if len(data) > MAX_EXPANDED:
+        raise ArchiveError(f"{file} ({len(data)} bytes) exceeds maximum expanded size {MAX_EXPANDED}")
+    if sha256_hex(data) != key:
+        raise ArchiveError(f"{file} differs from its listed SHA-256")
+    write_bytes_atomically(destination, _gzip_level_9(data))
+    file.unlink(missing_ok=True)
+    return {"key": key, "written": True}
 
 
 def cached_files(root: Path) -> list[tuple[str, Path]]:

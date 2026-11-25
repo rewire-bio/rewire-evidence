@@ -1,0 +1,74 @@
+{
+  "recorded_from": {
+    "script": "scripts/fixtures/record_archive_network_fixture.mjs",
+    "store_ref": "91f76cf8e61cba9d6037a01a19c9aa3051184900"
+  },
+  "modules": [
+    {
+      "file": "scripts/archive/fetch.ts",
+      "sha256": "2f33d1228cdb6ea5df8a4a138daf80e49e1e56ed6faac76f742a01b83291ccc7"
+    },
+    {
+      "file": "scripts/archive/routes.ts",
+      "sha256": "ea312ca1bff0d4e36ac6eaaf772bce2699543b9f2b38efddeb5e368477838404"
+    },
+    {
+      "file": "scripts/archive/upload.ts",
+      "sha256": "37ece74ba244abbe9e2b9aa0e8815f1096c16e645cc7f3e430c86e30d709574b"
+    },
+    {
+      "file": "scripts/archive/pull.ts",
+      "sha256": "ec176a29e090deea7c5aa92a365ec2966bc3322cc3841da9f3f94af2f82e4516"
+    },
+    {
+      "file": "scripts/archive/publish.ts",
+      "sha256": "4556a55660c639192876f00f4cc3c9720666949789edcadf837f73cd8a75ad82"
+    },
+    {
+      "file": "scripts/archive/r2.ts",
+      "sha256": "9f64e823816dcb4fdecb7d2af8bc42b528843e053ba8ec095d75bc900a076635"
+    },
+    {
+      "file": "scripts/archive/objects.ts",
+      "sha256": "1fb03fcc500aad64e92a33c0b4839aa4400c9d1ad6835708051e5ffa58330dc9"
+    },
+    {
+      "file": "scripts/archive/cli.ts",
+      "sha256": "3c43b7d026fbd4ec76215829426af3aa71c599e3e9a09e4d3bff3565a53eff3c"
+    },
+    {
+      "file": "shared/archive/artifact.ts",
+      "sha256": "6ef0822dee69dfd57e8f88c97400e081eac7e65832ae9b6f54008dba3bef39ab"
+    },
+    {
+      "file": "shared/archive/layers/store.ts",
+      "sha256": "6c1f1e1221e52d741306a56fa8cc4375f5895606732870ed61909402393259b7"
+    },
+    {
+      "file": "scripts/licence/resolve.ts",
+      "sha256": "02158bc33c3035b59afa0a31c1f6fcd841b4d1d5b9637462471571816236fcbd"
+    }
+  ],
+  "commit_2026_11_17": [
+    {
+      "file": "data/archive/licence-candidates.jsonl",
+      "sha256": "3ad802b773294fabc84bef7b1ef569b5fd21ff7851b0b2130f9b413025e89e60"
+    },
+    {
+      "file": "data/omics/audits/2026-11-17-licence-resolve.receipts.jsonl",
+      "sha256": "ef59aa58933901fca84afcfc4be13b1b91c6882e0fbf066a65e474b9b1ecd8ab"
+    },
+    {
+      "file": "maintenance/reports/licence-resolve-2026-11-17.tsv",
+      "sha256": "01e86696cf125dceb2db8a4488c1e07f43b2d42e7c9347c9917aef06149e433f"
+    },
+    {
+      "file": "maintenance/reports/licence-resolve-2026-11-17.md",
+      "sha256": "759b92cb337d778d6f4766d44707225989c62f1ddec45e151b35a9c2f2193ef3"
+    }
+  ],
+  "targets": {
+    "count": 1497,
+    "sha256": "26e3800fdeca6cfe9f122d6d2a0a8a760aab4e4674cd9af56705129179c98377"
+  }
+}

@@ -123,15 +123,20 @@ def write_text(path: Path, text: str) -> None:
     path.write_bytes(text.encode("utf-8"))
 
 
+def write_bytes_atomically(path: Path, data: bytes) -> None:
+    """Write raw bytes through a temporary file and a rename, leaving no partial file."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(f"{path.name}.{os.getpid()}.{secrets.token_hex(6)}.tmp")
+    temporary.write_bytes(data)
+    temporary.replace(path)
+
+
 def write_text_atomically(path: Path, text: str) -> None:
     """Write through a temporary file and a rename, as the manifest writer does.
 
     An interrupted run leaves either the old file or the new one, never part of one.
     """
-    path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_name(f"{path.name}.{os.getpid()}.{secrets.token_hex(6)}.tmp")
-    temporary.write_bytes(text.encode("utf-8"))
-    temporary.replace(path)
+    write_bytes_atomically(path, text.encode("utf-8"))
 
 
 def append_text(path: Path, text: str) -> None:

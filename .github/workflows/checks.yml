@@ -79,7 +79,7 @@ env:
 jobs:
   checks:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
@@ -135,9 +135,10 @@ jobs:
           spanned=$(jq -r .recorded_from.store_ref scripts/expected/store-spans.json)
           said=$(jq -r .recorded_from.store_ref scripts/expected/store-spans-commands.json)
           kged=$(jq -r .recorded_from.store_ref scripts/expected/store-kg.json)
-          for named in "$held" "$expected" "$recorded" "$validated" "$registry" "$located" "$checked" "$tabled" "$archived" "$spanned" "$said" "$kged"; do
+          archived_net=$(jq -r .recorded_from.store_ref scripts/expected/store-archive-network.json)
+          for named in "$held" "$expected" "$recorded" "$validated" "$registry" "$located" "$checked" "$tabled" "$archived" "$spanned" "$said" "$kged" "$archived_net"; do
             if [ "$named" != "$STORE_REF" ]; then
-              echo "::error::STORE_REF is ${STORE_REF}, the checkout is ${held}, the pinned layout was measured at ${expected}, the TypeScript was recorded at ${recorded} and at ${validated}, the attribute registry was read at ${registry}, the locators at ${located}, the checks at ${checked}, the tables at ${tabled}, the archive at ${archived}, the spans at ${spanned} and the KG at ${kged}. All eleven must be one commit."
+              echo "::error::STORE_REF is ${STORE_REF}, the checkout is ${held}, the pinned layout was measured at ${expected}, the TypeScript was recorded at ${recorded} and at ${validated}, the attribute registry was read at ${registry}, the locators at ${located}, the checks at ${checked}, the tables at ${tabled}, the archive at ${archived}, the spans at ${spanned}, the KG at ${kged} and archive network at ${archived_net}. All must be one commit."
               exit 1
             fi
           done
@@ -518,6 +519,20 @@ jobs:
           echo "The triage queue of ${date} is written again byte for byte from ${QUEUE_REF}: ${rows} lines." > queue.log
           cat queue.log
 
+      - name: Check archive network and offline 2026-11-17 licence resolver
+        run: |
+          set -o pipefail
+          uv run --no-sync python scripts/verify_store_archive_network.py store --resolve-root queue-run --json archive-network.json 2>&1 | tee archive-network.log
+          jq -e '
+            .modules.same == 11 and
+            .committed_2026_11_17.same == 4 and
+            .reproduced_2026_11_17.same == 4 and
+            .targets_same == 1497 and
+            (.problems | length) == 0
+          ' archive-network.json > /dev/null
+          test -z "$(git -C store status --porcelain)"
+          test -z "$(git -C queue-run status --porcelain)"
+
       - name: Check KG export, ontology artifacts, and Node-free write SHACL
         run: |
           set -o pipefail
@@ -562,6 +577,7 @@ jobs:
             if [ -f tables.log ]; then echo; echo "### Table reader"; echo; echo '```'; cat tables.log; echo '```'; fi
             if [ -f archive.log ]; then echo; echo "### Archive read side"; echo; echo '```'; cat archive.log; echo '```'; fi
             if [ -f queue.log ]; then echo; echo "### Committed triage queue"; echo; echo '```'; cat queue.log; echo '```'; fi
+            if [ -f archive-network.log ]; then echo; echo "### Archive network and resolver"; echo; echo '```'; cat archive-network.log; echo '```'; fi
             if [ -f kg.log ]; then echo; echo "### Knowledge graph export and SHACL"; echo; echo '```'; cat kg.log; echo '```'; fi
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -716,6 +732,9 @@ jobs:
       - name: Record the archive read side
         working-directory: store
         run: node_modules/.bin/tsx ../scripts/fixtures/record_archive_fixture.mjs
+      - name: Record the archive network and licence resolver fixture
+        working-directory: store
+        run: node_modules/.bin/tsx ../scripts/fixtures/record_archive_network_fixture.mjs
       # Layer derivation: what classify, the container readers, the markup scanner, the Office
       # readers, the grid builder, the sanity gate and the registry build do with bytes the
       # stored objects have no like of, and what `npm run layers --` prints and writes on
@@ -817,6 +836,8 @@ jobs:
             src/rewire_evidence/data/powers-of-ten.json
             tests/fixtures/kg.json
             scripts/expected/store-kg.json
+            tests/fixtures/archive-network.json
+            scripts/expected/store-archive-network.json
             src/rewire_evidence/data/attribute-type-schemas.json
           if-no-files-found: ignore
       - name: Fixtures are what the TypeScript produces
