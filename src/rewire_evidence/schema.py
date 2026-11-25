@@ -88,10 +88,11 @@ _PUBLIC_RESULT_STATUSES = ("source_checked", "reproduced", "superseded")
 
 @dataclass(frozen=True)
 class RelationRule:
-    """The kinds a relation may link from and to."""
+    """The kinds a relation may link from and to, and what it means."""
 
     sources: tuple[str, ...]
     targets: tuple[str, ...]
+    meaning: str = ""
 
 
 _SYSTEMS = MODEL_SUBJECT_KINDS
@@ -101,30 +102,70 @@ _DATA = DATASET_SUBJECT_KINDS
 #: `relationRules` in `shared/omics/relations.ts`, in its order, which is the order of
 #: `relations`. `applicable_to` lists `evaluator` twice there, and so it does here.
 RELATION_RULES: dict[str, RelationRule] = {
-    "system": RelationRule(("evaluation",), _SYSTEMS),
-    "assessment": RelationRule(("evaluation",), _ASSESSMENTS),
-    "data": RelationRule(("evaluation",), _DATA),
-    "evaluation": RelationRule(("result",), ("evaluation",)),
-    "original_evaluation": RelationRule(("evaluation",), ("evaluation",)),
-    "implemented_by": RelationRule(("baseline",), _SYSTEMS),
-    "measured_in": RelationRule(("baseline",), ("evaluation",)),
-    "uses_data": RelationRule((*_ASSESSMENTS, "baseline"), _DATA),
-    "used_in": RelationRule(_DATA, _ASSESSMENTS),
-    "family": RelationRule(_SYSTEMS, _SYSTEMS),
-    "variant_of": RelationRule(tuple(kind for kind in _SYSTEMS if kind != "configuration"), _SYSTEMS),
-    "configuration_of": RelationRule(("configuration",), _SYSTEMS),
-    "alias_of": RelationRule(_SYSTEMS, _SYSTEMS),
-    "uses_model": RelationRule(_SYSTEMS, _SYSTEMS),
-    "part_of": RelationRule(_ASSESSMENTS, _ASSESSMENTS),
-    "parent": RelationRule(_ASSESSMENTS, _ASSESSMENTS),
-    "evaluates_task": RelationRule(_ASSESSMENTS, _ASSESSMENTS),
-    "applicable_to": RelationRule((*_SYSTEMS, "baseline"), (*_ASSESSMENTS, "evaluator")),
-    "same_data_as": RelationRule(_DATA, _DATA),
-    "companion_of": RelationRule(("source",), ("source",)),
-    "assessed_by": RelationRule(("use_case",), ("protocol",)),
-    "supersedes": RelationRule(KINDS, KINDS),
-    "subject": RelationRule(("claim",), KINDS),
-    "source": RelationRule(KINDS, ("source",)),
+    "system": RelationRule(
+        ("evaluation",),
+        _SYSTEMS,
+        "Evaluation to the configuration, model, method, pipeline or service it evaluated",
+    ),
+    "assessment": RelationRule(
+        ("evaluation",),
+        _ASSESSMENTS,
+        "Evaluation to the task, protocol or benchmark it was assessed on",
+    ),
+    "data": RelationRule(("evaluation",), _DATA, "Evaluation to the dataset or dataset subset it used"),
+    "evaluation": RelationRule(("result",), ("evaluation",), "Result to its evaluation"),
+    "original_evaluation": RelationRule(
+        ("evaluation",), ("evaluation",), "A copied evaluation to the evaluation it was copied from"
+    ),
+    "implemented_by": RelationRule(("baseline",), _SYSTEMS, "Baseline to what implements it"),
+    "measured_in": RelationRule(
+        ("baseline",), ("evaluation",), "Baseline to an evaluation that measured it as a comparator"
+    ),
+    "uses_data": RelationRule(
+        (*_ASSESSMENTS, "baseline"), _DATA, "Task, protocol or baseline to the data it uses"
+    ),
+    "used_in": RelationRule(_DATA, _ASSESSMENTS, "Dataset subset to the protocol that uses it"),
+    "family": RelationRule(_SYSTEMS, _SYSTEMS, "Configuration or model to its model family"),
+    "variant_of": RelationRule(
+        tuple(kind for kind in _SYSTEMS if kind != "configuration"),
+        _SYSTEMS,
+        "Model to the model it is a variant of",
+    ),
+    "configuration_of": RelationRule(
+        ("configuration",), _SYSTEMS, "Configuration to the model, method or pipeline it configures"
+    ),
+    "alias_of": RelationRule(_SYSTEMS, _SYSTEMS, "Same identity under another ID; never merges results"),
+    "uses_model": RelationRule(
+        _SYSTEMS, _SYSTEMS, "Pipeline, service or configuration to a model it depends on"
+    ),
+    "part_of": RelationRule(
+        _ASSESSMENTS, _ASSESSMENTS, "Task or protocol to the benchmark or suite it is part of"
+    ),
+    "parent": RelationRule(_ASSESSMENTS, _ASSESSMENTS, "Hierarchy within a benchmark"),
+    "evaluates_task": RelationRule(
+        _ASSESSMENTS, _ASSESSMENTS, "Benchmark or protocol to the task it evaluates"
+    ),
+    "applicable_to": RelationRule(
+        (*_SYSTEMS, "baseline"),
+        (*_ASSESSMENTS, "evaluator"),
+        "Candidate applicability; not evidence of performance",
+    ),
+    "same_data_as": RelationRule(_DATA, _DATA, "Informational data reuse; never merges results"),
+    "companion_of": RelationRule(
+        ("source",),
+        ("source",),
+        "Source to the paper it belongs with: its repository, leaderboard, supplement or another "
+        "version. One study; never merges results",
+    ),
+    "assessed_by": RelationRule(
+        ("use_case",),
+        ("protocol",),
+        "Use case to a protocol whose evaluations a reviewed relevance judgement claim "
+        "rates as evidence for it",
+    ),
+    "supersedes": RelationRule(KINDS, KINDS, "A newer record replacing an older one"),
+    "subject": RelationRule(("claim",), KINDS, "Claim to the record it is about"),
+    "source": RelationRule(KINDS, ("source",), "Record to a source it is derived from"),
 }
 #: Every relation a link may name, in the order the TypeScript lists them.
 RELATIONS = tuple(RELATION_RULES)

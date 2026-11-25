@@ -6,7 +6,11 @@ license = "MIT"
 license-files = ["LICENSE", "THIRD-PARTY-NOTICES.md"]
 requires-python = ">=3.12"
 authors = [{ name = "Tim Richardson" }]
-dependencies = []
+dependencies = [
+  "owlrl==7.6.2",
+  "pyshacl==0.40.1",
+  "rdflib==7.6.0",
+]
 
 [project.scripts]
 rewire-evidence = "rewire_evidence.cli:main"
@@ -50,6 +54,10 @@ strict = true
 warn_unreachable = true
 enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool", "possibly-undefined"]
 files = ["src", "scripts", "tests"]
+
+[[tool.mypy.overrides]]
+module = ["owlrl.*", "pyshacl.*"]
+ignore_missing_imports = true
 
 [tool.ruff]
 line-length = 110

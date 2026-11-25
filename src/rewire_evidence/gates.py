@@ -31,6 +31,7 @@ from rewire_evidence import (
     archiveparity,
     checkparity,
     conformance,
+    kgparity,
     layerparity,
     locators,
     replay,
@@ -47,6 +48,7 @@ from rewire_evidence.parity import (
     verify_record_digests,
     verify_store,
 )
+from rewire_evidence.schema import RecordError, SchemaError
 from rewire_evidence.vocab import VocabularyError
 from rewire_evidence.weburl import UndecidedHost
 
@@ -77,7 +79,7 @@ def _run(gate: Callable[[], int]) -> int:
     """
     try:
         return gate()
-    except (StoreError, VocabularyError, UndecidedHost, OSError) as error:
+    except (StoreError, VocabularyError, RecordError, SchemaError, UndecidedHost, OSError) as error:
         notes = getattr(error, "__notes__", [])
         _say(f"Cannot verify: {error}{''.join(f' ({note})' for note in notes)}")
         return 2
@@ -536,5 +538,58 @@ def _spans(
         f"\n{report.rows.same:,} results are measured again over {report.objects['held']:,} objects, each "
         f"with the line the TypeScript gives it. {report.held:,} results need a restricted object and are "
         "held to the recorded line.\n"
+    )
+    return 0
+
+
+def kg_gate(
+    arguments: Sequence[str],
+    expected: Path,
+    fixtures: tuple[Path, Path] | None = None,
+    description: str | None = None,
+) -> int:
+    """Run the knowledge-graph export and SHACL gate. Returns the status."""
+    parser = _parser(description)
+    parser.add_argument("--expected", type=Path, default=expected, help="what the TypeScript recorded")
+    parser.add_argument("--json", type=Path, default=None, help="write what was measured here")
+    args = parser.parse_args(arguments)
+    return _run(lambda: _kg(args.root, args.expected, fixtures, args.json))
+
+
+def _kg(
+    root: Path,
+    expected: Path,
+    fixtures: tuple[Path, Path] | None,
+    report_file: Path | None,
+) -> int:
+    recorded = conformance.read_recorded(expected)
+    loaded_fixture = None if fixtures is None else kgparity.load_fixture_with_base(fixtures[0], fixtures[1])
+    sys.stdout.write(
+        f"expecting the KG export and shapes as the TypeScript recorded at "
+        f"{conformance.recorded_ref(recorded)}\n"
+    )
+    report = kgparity.verify_kg(root, recorded, loaded_fixture)
+    summary_line = (
+        f"records={report.records:,} public={report.public_records:,} "
+        f"quads={report.asserted_quads:,} chunks={report.chunks_same}/{report.chunks_expected} "
+        f"modules={report.modules.same}/{report.modules.expected} "
+        f"subsets={report.subset_cases.same}/{report.subset_cases.expected}"
+    )
+    sys.stdout.write(f"{summary_line}\n")
+    _write_report(report_file, report.to_json())
+
+    if not report.asserted_quads:
+        sys.stderr.write("Cannot verify: the store produced no asserted quads\n")
+        return 2
+    for problem in report.problems[:PROBLEMS_SHOWN]:
+        sys.stderr.write(f"  {problem}\n")
+    if report.problems:
+        sys.stderr.write(
+            f"\n{len(report.problems):,} problems. The KG export or SHACL checks do not reproduce.\n"
+        )
+        return 1
+    sys.stdout.write(
+        f"\nAll {report.asserted_quads:,} asserted quads across {report.chunks_same} chunks, "
+        f"ontology outputs, and {report.subset_cases.same} subset/SHACL cases reproduce.\n"
     )
     return 0

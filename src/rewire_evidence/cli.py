@@ -27,6 +27,13 @@
     rewire-evidence spans control [--root ROOT]
     rewire-evidence spans value-check [--root ROOT]
     rewire-evidence spans show [--root ROOT] RESULT
+    rewire-evidence kg context [--root ROOT]
+    rewire-evidence kg export [--root ROOT]
+    rewire-evidence kg terms [--root ROOT]
+    rewire-evidence kg subset [--root ROOT] IDS_FILE DIR
+    rewire-evidence kg draft-block [--root ROOT] OUT
+    rewire-evidence kg shapes [--root ROOT] [--kg-dir DIR] [--context FILE] [--shard I/N]
+    rewire-evidence kg publish [--root ROOT] [--check]
 
 `check` loads the store at ROOT, the working directory by default, through every check
 `loadRecords` makes, and prints the line the TypeScript prints: how many records match their
@@ -44,12 +51,10 @@ BATCH-DIR. `change` records a reviewed change: to the records named, which were 
 place beforehand, or with `--changes` to the records a changes file holds, which it writes.
 REVIEW and BATCH-DIR are written into each changed record's provenance row with today's
 date in UTC. Both write every store file as the TypeScript writes it, then hold what they
-wrote to the SHACL shapes through the data repository's own `npm run kg -- subset` and
-`npm run kg:build -- --shapes-only`, so ROOT has to be a checkout of it with its
-dependencies installed. They print the line the TypeScript prints and exit 0. If the batch,
-the change or the shapes are refused, the refusal and one more line saying the store is
-unchanged go to standard error, every store file is as it was, including any the shapes
-commands touched, and the status is 1.
+wrote to the SHACL shapes in process without requiring Node. They print the line the
+TypeScript prints and exit 0. If the batch, the change or the shapes are refused, the
+refusal and one more line saying the store is unchanged go to standard error, every store
+file is as it was, and the status is 1.
 
 REVIEW, BATCH-DIR and each ID are read as Node reads an argument: bytes that are not UTF-8
 become U+FFFD. The paths of files are used as given. A ROOT with no `data` folder is refused
@@ -122,7 +127,7 @@ from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import TextIO
 
-from rewire_evidence import archivesaid, layersaid, ratchet, spansaid
+from rewire_evidence import archivesaid, kgexport, kgpublish, kgshapes, layersaid, ratchet, spansaid
 from rewire_evidence.agreement import check_summary
 from rewire_evidence.archivesaid import Said
 from rewire_evidence.attributes import said
@@ -289,7 +294,37 @@ def _parser() -> argparse.ArgumentParser:  # noqa: PLR0915 - one command to a fe
         writer.add_argument(
             "--dry-run", action="store_true", help="write nothing: print the lines that would change"
         )
+    _add_kg_parser(groups)
     return parser
+
+
+def _add_kg_parser(groups: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
+    kg = groups.add_parser("kg", help="knowledge-graph export and SHACL checks").add_subparsers(
+        dest="action", required=True
+    )
+    for name, about in (
+        ("context", "write data/ontology/context.jsonld"),
+        ("export", "export public/kg/asserted.nq and manifest.json"),
+        ("terms", "write data/ontology/rb-attributes.ttl and attribute-shapes.ttl"),
+        ("subset", "write subset asserted.nq and context.txt for SHACL validation"),
+        ("draft-block", "write the manifest draft block JSON"),
+        ("shapes", "check SHACL shapes on asserted N-Quads"),
+        ("publish", "pack, verify, and publish or check the KG release asset"),
+    ):
+        command = kg.add_parser(name, help=about)
+        command.add_argument("--root", type=Path, default=Path(), help="a rewire-benchmark-data checkout")
+        command.set_defaults(action=f"kg {name}")
+        if name == "subset":
+            command.add_argument("ids_file", type=Path, metavar="IDS_FILE", help="whitespace-separated IDs")
+            command.add_argument("out_dir", type=Path, metavar="DIR", help="output directory")
+        elif name == "draft-block":
+            command.add_argument("out", type=Path, metavar="OUT", help="output JSON path")
+        elif name == "shapes":
+            command.add_argument("--kg-dir", type=Path, default=None, help="directory containing asserted.nq")
+            command.add_argument("--context", type=Path, default=None, help="context IRIs file")
+            command.add_argument("--shard", default=None, help="shape group I/N")
+        elif name == "publish":
+            command.add_argument("--check", action="store_true", help="verify published asset only")
 
 
 def _tally(problems: Sequence[DescriptionProblem], label: str, key: str) -> list[str]:
@@ -552,6 +587,45 @@ def _spans_show(args: argparse.Namespace) -> Said:
     return spansaid.say_show(args.root, args.result)
 
 
+def _kg_context(args: argparse.Namespace) -> str:
+    kgexport.write_context(args.root)
+    return f"Wrote {kgexport.CONTEXT_FILE}"
+
+
+def _kg_export(args: argparse.Namespace) -> str:
+    _, quads, release_id = kgexport.export_store(args.root)
+    return f"Wrote {quads} quads for {release_id} to public/kg/"
+
+
+def _kg_terms(args: argparse.Namespace) -> str:
+    kgexport.write_terms(args.root)
+    return f"Wrote {kgexport.ATTRIBUTE_DECLARATIONS_FILE} and {kgexport.ATTRIBUTE_SHAPES_FILE}"
+
+
+def _kg_subset(args: argparse.Namespace) -> str:
+    subset = kgexport.export_subset(args.root, args.ids_file, args.out_dir)
+    return (
+        f"Wrote {len(subset.lines)} quads: {len(subset.checked)} records to check, "
+        f"{len(subset.context)} link targets."
+    )
+
+
+def _kg_draft_block(args: argparse.Namespace) -> str:
+    kgexport.write_draft_block(args.root, args.out)
+    return f"Wrote {args.out}"
+
+
+def _kg_shapes(args: argparse.Namespace) -> str:
+    kg_dir = args.root / "public/kg" if args.kg_dir is None else args.kg_dir
+    asserted = kgshapes.load_asserted(kg_dir / "asserted.nq")
+    context = set(args.context.read_text("utf-8").split()) if args.context is not None else None
+    return kgshapes.shapes_only_check(args.root, asserted, context=context, shard=args.shard)
+
+
+def _kg_publish(args: argparse.Namespace) -> str:
+    return "\n".join(kgpublish.publish_bundle(args.root, check_only=args.check))
+
+
 _ACTIONS: dict[str, Callable[[argparse.Namespace], str | Said]] = {
     "check": _check,
     "descriptions": _listed,
@@ -578,6 +652,13 @@ _ACTIONS: dict[str, Callable[[argparse.Namespace], str | Said]] = {
     "spans control": _spans_control,
     "spans value-check": _spans_value_check,
     "spans show": _spans_show,
+    "kg context": _kg_context,
+    "kg export": _kg_export,
+    "kg terms": _kg_terms,
+    "kg subset": _kg_subset,
+    "kg draft-block": _kg_draft_block,
+    "kg shapes": _kg_shapes,
+    "kg publish": _kg_publish,
 }
 #: What a write is called when it is refused, as the TypeScript calls it.
 _WRITTEN = {"add": "The batch", "change": "The changed records"}
@@ -602,7 +683,15 @@ def main(arguments: Sequence[str] | None = None) -> int:
     except RestoreError as error:
         _write(sys.stderr, str(error))
         return REFUSED
-    except (StoreError, VocabularyError, RecordError, SchemaError, ShapesError, OSError) as error:
+    except (
+        StoreError,
+        VocabularyError,
+        RecordError,
+        SchemaError,
+        ShapesError,
+        kgshapes.BuildError,
+        OSError,
+    ) as error:
         _write(sys.stderr, _refusal(error))
         if args.action in _WRITTEN:
             _write(sys.stderr, f"{_WRITTEN[args.action]} failed validation; the store is unchanged.")

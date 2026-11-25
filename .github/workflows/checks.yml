@@ -74,6 +74,7 @@ env:
   ARCHIVE_INPUTS: "22"
   ARCHIVE_QUEUE_ROWS: "1083"
   QUEUE_REF: 98da2c478ad8df25209fdff78ad116926f1e84de
+  STORE_QUADS: "2445824"
 
 jobs:
   checks:
@@ -133,9 +134,10 @@ jobs:
           archived=$(jq -r .recorded_from.store_ref scripts/expected/store-archive.json)
           spanned=$(jq -r .recorded_from.store_ref scripts/expected/store-spans.json)
           said=$(jq -r .recorded_from.store_ref scripts/expected/store-spans-commands.json)
-          for named in "$held" "$expected" "$recorded" "$validated" "$registry" "$located" "$checked" "$tabled" "$archived" "$spanned" "$said"; do
+          kged=$(jq -r .recorded_from.store_ref scripts/expected/store-kg.json)
+          for named in "$held" "$expected" "$recorded" "$validated" "$registry" "$located" "$checked" "$tabled" "$archived" "$spanned" "$said" "$kged"; do
             if [ "$named" != "$STORE_REF" ]; then
-              echo "::error::STORE_REF is ${STORE_REF}, the checkout is ${held}, the pinned layout was measured at ${expected}, the TypeScript was recorded at ${recorded} and at ${validated}, the attribute registry was read at ${registry}, the locators at ${located}, the checks at ${checked}, the tables at ${tabled} and the archive at ${archived}. All ten must be one commit."
+              echo "::error::STORE_REF is ${STORE_REF}, the checkout is ${held}, the pinned layout was measured at ${expected}, the TypeScript was recorded at ${recorded} and at ${validated}, the attribute registry was read at ${registry}, the locators at ${located}, the checks at ${checked}, the tables at ${tabled}, the archive at ${archived}, the spans at ${spanned} and the KG at ${kged}. All eleven must be one commit."
               exit 1
             fi
           done
@@ -516,6 +518,33 @@ jobs:
           echo "The triage queue of ${date} is written again byte for byte from ${QUEUE_REF}: ${rows} lines." > queue.log
           cat queue.log
 
+      - name: Check KG export, ontology artifacts, and Node-free write SHACL
+        run: |
+          set -o pipefail
+          uv run --no-sync python scripts/verify_store_kg.py store --json kg.json | tee kg.log
+          test "$(jq -r .asserted_quads kg.json)" -eq "$STORE_QUADS"
+          test "$(jq -r .chunks_same kg.json)" -eq "$(jq -r .chunks_expected kg.json)"
+          test "$(jq -r .modules.same kg.json)" -eq 4
+          test "$(jq -r .subset_cases.same kg.json)" -eq "$(jq -r .subset_cases.expected kg.json)"
+          write_work=$(mktemp -d)
+          trap 'rm -rf "$write_work"' EXIT
+          cp -a store "$write_work/store"
+          src_id=$(uv run --no-sync python -c '
+          import json
+          from pathlib import Path
+          p = Path("'"$write_work"'/store/data/entities/sources.jsonl")
+          lines = p.read_text("utf-8").splitlines()
+          row = json.loads(lines[0])
+          row["name"] = row["name"] + " (copy check)"
+          lines[0] = json.dumps(row, separators=(",", ":"), ensure_ascii=False)
+          p.write_text("\n".join(lines) + "\n", encoding="utf-8")
+          print(row["id"])
+          ')
+          PATH="/usr/bin:/bin" "$PWD/.venv/bin/rewire-evidence" records change \
+            --root "$write_work/store" docs/reviews/p13-check.md data/omics/p13-check "$src_id" >> kg.log
+          test -z "$(git -C store status --porcelain)"
+          cat kg.log
+
       - name: Summary
         if: always()
         run: |
@@ -533,6 +562,7 @@ jobs:
             if [ -f tables.log ]; then echo; echo "### Table reader"; echo; echo '```'; cat tables.log; echo '```'; fi
             if [ -f archive.log ]; then echo; echo "### Archive read side"; echo; echo '```'; cat archive.log; echo '```'; fi
             if [ -f queue.log ]; then echo; echo "### Committed triage queue"; echo; echo '```'; cat queue.log; echo '```'; fi
+            if [ -f kg.log ]; then echo; echo "### Knowledge graph export and SHACL"; echo; echo '```'; cat kg.log; echo '```'; fi
           } >> "$GITHUB_STEP_SUMMARY"
 
   # The write path, held to the data repository's own history. Each case is a merged pull
@@ -743,6 +773,10 @@ jobs:
           path: ${{ runner.temp }}/span-calls.jsonl*
           retention-days: 7
           if-no-files-found: ignore
+      - name: Record the knowledge-graph fixture
+        working-directory: store
+        run: PATH="$GITHUB_WORKSPACE/.venv/bin:$PATH" node_modules/.bin/tsx ../scripts/fixtures/record_kg_fixture.mjs
+
       - name: Keep what was recorded
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -781,6 +815,9 @@ jobs:
             src/rewire_evidence/data/lowercase.json
             src/rewire_evidence/data/pattern-classes.json
             src/rewire_evidence/data/powers-of-ten.json
+            tests/fixtures/kg.json
+            scripts/expected/store-kg.json
+            src/rewire_evidence/data/attribute-type-schemas.json
           if-no-files-found: ignore
       - name: Fixtures are what the TypeScript produces
         run: |
